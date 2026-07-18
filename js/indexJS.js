@@ -48,6 +48,10 @@ document.documentElement.classList.add('jsEnabled');
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const mobileHeaderMediaQuery = window.matchMedia('(max-width: 1080px)');
+
+const mobileParallaxMediaQuery = window.matchMedia('(max-width: 640px)');
+
 /* ============================================================
    SELECTORS
 ============================================================ */
@@ -198,6 +202,8 @@ let heroTabHidden = false;
 let heroPaused = false;
 
 let heroResumeAt = 0;
+
+let lastHeaderScrollY = window.scrollY;
 
 /* ============================================================
    SERVICE AREA DATA  (data-driven — extend for new regions)
@@ -1027,8 +1033,31 @@ function initializeParallaxSections()
 
     let parallaxTicking = false;
 
+    function clearParallaxLayers()
+    {
+
+        parallaxLayers.forEach(function (layer)
+        {
+
+            layer.style.transform = '';
+
+        });
+
+    }
+
     function applyParallaxLayers()
     {
+
+        if (mobileParallaxMediaQuery.matches)
+        {
+
+            clearParallaxLayers();
+
+            parallaxTicking = false;
+
+            return;
+
+        }
 
         const viewportHeight = window.innerHeight;
 
@@ -1065,23 +1094,47 @@ function initializeParallaxSections()
 
     }
 
-    window.addEventListener(
-        'scroll',
-        function ()
+    function requestParallaxUpdate()
+    {
+
+        if (!parallaxTicking)
         {
 
-            if (!parallaxTicking)
-            {
+            parallaxTicking = true;
 
-                parallaxTicking = true;
+            requestAnimationFrame(applyParallaxLayers);
 
-                requestAnimationFrame(applyParallaxLayers);
+        }
 
-            }
+    }
 
-        },
+    window.addEventListener(
+        'scroll',
+        requestParallaxUpdate,
         { passive: true }
     );
+
+    window.addEventListener(
+        'resize',
+        requestParallaxUpdate,
+        { passive: true }
+    );
+
+    if (mobileParallaxMediaQuery.addEventListener)
+    {
+
+        mobileParallaxMediaQuery.addEventListener(
+            'change',
+            requestParallaxUpdate
+        );
+
+    }
+    else
+    {
+
+        mobileParallaxMediaQuery.addListener(requestParallaxUpdate);
+
+    }
 
     applyParallaxLayers();
 
@@ -1094,7 +1147,47 @@ function initializeParallaxSections()
 function updateHeaderScrollState()
 {
 
-    siteHeader.classList.toggle('isScrolled', window.scrollY > 40);
+    const currentScrollY = Math.max(window.scrollY, 0);
+
+    siteHeader.classList.toggle('isScrolled', currentScrollY > 40);
+
+    if (prefersReducedMotion || !mobileHeaderMediaQuery.matches)
+    {
+
+        siteHeader.classList.remove('isHiddenMobile');
+
+        lastHeaderScrollY = currentScrollY;
+
+        return;
+
+    }
+
+    const isMenuOpen = mobileMenu.classList.contains('isOpen');
+
+    const isScrollingDown = currentScrollY > lastHeaderScrollY;
+
+    const hasMovedEnough = Math.abs(currentScrollY - lastHeaderScrollY) > 6;
+
+    if (isMenuOpen || currentScrollY <= 20)
+    {
+
+        siteHeader.classList.remove('isHiddenMobile');
+
+    }
+    else if (hasMovedEnough && isScrollingDown && currentScrollY > siteHeader.offsetHeight)
+    {
+
+        siteHeader.classList.add('isHiddenMobile');
+
+    }
+    else if (hasMovedEnough && !isScrollingDown)
+    {
+
+        siteHeader.classList.remove('isHiddenMobile');
+
+    }
+
+    lastHeaderScrollY = currentScrollY;
 
 }
 

@@ -507,7 +507,7 @@ html.jsEnabled [data-animate].isAnimated
 
     position: fixed;
 
-    top: 0;
+    top: env(safe-area-inset-top, 0px);
 
     left: 0;
 
@@ -519,7 +519,10 @@ html.jsEnabled [data-animate].isAnimated
 
     transition:
         background-color 0.35s var(--easePremium),
-        box-shadow 0.35s var(--easePremium);
+        box-shadow 0.35s var(--easePremium),
+        transform 0.35s var(--easePremium);
+
+    transform: translate3d(0, 0, 0);
 
 }
 
@@ -1859,9 +1862,18 @@ html:not(.jsEnabled) .heroHeadlineFixed
 
     letter-spacing: 0.02em;
 
-    text-transform: uppercase;
+    text-transform: none;
 
     color: var(--colorWhite);
+
+}
+
+.estimateHeadingLine
+{
+
+    display: block;
+
+    white-space: nowrap;
 
 }
 
@@ -3151,6 +3163,13 @@ html:not(.jsEnabled) .heroHeadlineFixed
     object-fit: cover;
 
     transition: transform 1.4s var(--easePremium);
+
+}
+
+.servicesGrid .serviceCard:last-child .serviceCardMedia img
+{
+
+    object-position: center 42%;
 
 }
 
@@ -5073,6 +5092,10 @@ html:not(.jsEnabled) .heroHeadlineFixed
 
     will-change: transform;
 
+    transform: translate3d(0, 0, 0);
+
+    backface-visibility: hidden;
+
 }
 
 .contactOverlay
@@ -5540,6 +5563,20 @@ html:not(.jsEnabled) .heroHeadlineFixed
 @media (max-width: 1080px)
 {
 
+    :root
+    {
+
+        --headerHeight: 70px;
+
+    }
+
+    .siteHeader.isHiddenMobile
+    {
+
+        transform: translate3d(0, calc(-100% - env(safe-area-inset-top, 0px)), 0);
+
+    }
+
     .primaryNav
     {
 
@@ -5551,6 +5588,29 @@ html:not(.jsEnabled) .heroHeadlineFixed
     {
 
         display: none;
+
+    }
+
+    .headerCta
+    {
+
+        display: none;
+
+    }
+
+    .brandBadge
+    {
+
+        width: 56px;
+
+        height: 56px;
+
+    }
+
+    .brandName
+    {
+
+        font-size: 1.45rem;
 
     }
 
@@ -5590,6 +5650,31 @@ html:not(.jsEnabled) .heroHeadlineFixed
     {
 
         grid-template-columns: repeat(2, 1fr);
+
+    }
+
+    .servicesGrid .serviceCard:last-child
+    {
+
+        grid-column: auto;
+
+        flex-direction: column;
+
+    }
+
+    .servicesGrid .serviceCard:last-child .serviceCardMedia
+    {
+
+        width: 100%;
+
+        aspect-ratio: 3 / 2;
+
+    }
+
+    .servicesGrid .serviceCard:last-child .serviceCardBody
+    {
+
+        justify-content: flex-start;
 
     }
 
@@ -5650,6 +5735,13 @@ html:not(.jsEnabled) .heroHeadlineFixed
 
 @media (max-width: 640px)
 {
+
+    :root
+    {
+
+        --headerHeight: 64px;
+
+    }
 
     .sectionInner
     {
@@ -5751,6 +5843,13 @@ html:not(.jsEnabled) .heroHeadlineFixed
 
     }
 
+    .servicesGrid .serviceCard:last-child .serviceCardMedia img
+    {
+
+        object-position: center 38%;
+
+    }
+
     .processSteps
     {
 
@@ -5833,6 +5932,19 @@ html:not(.jsEnabled) .heroHeadlineFixed
     {
 
         min-height: 68vh;
+
+    }
+
+    .contactParallaxImage
+    {
+
+        top: 0;
+
+        height: 100%;
+
+        transform: none;
+
+        will-change: auto;
 
     }
 
