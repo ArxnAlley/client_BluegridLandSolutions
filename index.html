@@ -56,11 +56,23 @@
          FAVICONS
     ============================================================ -->
 
-    <link rel="icon" type="image/png" sizes="32x32" href="graphics/favicons/web/favicon32.png">
+    <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="graphics/favicons/favicon.ico">
 
-    <link rel="icon" type="image/png" sizes="192x192" href="graphics/favicons/web/favicon192.png">
+    <link rel="icon" type="image/svg+xml" href="graphics/favicons/favicon.svg">
 
-    <link rel="apple-touch-icon" sizes="180x180" href="graphics/favicons/web/appleTouch180.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="graphics/favicons/favicon-96x96.png">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="graphics/favicons/apple-touch-icon.png">
+
+    <link rel="manifest" href="graphics/favicons/site.webmanifest">
+
+    <link rel="mask-icon" href="graphics/favicons/favicon.svg" color="#5B9BD5">
+
+    <meta name="theme-color" content="#101214">
+
+    <meta name="msapplication-TileColor" content="#101214">
+
+    <meta name="msapplication-TileImage" content="graphics/favicons/web-app-manifest-512x512.png">
 
     <!-- ============================================================
          FONTS & STYLES
@@ -72,7 +84,7 @@
 
     <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Rokkitt:wght@500;600;700&amp;display=swap"
     >
 
     <link rel="stylesheet" href="css/styleIndex.css">
@@ -342,7 +354,7 @@
 
                                 <li>
                                     <a class="megaServiceLink" href="services/huntingPropertyPrep.html">
-                                        <svg class="megaServiceIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21 C8 17 4 13 4 8 C4 5 6 3 9 3 C10.5 3 11.5 3.8 12 5 C12.5 3.8 13.5 3 15 3 C18 3 20 5 20 8 C20 13 16 17 12 21 Z"></path></svg>
+                                        <svg class="megaServiceIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2 A10 10 0 1 1 11.99 2 Z M12 4 A8 8 0 1 0 12.01 4 Z M11.2 2 H12.8 V6 H11.2 Z M11.2 18 H12.8 V22 H11.2 Z M2 11.2 H6 V12.8 H2 Z M18 11.2 H22 V12.8 H18 Z M10.6 10.6 H13.4 V13.4 H10.6 Z"></path></svg>
                                         <span class="megaServiceText">
                                             <strong>Hunting Property Prep</strong>
                                             <small>Shooting lanes, plots, and access routes</small>
@@ -611,24 +623,20 @@
                 <img
                     class="heroPlate heroPlateBefore"
                     id="heroPlateBefore"
-                    src="graphics/images/hero/heroBefore1920.jpg"
-                    srcset="graphics/images/hero/heroBefore1920.jpg 1920w, graphics/images/hero/heroBefore2560.jpg 2560w"
-                    sizes="100vw"
+                    src="graphics/images/hero_b4.JPG"
                     alt=""
-                    width="1920"
-                    height="1080"
+                    width="2048"
+                    height="1536"
                     fetchpriority="high"
                 >
 
                 <img
                     class="heroPlate heroPlateAfter"
                     id="heroPlateAfter"
-                    src="graphics/images/hero/heroAfter1920.jpg"
-                    srcset="graphics/images/hero/heroAfter1920.jpg 1920w, graphics/images/hero/heroAfter2560.jpg 2560w"
-                    sizes="100vw"
+                    src="graphics/images/hero_after.JPG"
                     alt=""
-                    width="1920"
-                    height="1080"
+                    width="2048"
+                    height="1536"
                 >
 
                 <div class="heroOverlay"></div>
@@ -643,10 +651,10 @@
                 <figure class="heroReducedInset">
 
                     <img
-                        src="graphics/images/hero/heroBefore1920.jpg"
+                        src="graphics/images/hero_b4.JPG"
                         alt=""
-                        width="1920"
-                        height="1080"
+                        width="2048"
+                        height="1536"
                         loading="lazy"
                     >
 
@@ -666,7 +674,7 @@
 
                     <h1 class="heroHeadline">
 
-                        <span class="heroHeadlineFixed" data-animate="clipReveal" data-animatedelay="400">Take Back</span>
+                        <span class="heroHeadlineFixed" id="heroHeadlineFixed">Take Back</span>
 
                         <span class="heroTypedWrap">
 
@@ -728,11 +736,11 @@
 
                     <form class="estimateForm" id="estimateForm" action="#" method="post" novalidate>
 
-                        <h2 class="estimateFormHeading">Get a Fast, Free Estimate</h2>
+                        <h2 class="estimateFormHeading">Get a Fast<br>Free Estimate</h2>
 
                         <p class="estimateFormSubline">
-                            Three quick fields to start — most estimates handled remotely
-                            within 24 hours.
+                            This is the first step to reclaiming your land — three quick
+                            fields to start.
                         </p>
 
                         <!-- Honeypot — hidden from humans, catnip for bots. Ignored by the payload. -->
@@ -1379,8 +1387,8 @@
 
                         <div class="serviceCardMedia">
                             <img
-                                src="graphics/images/work2.jpg"
-                                alt="Freshly cleared hillside under a utility corridor with track marks in the soil"
+                                src="graphics/images/overGrowthCleanedup.JPG"
+                                alt="Cleared field with select trees preserved, mulched ground ready to use"
                                 width="2048"
                                 height="1536"
                                 loading="lazy"
@@ -1592,8 +1600,8 @@
                     <div class="comparisonPane comparisonBefore">
 
                         <img
-                            src="graphics/images/work.jpg"
-                            alt="Before: hillside choked with brush, briars, and volunteer saplings"
+                            src="graphics/images/overGrowth.JPG"
+                            alt="Before: property choked with dense brush, briars, and volunteer saplings"
                             width="2048"
                             height="1536"
                             loading="lazy"
@@ -1606,8 +1614,8 @@
                     <div class="comparisonPane comparisonAfter" id="sliderAfterPane">
 
                         <img
-                            src="graphics/images/work2.jpg"
-                            alt="After: the same hillside cleared to open, workable ground"
+                            src="graphics/images/freshMulching.JPG"
+                            alt="After: the same property cleared to open ground with select trees preserved"
                             width="2048"
                             height="1536"
                             loading="lazy"
@@ -1735,8 +1743,8 @@
                             <figure class="storyFrame storyFrameWide">
 
                                 <img
-                                    src="graphics/images/excavator2.jpg"
-                                    alt="BlueGrid's track loader at dusk on a freshly finished clearing"
+                                    src="graphics/images/cleanCut.JPG"
+                                    alt="Freshly mulched corridor at dusk, clean and walkable the same evening"
                                     width="2048"
                                     height="1536"
                                     loading="lazy"
@@ -2692,10 +2700,14 @@
                     Ready to <span class="heroAccent">Take Back</span> Your Property?
                 </h2>
 
-                <p class="contactCopy" data-animate="fadeUp" data-animatedelay="150">
-                    This is the machine that does it — one owner in the seat, and most
-                    estimates answered within 24 hours.
-                </p>
+                <div class="contactCaption" data-animate="fadeUp" data-animatedelay="150">
+
+                    <p class="contactCopy">
+                        This is the machine that does it — one owner in the seat, and most
+                        estimates answered within 24 hours.
+                    </p>
+
+                </div>
 
                 <div class="contactActions" data-animate="fadeUp" data-animatedelay="300">
 
@@ -3070,19 +3082,37 @@
                         </a>
                     </li>
 
-                    <li>
+                    <li class="footerSocialItem">
+
                         <a
                             class="footerFacebookLink"
                             href="https://www.facebook.com/profile.php?id=61587582490592"
                             data-confighref="facebookUrl"
                             target="_blank"
                             rel="noopener"
+                            aria-label="BlueGrid Land Solutions on Facebook"
                         >
                             <svg class="footerFacebookIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <path d="M14 8.5 V6.8 C14 6 14.5 5.5 15.5 5.5 H17 V2.6 C16.4 2.5 15.5 2.4 14.6 2.4 C12.1 2.4 10.5 3.9 10.5 6.5 V8.5 H7.5 V11.5 H10.5 V21.5 H14 V11.5 H16.8 L17.3 8.5 Z"></path>
                             </svg>
-                            Facebook
                         </a>
+
+                        <!-- TODO: Client has no Google Business Profile yet.
+                             businessConfig.googleBusinessUrl is empty, so this
+                             stays pointed at "#" until a real URL is added. -->
+                        <a
+                            class="footerGoogleLink"
+                            href="#"
+                            data-confighref="googleBusinessUrl"
+                            target="_blank"
+                            rel="noopener"
+                            aria-label="BlueGrid Land Solutions on Google"
+                        >
+                            <svg class="footerGoogleIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M21.35 11.1 H12 V14 H17.35 C17.11 15.35 15.75 17.95 12 17.95 C8.8 17.95 6.2 15.3 6.2 12 C6.2 8.7 8.8 6.05 12 6.05 C13.82 6.05 15.04 6.83 15.74 7.5 L18.29 5.05 C16.7 3.55 14.65 2.65 12 2.65 C6.9 2.65 2.75 6.8 2.75 11.9 C2.75 17 6.9 21.15 12 21.15 C17.35 21.15 20.9 17.4 20.9 12.1 C20.9 11.5 20.83 11.05 20.75 10.95 Z"></path>
+                            </svg>
+                        </a>
+
                     </li>
 
                 </ul>
@@ -3150,7 +3180,7 @@
 
                 <p>&copy; 2026 BlueGrid Land Solutions &middot; All Rights Reserved.</p>
 
-                <span class="devCredit">
+                <a class="devCredit" href="https://nulostudio.com" target="_blank" rel="noopener">
 
                     <span class="devCreditLabel">Developed by</span>
 
@@ -3163,7 +3193,7 @@
                         loading="lazy"
                     >
 
-                </span>
+                </a>
 
             </div>
 

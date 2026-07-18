@@ -31,7 +31,12 @@ const businessConfig = {
     // all that remains, once the client confirms the page renders in the
     // Page Plugin. The embed is then injected into #facebookEmbedSlot,
     // replacing the designed fallback panel.
-    facebookPageConfigured: false
+    facebookPageConfigured: false,
+
+    // TODO: Paste the client's Google Business Profile URL here once it
+    // exists. The footer icon is already in place; while this is empty it
+    // stays pointed at "#" and applyBusinessConfig() leaves it alone.
+    googleBusinessUrl: ''
 
 };
 
@@ -68,6 +73,8 @@ const heroTypedText = document.getElementById('heroTypedText');
 const heroCursor = document.getElementById('heroCursor');
 
 const heroTypedGhost = document.getElementById('heroTypedGhost');
+
+const heroHeadlineFixed = document.getElementById('heroHeadlineFixed');
 
 const estimateMiniForm = document.getElementById('estimateForm');
 
@@ -149,13 +156,13 @@ const attribution = captureAttribution();
 const heroDuetConfig = {
 
     phrases: [
-        'your property.',
-        'your hunting land.',
-        'your trails.',
-        'your pasture.',
-        'your food plots.',
-        'your homesite.',
-        'access to your land.'
+        'YOUR PROPERTY.',
+        'YOUR HUNTING LAND.',
+        'YOUR TRAILS.',
+        'YOUR PASTURE.',
+        'YOUR FOOD PLOTS.',
+        'YOUR HOMESITE.',
+        'ACCESS TO YOUR LAND.'
     ],
 
     typeMsPerCharRange: [70, 110],
@@ -935,6 +942,25 @@ function initializeHeroDuet()
         heroTypedText.textContent = heroDuetConfig.phrases[0];
 
         return;
+
+    }
+
+    /* The fixed hook is always inside the hero's initial viewport,
+       so it gets a direct, guaranteed timer rather than depending
+       on the shared scroll-triggered IntersectionObserver engine. */
+
+    if (heroHeadlineFixed)
+    {
+
+        window.setTimeout(
+            function ()
+            {
+
+                heroHeadlineFixed.classList.add('isVisible');
+
+            },
+            400
+        );
 
     }
 
