@@ -2015,198 +2015,23 @@
                 </h2>
 
                 <p class="sectionLede" data-animate="fadeUp" data-animatedelay="200">
-                    Click a county to see the towns we cover. On the fence about distance?
-                    Ask anyway — we roam.
+                    Explore the live map of our Southern Ohio and Eastern Kentucky service
+                    area. On the fence about distance? Ask anyway — we roam.
                 </p>
 
                 <div class="serviceAreaLayout">
 
                     <div class="mapFrame" data-animate="scaleIn">
 
-                        <svg
-                            class="serviceAreaMap"
+                        <iframe
+                            class="serviceAreaMap serviceAreaGoogleMap"
                             id="serviceAreaMap"
-                            viewBox="0 0 920 640"
-                            role="group"
-                            aria-label="Stylized map of BlueGrid service counties in Southern Ohio and Eastern Kentucky"
-                        >
-
-                            <defs>
-
-                                <g id="pineMarker">
-                                    <path class="pineMarkerTriangle" d="M0 -14 L11 4 L-11 4 Z"></path>
-                                    <path class="pineMarkerTree" d="M0 -9 L3.5 -3 H2 L5 2 H-5 L-2 -3 H-3.5 Z"></path>
-                                </g>
-
-                                <pattern id="dotGrid" width="26" height="26" patternUnits="userSpaceOnUse">
-                                    <circle class="dotGridDot" cx="1.5" cy="1.5" r="1.3"></circle>
-                                </pattern>
-
-                            </defs>
-
-                            <!-- ── Dot grid backdrop ── -->
-
-                            <rect class="mapBackdrop" x="0" y="0" width="920" height="640" fill="url(#dotGrid)"></rect>
-
-                            <!-- ── Ohio River band ── -->
-
-                            <path
-                                class="mapRiverBand"
-                                d="M910 170 C800 260 660 330 500 352 C340 374 160 368 10 330"
-                                fill="none"
-                            ></path>
-
-                            <path
-                                class="mapRiverLine"
-                                d="M910 170 C800 260 660 330 500 352 C340 374 160 368 10 330"
-                                fill="none"
-                            ></path>
-
-                            <text class="mapRiverLabel" x="330" y="342" transform="rotate(-4 330 342)">OHIO RIVER</text>
-
-                            <!-- ── State labels ── -->
-
-                            <text class="mapStateLabel" x="44" y="70">Southern Ohio</text>
-
-                            <text class="mapStateLabel mapStateLabelRight" x="876" y="618">Eastern Kentucky</text>
-
-                            <!-- ── Ohio county tiles ── -->
-
-                            <g class="mapRegion" data-region="ross" tabindex="0" role="button" aria-pressed="false" aria-label="Ross County, Ohio">
-
-                                <rect class="tileShape" x="310" y="48" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="395" y="73">Ross</text>
-
-                                <text class="tileState" x="395" y="92">County, OH</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="395" y="38"></use>
-
-                            </g>
-
-                            <g class="mapRegion" data-region="gallia" tabindex="0" role="button" aria-pressed="false" aria-label="Gallia County, Ohio">
-
-                                <rect class="tileShape" x="670" y="52" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="755" y="77">Gallia</text>
-
-                                <text class="tileState" x="755" y="96">County, OH</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="755" y="42"></use>
-
-                            </g>
-
-                            <g class="mapRegion" data-region="jackson" tabindex="0" role="button" aria-pressed="false" aria-label="Jackson County, Ohio">
-
-                                <rect class="tileShape" x="480" y="96" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="565" y="121">Jackson</text>
-
-                                <text class="tileState" x="565" y="140">County, OH</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="565" y="86"></use>
-
-                            </g>
-
-                            <g class="mapRegion" data-region="pike" tabindex="0" role="button" aria-pressed="false" aria-label="Pike County, Ohio">
-
-                                <rect class="tileShape" x="230" y="140" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="315" y="165">Pike</text>
-
-                                <text class="tileState" x="315" y="184">County, OH</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="315" y="130"></use>
-
-                            </g>
-
-                            <g class="mapRegion" data-region="adams" tabindex="0" role="button" aria-pressed="false" aria-label="Adams County, Ohio">
-
-                                <rect class="tileShape" x="40" y="190" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="125" y="215">Adams</text>
-
-                                <text class="tileState" x="125" y="234">County, OH</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="125" y="180"></use>
-
-                            </g>
-
-                            <g class="mapRegion" data-region="scioto" tabindex="0" role="button" aria-pressed="false" aria-label="Scioto County, Ohio">
-
-                                <rect class="tileShape" x="410" y="214" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="495" y="239">Scioto</text>
-
-                                <text class="tileState" x="495" y="258">County, OH</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="495" y="204"></use>
-
-                            </g>
-
-                            <g class="mapRegion" data-region="lawrenceOh" tabindex="0" role="button" aria-pressed="false" aria-label="Lawrence County, Ohio">
-
-                                <rect class="tileShape" x="600" y="250" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="685" y="275">Lawrence</text>
-
-                                <text class="tileState" x="685" y="294">County, OH</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="685" y="240"></use>
-
-                            </g>
-
-                            <!-- ── Kentucky county tiles ── -->
-
-                            <g class="mapRegion" data-region="greenup" tabindex="0" role="button" aria-pressed="false" aria-label="Greenup County, Kentucky">
-
-                                <rect class="tileShape" x="250" y="424" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="335" y="449">Greenup</text>
-
-                                <text class="tileState" x="335" y="468">County, KY</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="335" y="414"></use>
-
-                            </g>
-
-                            <g class="mapRegion" data-region="boyd" tabindex="0" role="button" aria-pressed="false" aria-label="Boyd County, Kentucky">
-
-                                <rect class="tileShape" x="470" y="444" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="555" y="469">Boyd</text>
-
-                                <text class="tileState" x="555" y="488">County, KY</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="555" y="434"></use>
-
-                            </g>
-
-                            <g class="mapRegion" data-region="carter" tabindex="0" role="button" aria-pressed="false" aria-label="Carter County, Kentucky">
-
-                                <rect class="tileShape" x="230" y="528" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="315" y="553">Carter</text>
-
-                                <text class="tileState" x="315" y="572">County, KY</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="315" y="518"></use>
-
-                            </g>
-
-                            <g class="mapRegion" data-region="lawrenceKy" tabindex="0" role="button" aria-pressed="false" aria-label="Lawrence County, Kentucky">
-
-                                <rect class="tileShape" x="510" y="548" width="170" height="58" rx="14"></rect>
-
-                                <text class="tileName" x="595" y="573">Lawrence</text>
-
-                                <text class="tileState" x="595" y="592">County, KY</text>
-
-                                <use class="tileMarker" href="#pineMarker" x="595" y="538"></use>
-
-                            </g>
-
-                        </svg>
+                            title="Google map centered on BlueGrid Land Solutions' Southern Ohio and Eastern Kentucky service area"
+                            src="https://www.google.com/maps?q=38.6376,-82.6429&z=8&output=embed"
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"
+                            allowfullscreen
+                        ></iframe>
 
                     </div>
 
@@ -2214,13 +2039,25 @@
 
                         <p class="mapInfoState" id="mapInfoState">Service Area</p>
 
-                        <h3 class="mapInfoRegion" id="mapInfoRegion">Pick a County</h3>
+                        <h3 class="mapInfoRegion" id="mapInfoRegion">Core Coverage</h3>
 
                         <p class="mapInfoCopy" id="mapInfoCopy">
-                            Tap any county on the map to see the towns we serve there.
+                            We regularly serve these counties and the surrounding rural communities.
                         </p>
 
-                        <ul class="mapInfoTowns" id="mapInfoTowns"></ul>
+                        <ul class="mapInfoTowns" id="mapInfoTowns">
+                            <li>Ross County, OH</li>
+                            <li>Pike County, OH</li>
+                            <li>Jackson County, OH</li>
+                            <li>Gallia County, OH</li>
+                            <li>Adams County, OH</li>
+                            <li>Scioto County, OH</li>
+                            <li>Lawrence County, OH</li>
+                            <li>Greenup County, KY</li>
+                            <li>Boyd County, KY</li>
+                            <li>Carter County, KY</li>
+                            <li>Lawrence County, KY</li>
+                        </ul>
 
                         <a class="buttonPrimary mapInfoCta" id="mapInfoCta" href="#estimateForm">
                             Get an Estimate
@@ -3203,6 +3040,36 @@
         </div>
 
     </footer>
+
+    <!-- ============================================================
+         MOBILE FLOATING ACTIONS
+    ============================================================ -->
+
+    <div class="mobileFloatingActions" id="mobileFloatingActions" aria-hidden="true">
+
+        <a
+            class="mobileFloatingCall"
+            href="tel:+17404642526"
+            data-confighref="phoneHref"
+            aria-label="Call BlueGrid Land Solutions now"
+        >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.6 10.8 C8 13.6 10.4 16 13.2 17.4 L15.4 15.2 C15.7 14.9 16.1 14.8 16.5 15 C17.6 15.4 18.8 15.6 20 15.6 C20.6 15.6 21 16 21 16.6 V20 C21 20.6 20.6 21 20 21 C10.6 21 3 13.4 3 4 C3 3.4 3.4 3 4 3 H7.4 C8 3 8.4 3.4 8.4 4 C8.4 5.2 8.6 6.4 9 7.5 C9.1 7.9 9 8.3 8.8 8.6 Z"></path>
+            </svg>
+
+            <span>Call Now</span>
+
+        </a>
+
+        <a class="buttonPrimary mobileFloatingEstimate" id="mobileFloatingEstimate" href="#estimateForm">
+            Free Estimate
+        </a>
+
+    </div>
+
+    <button class="backToTopButton" id="backToTopButton" type="button" aria-label="Back to top" aria-hidden="true">
+        <span aria-hidden="true">&uarr;</span>
+    </button>
 
 </body>
 

@@ -50,6 +50,8 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 
 const mobileHeaderMediaQuery = window.matchMedia('(max-width: 1080px)');
 
+const mobileActionMediaQuery = window.matchMedia('(max-width: 640px)');
+
 const mobileParallaxMediaQuery = window.matchMedia('(max-width: 640px)');
 
 /* ============================================================
@@ -65,6 +67,12 @@ const mobileMenu = document.getElementById('mobileMenu');
 const mobileMenuToggle = document.getElementById('mobileMenuToggle');
 
 const mobileMenuClose = document.getElementById('mobileMenuClose');
+
+const mobileFloatingActions = document.getElementById('mobileFloatingActions');
+
+const mobileFloatingEstimate = document.getElementById('mobileFloatingEstimate');
+
+const backToTopButton = document.getElementById('backToTopButton');
 
 const heroSection = document.getElementById('top');
 
@@ -105,6 +113,8 @@ const formSubmitError = document.getElementById('formSubmitError');
 const formSuccessPanel = document.getElementById('formSuccessPanel');
 
 const viewWorkButton = document.getElementById('viewWorkButton');
+
+const siteFooter = document.querySelector('.siteFooter');
 
 const facebookEmbedSlot = document.getElementById('facebookEmbedSlot');
 
@@ -1144,6 +1154,54 @@ function initializeParallaxSections()
    HEADER & MEGA MENU  (reusable)
 ============================================================ */
 
+function setFloatingControlVisibility(control, shouldShow)
+{
+
+    if (!control)
+    {
+
+        return;
+
+    }
+
+    control.classList.toggle('isVisible', shouldShow);
+
+    control.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+
+}
+
+function updateFloatingControls(currentScrollY = Math.max(window.scrollY, 0))
+{
+
+    const isMobileActionViewport = mobileActionMediaQuery.matches;
+
+    const isMenuOpen = mobileMenu.classList.contains('isOpen');
+
+    const isTopNavigationHidden = siteHeader.classList.contains('isHiddenMobile');
+
+    const shouldShowMobileActions = isMobileActionViewport && isTopNavigationHidden && !isMenuOpen;
+
+    const footerBounds = siteFooter ? siteFooter.getBoundingClientRect() : null;
+
+    const isNearFooter = Boolean(footerBounds && footerBounds.top < window.innerHeight * 0.9);
+
+    const hasPassedFirstViewport = currentScrollY > window.innerHeight * 0.7;
+
+    const shouldShowBackToTop = isMobileActionViewport && isNearFooter && hasPassedFirstViewport;
+
+    setFloatingControlVisibility(mobileFloatingActions, shouldShowMobileActions);
+
+    setFloatingControlVisibility(backToTopButton, shouldShowBackToTop);
+
+    if (backToTopButton)
+    {
+
+        backToTopButton.classList.toggle('isLifted', shouldShowBackToTop && shouldShowMobileActions);
+
+    }
+
+}
+
 function updateHeaderScrollState()
 {
 
@@ -1157,6 +1215,8 @@ function updateHeaderScrollState()
         siteHeader.classList.remove('isHiddenMobile');
 
         lastHeaderScrollY = currentScrollY;
+
+        updateFloatingControls(currentScrollY);
 
         return;
 
@@ -1188,6 +1248,8 @@ function updateHeaderScrollState()
     }
 
     lastHeaderScrollY = currentScrollY;
+
+    updateFloatingControls(currentScrollY);
 
 }
 
@@ -1301,6 +1363,10 @@ function initializeMegaMenus()
 function openMobileMenu()
 {
 
+    siteHeader.classList.remove('isHiddenMobile');
+
+    updateFloatingControls();
+
     mobileMenu.classList.add('isOpen');
 
     mobileMenu.setAttribute('aria-hidden', 'false');
@@ -1308,6 +1374,22 @@ function openMobileMenu()
     mobileMenuToggle.setAttribute('aria-expanded', 'true');
 
     lockBodyScroll(true);
+
+}
+
+function toggleMobileMenu()
+{
+
+    if (mobileMenu.classList.contains('isOpen'))
+    {
+
+        closeMobileMenu();
+
+        return;
+
+    }
+
+    openMobileMenu();
 
 }
 
@@ -1321,6 +1403,8 @@ function closeMobileMenu()
     mobileMenuToggle.setAttribute('aria-expanded', 'false');
 
     lockBodyScroll(false);
+
+    updateFloatingControls();
 
 }
 
@@ -2118,12 +2202,74 @@ function initializeComparisonSlider()
    SERVICE AREA MAP  (data-driven, expansion-ready)
 ============================================================ */
 
+function getRegionStateAbbreviation(region)
+{
+
+    return region.state.includes('Ohio') ? 'OH' : 'KY';
+
+}
+
+function populateServiceAreaCoverageList()
+{
+
+    if (!mapInfoTowns)
+    {
+
+        return;
+
+    }
+
+    mapInfoTowns.textContent = '';
+
+    Object.keys(serviceRegions).forEach(function (regionKey)
+    {
+
+        const region = serviceRegions[regionKey];
+
+        const item = document.createElement('li');
+
+        item.textContent = region.name + ', ' + getRegionStateAbbreviation(region);
+
+        mapInfoTowns.appendChild(item);
+
+    });
+
+}
+
+function showServiceAreaCoverageSummary()
+{
+
+    if (mapInfoState)
+    {
+
+        mapInfoState.textContent = 'Service Area';
+
+    }
+
+    if (mapInfoRegion)
+    {
+
+        mapInfoRegion.textContent = 'Core Coverage';
+
+    }
+
+    if (mapInfoCopy)
+    {
+
+        mapInfoCopy.textContent = 'We regularly serve these counties and the surrounding rural communities.';
+
+    }
+
+    populateServiceAreaCoverageList();
+
+}
+
 function setActiveRegion(regionKey)
 {
 
     const region = serviceRegions[regionKey];
 
-    if (!region)
+    if (!region || !serviceAreaMap || !mapInfoState || !mapInfoRegion || !mapInfoCopy || !mapInfoTowns)
     {
 
         return;
@@ -2172,7 +2318,18 @@ function initializeServiceAreaMap()
 
     }
 
-    serviceAreaMap.querySelectorAll('.mapRegion').forEach(function (path)
+    const mapRegions = serviceAreaMap.querySelectorAll('.mapRegion');
+
+    if (!mapRegions.length)
+    {
+
+        showServiceAreaCoverageSummary();
+
+        return;
+
+    }
+
+    mapRegions.forEach(function (path)
     {
 
         path.addEventListener(
@@ -2347,9 +2504,58 @@ function applyBusinessConfig()
 
 window.addEventListener('scroll', updateHeaderScrollState, { passive: true });
 
-mobileMenuToggle.addEventListener('click', openMobileMenu);
+window.addEventListener(
+    'resize',
+    function ()
+    {
+
+        updateHeaderScrollState();
+
+    }
+);
+
+mobileMenuToggle.addEventListener('click', toggleMobileMenu);
 
 mobileMenuClose.addEventListener('click', closeMobileMenu);
+
+if (mobileFloatingEstimate)
+{
+
+    mobileFloatingEstimate.addEventListener(
+        'click',
+        function ()
+        {
+
+            siteHeader.classList.remove('isHiddenMobile');
+
+            updateFloatingControls();
+
+        }
+    );
+
+}
+
+if (backToTopButton)
+{
+
+    backToTopButton.addEventListener(
+        'click',
+        function ()
+        {
+
+            siteHeader.classList.remove('isHiddenMobile');
+
+            updateFloatingControls(0);
+
+            window.scrollTo({
+                top: 0,
+                behavior: prefersReducedMotion ? 'auto' : 'smooth'
+            });
+
+        }
+    );
+
+}
 
 estimateMiniForm.addEventListener(
     'submit',
