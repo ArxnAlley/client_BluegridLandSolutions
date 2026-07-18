@@ -74,6 +74,20 @@
 
     <meta name="msapplication-TileImage" content="graphics/favicons/web-app-manifest-512x512.png">
 
+    <script>
+        document.documentElement.classList.add('jsEnabled');
+
+        window.animationFallbackTimer = window.setTimeout(
+            function ()
+            {
+
+                document.documentElement.classList.add('animationFallback');
+
+            },
+            3000
+        );
+    </script>
+
     <!-- ============================================================
          FONTS & STYLES
     ============================================================ -->
@@ -89,7 +103,11 @@
 
     <link rel="stylesheet" href="css/styleIndex.css">
 
-    <script src="js/indexJS.js" defer></script>
+    <script
+        src="js/indexJS.js"
+        defer
+        onerror="document.documentElement.classList.add('animationFallback')"
+    ></script>
 
     <!-- ============================================================
          STRUCTURED DATA — LOCAL BUSINESS
@@ -247,7 +265,7 @@
 
     <header class="siteHeader" id="siteHeader">
 
-        <div class="headerInner">
+        <div class="headerInner" data-heroanimate="header" data-heroanimatedelay="20">
 
             <a class="brandLockup" href="#top" aria-label="BlueGrid Land Solutions — home">
 
@@ -668,11 +686,11 @@
 
                 <div class="heroContent">
 
-                    <p class="heroKicker" data-animate="fadeUp">
+                    <p class="heroKicker" data-heroanimate="fromLeft" data-heroanimatedelay="180">
                         Forestry Mulching &middot; Southern Ohio &amp; Eastern Kentucky
                     </p>
 
-                    <h1 class="heroHeadline">
+                    <h1 class="heroHeadline" data-heroanimate="fromLeft" data-heroanimatedelay="340">
 
                         <span class="heroHeadlineFixed" id="heroHeadlineFixed">Take Back</span>
 
@@ -694,32 +712,32 @@
 
                     </h1>
 
-                    <p class="heroCopy" data-animate="fadeUp" data-animatedelay="250">
+                    <p class="heroCopy" data-heroanimate="fromLeft" data-heroanimatedelay="560">
                         Owner-operated forestry mulching across Southern Ohio &amp; Eastern
                         Kentucky — done in days, not weeks.
                     </p>
 
                     <div class="heroActions">
 
-                        <a class="buttonPrimary buttonLarge" href="#estimateForm" data-animate="fadeUp" data-animatedelay="4300">Get My Free Estimate</a>
+                        <a class="buttonPrimary buttonLarge" href="#estimateForm" data-heroanimate="fromRight" data-heroanimatedelay="740">Get My Free Estimate</a>
 
-                        <a class="buttonGhost buttonLarge" href="#beforeAfter" data-animate="fadeUp" data-animatedelay="4420">See Transformations</a>
+                        <a class="buttonGhost buttonLarge" href="#beforeAfter" data-heroanimate="fromLeft" data-heroanimatedelay="870">See Transformations</a>
 
                     </div>
 
-                    <dl class="heroStats" data-animate="fadeUp" data-animatedelay="5300">
+                    <dl class="heroStats">
 
-                        <div class="heroStat">
+                        <div class="heroStat" data-heroanimate="fadeUp" data-heroanimatedelay="1010">
                             <dt>Acres Reclaimed</dt>
                             <dd><span class="statNumber" data-herocountertarget="200" data-herocountersuffix="+">200+</span></dd>
                         </div>
 
-                        <div class="heroStat">
+                        <div class="heroStat" data-heroanimate="fadeUp" data-heroanimatedelay="1110">
                             <dt>Estimate Turnaround</dt>
                             <dd><span class="statNumber" data-herocountertarget="24" data-herocountersuffix="hr">24hr</span></dd>
                         </div>
 
-                        <div class="heroStat">
+                        <div class="heroStat" data-heroanimate="fadeUp" data-heroanimatedelay="1210">
                             <dt>Counties Served</dt>
                             <dd><span class="statNumber" data-herocountertarget="12" data-herocountersuffix="">12</span></dd>
                         </div>
@@ -732,7 +750,7 @@
                      FREE ESTIMATE FORM
                 ============================================================ -->
 
-                <div class="estimateFormCard" data-animate="slideRight" data-animatedelay="200">
+                <div class="estimateFormCard" data-heroanimate="fadeUp" data-heroanimatedelay="1550">
 
                     <form class="estimateForm" id="estimateForm" action="#" method="post" novalidate>
 
@@ -853,27 +871,27 @@
 
             <ul class="trustList">
 
-                <li class="trustItem" data-animate="fadeUp">
+                <li class="trustItem" data-animate="slideLeft">
                     <svg class="trustIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 12 L12 15 L20 6 M21 12 A9 9 0 1 1 12 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                     <span>Free Estimates</span>
                 </li>
 
-                <li class="trustItem" data-animate="fadeUp" data-animatedelay="100">
+                <li class="trustItem" data-animate="slideRight" data-animatedelay="90">
                     <svg class="trustIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 12 A4 4 0 1 0 12 4 A4 4 0 0 0 12 12 Z M4 21 C4 16.6 7.6 14 12 14 C16.4 14 20 16.6 20 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
                     <span>Owner Operated</span>
                 </li>
 
-                <li class="trustItem" data-animate="fadeUp" data-animatedelay="200">
+                <li class="trustItem" data-animate="slideLeft" data-animatedelay="180">
                     <svg class="trustIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 L20 6 V11 C20 16 16.7 20 12 21 C7.3 20 4 16 4 11 V6 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg>
                     <span>Fully Insured</span>
                 </li>
 
-                <li class="trustItem" data-animate="fadeUp" data-animatedelay="300">
+                <li class="trustItem" data-animate="slideRight" data-animatedelay="270">
                     <svg class="trustIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M13 2 L5 14 H11 L9 22 L19 9 H13 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg>
                     <span>Fast Response</span>
                 </li>
 
-                <li class="trustItem" data-animate="fadeUp" data-animatedelay="400">
+                <li class="trustItem" data-animate="slideLeft" data-animatedelay="360">
                     <svg class="trustIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21 C8 16.5 5 13 5 9.5 C5 5.9 8.1 3 12 3 C15.9 3 19 5.9 19 9.5 C19 13 16 16.5 12 21 Z M12 12 A2.5 2.5 0 1 0 12 7 A2.5 2.5 0 0 0 12 12 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg>
                     <span>Serving Southern Ohio &amp; Eastern Kentucky</span>
                 </li>
@@ -916,7 +934,7 @@
 
             </div>
 
-            <div class="marqueeRow" data-animate="fadeIn">
+            <div class="marqueeRow" data-animate="reviewRow">
 
                 <div class="marqueeTrack marqueeTrackLeft">
 
@@ -1118,7 +1136,7 @@
 
             </div>
 
-            <div class="marqueeRow" data-animate="fadeIn" data-animatedelay="150">
+            <div class="marqueeRow" data-animate="reviewRow" data-animatedelay="140">
 
                 <div class="marqueeTrack marqueeTrackRight">
 
@@ -2322,7 +2340,7 @@
 
                     </div>
 
-                    <div class="faqItem" data-animate="fadeUp">
+                    <div class="faqItem" data-animate="fadeUp" data-animatedelay="80">
 
                         <h3 class="faqQuestion">
                             <button class="faqToggle" type="button" aria-expanded="false" aria-controls="faqPanel2" id="faqToggle2">
@@ -2343,7 +2361,7 @@
 
                     </div>
 
-                    <div class="faqItem" data-animate="fadeUp">
+                    <div class="faqItem" data-animate="fadeUp" data-animatedelay="160">
 
                         <h3 class="faqQuestion">
                             <button class="faqToggle" type="button" aria-expanded="false" aria-controls="faqPanel3" id="faqToggle3">
@@ -2364,7 +2382,7 @@
 
                     </div>
 
-                    <div class="faqItem" data-animate="fadeUp">
+                    <div class="faqItem" data-animate="fadeUp" data-animatedelay="240">
 
                         <h3 class="faqQuestion">
                             <button class="faqToggle" type="button" aria-expanded="false" aria-controls="faqPanel4" id="faqToggle4">
@@ -2384,7 +2402,7 @@
 
                     </div>
 
-                    <div class="faqItem" data-animate="fadeUp">
+                    <div class="faqItem" data-animate="fadeUp" data-animatedelay="320">
 
                         <h3 class="faqQuestion">
                             <button class="faqToggle" type="button" aria-expanded="false" aria-controls="faqPanel5" id="faqToggle5">
@@ -2404,7 +2422,7 @@
 
                     </div>
 
-                    <div class="faqItem" data-animate="fadeUp">
+                    <div class="faqItem" data-animate="fadeUp" data-animatedelay="400">
 
                         <h3 class="faqQuestion">
                             <button class="faqToggle" type="button" aria-expanded="false" aria-controls="faqPanel6" id="faqToggle6">
@@ -2424,7 +2442,7 @@
 
                     </div>
 
-                    <div class="faqItem" data-animate="fadeUp">
+                    <div class="faqItem" data-animate="fadeUp" data-animatedelay="480">
 
                         <h3 class="faqQuestion">
                             <button class="faqToggle" type="button" aria-expanded="false" aria-controls="faqPanel7" id="faqToggle7">
@@ -2444,7 +2462,7 @@
 
                     </div>
 
-                    <div class="faqItem" data-animate="fadeUp">
+                    <div class="faqItem" data-animate="fadeUp" data-animatedelay="560">
 
                         <h3 class="faqQuestion">
                             <button class="faqToggle" type="button" aria-expanded="false" aria-controls="faqPanel8" id="faqToggle8">
@@ -2464,7 +2482,7 @@
 
                     </div>
 
-                    <div class="faqItem" data-animate="fadeUp">
+                    <div class="faqItem" data-animate="fadeUp" data-animatedelay="640">
 
                         <h3 class="faqQuestion">
                             <button class="faqToggle" type="button" aria-expanded="false" aria-controls="faqPanel9" id="faqToggle9">
@@ -2483,7 +2501,7 @@
 
                     </div>
 
-                    <div class="faqItem" data-animate="fadeUp">
+                    <div class="faqItem" data-animate="fadeUp" data-animatedelay="720">
 
                         <h3 class="faqQuestion">
                             <button class="faqToggle" type="button" aria-expanded="false" aria-controls="faqPanel10" id="faqToggle10">
@@ -2549,11 +2567,11 @@
 
                 </div>
 
-                <div class="contactActions" data-animate="fadeUp" data-animatedelay="300">
+                <div class="contactActions">
 
-                    <a class="buttonPrimary buttonLarge" href="#estimateForm">Request Your Free Estimate</a>
+                    <a class="buttonPrimary buttonLarge" href="#estimateForm" data-animate="fadeUp" data-animatedelay="300">Request Your Free Estimate</a>
 
-                    <a class="contactPhone" href="tel:+17404642526" data-confighref="phoneHref">
+                    <a class="contactPhone" href="tel:+17404642526" data-confighref="phoneHref" data-animate="fadeUp" data-animatedelay="420">
 
                         <svg class="contactPhoneIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <path d="M6.6 10.8 C8 13.6 10.4 16 13.2 17.4 L15.4 15.2 C15.7 14.9 16.1 14.8 16.5 15 C17.6 15.4 18.8 15.6 20 15.6 C20.6 15.6 21 16 21 16.6 V20 C21 20.6 20.6 21 20 21 C10.6 21 3 13.4 3 4 C3 3.4 3.4 3 4 3 H7.4 C8 3 8.4 3.4 8.4 4 C8.4 5.2 8.6 6.4 9 7.5 C9.1 7.9 9 8.3 8.8 8.6 Z"></path>
@@ -2567,6 +2585,8 @@
                         class="buttonGhost buttonLarge"
                         href="https://www.facebook.com/profile.php?id=61587582490592"
                         data-confighref="facebookUrl"
+                        data-animate="fadeUp"
+                        data-animatedelay="540"
                         target="_blank"
                         rel="noopener"
                     >
@@ -2890,7 +2910,7 @@
 
         <div class="footerInner">
 
-            <div class="footerBrandColumn">
+            <div class="footerBrandColumn" data-animate="fadeUp">
 
                 <img
                     class="footerBadge"
@@ -2922,7 +2942,7 @@
                         </a>
                     </li>
 
-                    <li class="footerSocialItem">
+                    <li class="footerSocialItem" data-animate="fadeUp" data-animatedelay="280">
 
                         <a
                             class="footerFacebookLink"
@@ -2959,7 +2979,7 @@
 
             </div>
 
-            <nav class="footerLinksColumn" aria-label="Quick links">
+            <nav class="footerLinksColumn" aria-label="Quick links" data-animate="fadeUp" data-animatedelay="100">
 
                 <p class="footerColumnHeading">Quick Links</p>
 
@@ -2974,7 +2994,7 @@
 
             </nav>
 
-            <nav class="footerLinksColumn" aria-label="Services">
+            <nav class="footerLinksColumn" aria-label="Services" data-animate="fadeUp" data-animatedelay="200">
 
                 <p class="footerColumnHeading">Services</p>
 
@@ -2990,7 +3010,7 @@
 
             </nav>
 
-            <div class="footerLinksColumn">
+            <div class="footerLinksColumn" data-animate="fadeUp" data-animatedelay="300">
 
                 <p class="footerColumnHeading">Service Areas</p>
 
@@ -3018,9 +3038,9 @@
 
             <div class="footerBottomInner">
 
-                <p>&copy; 2026 BlueGrid Land Solutions &middot; All Rights Reserved.</p>
+                <p data-animate="fadeUp" data-animatedelay="360">&copy; 2026 BlueGrid Land Solutions &middot; All Rights Reserved.</p>
 
-                <a class="devCredit" href="https://nulostudio.com" target="_blank" rel="noopener">
+                <a class="devCredit" href="https://nulostudio.com" target="_blank" rel="noopener" data-animate="fadeUp" data-animatedelay="460">
 
                     <span class="devCreditLabel">Developed by</span>
 

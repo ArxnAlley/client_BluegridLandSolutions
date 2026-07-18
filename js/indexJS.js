@@ -44,8 +44,6 @@ const businessConfig = {
    ENVIRONMENT FLAGS
 ============================================================ */
 
-document.documentElement.classList.add('jsEnabled');
-
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const mobileHeaderMediaQuery = window.matchMedia('(max-width: 1080px)');
@@ -85,8 +83,6 @@ const heroTypedText = document.getElementById('heroTypedText');
 const heroCursor = document.getElementById('heroCursor');
 
 const heroTypedGhost = document.getElementById('heroTypedGhost');
-
-const heroHeadlineFixed = document.getElementById('heroHeadlineFixed');
 
 const estimateMiniForm = document.getElementById('estimateForm');
 
@@ -179,25 +175,21 @@ const heroDuetConfig = {
         'ACCESS TO YOUR LAND.'
     ],
 
-    typeMsPerCharRange: [70, 110],
+    typeMsPerCharRange: [68, 92],
 
-    hesitationMsRange: [180, 350],
+    deleteMsPerCharRange: [36, 48],
 
-    deleteFirstTapsMs: 95,
+    settleAfterPeriodMs: 100,
 
-    deleteRepeatMs: 38,
+    afterHoldMs: 1200,
 
-    settleAfterPeriodMs: 120,
+    emptyBreathMs: 220,
 
-    afterHoldMs: 2400,
-
-    emptyBreathMs: 550,
+    resumeBreathMs: 180,
 
     forwardSweepMs: 1400,
 
-    reverseDissolveMs: 1800,
-
-    entranceDelayMs: 1050
+    reverseDissolveMs: 1800
 
 };
 
@@ -211,9 +203,15 @@ let heroTabHidden = false;
 
 let heroPaused = false;
 
-let heroResumeAt = 0;
+let heroResumeTimerId = null;
+
+const heroPauseSubscribers = new Set();
+
+const heroResumeWaiters = [];
 
 let lastHeaderScrollY = window.scrollY;
+
+let heroEntranceComplete = prefersReducedMotion;
 
 /* ============================================================
    SERVICE AREA DATA  (data-driven — extend for new regions)
@@ -393,6 +391,13 @@ function lockBodyScroll(shouldLock)
 function animateCounter(element)
 {
 
+    if (element.dataset.counterAnimated === 'true')
+    {
+
+        return;
+
+    }
+
     const target = Number(element.dataset.countertarget);
 
     if (!Number.isFinite(target))
@@ -401,6 +406,8 @@ function animateCounter(element)
         return;
 
     }
+
+    element.dataset.counterAnimated = 'true';
 
     const prefix = element.dataset.counterprefix || '';
 
@@ -432,6 +439,38 @@ function animateCounter(element)
 
 }
 
+function prepareCounter(element)
+{
+
+    const prefix = element.dataset.counterprefix || '';
+
+    const suffix = element.dataset.countersuffix || '';
+
+    element.textContent = prefix + '0' + suffix;
+
+}
+
+function markAnimationComplete(element, delay)
+{
+
+    const completionDelay = Number(delay || 0) + 1250;
+
+    window.setTimeout(
+        function ()
+        {
+
+            element.classList.add('isAnimationComplete');
+
+            element.removeAttribute('data-animate');
+
+            element.style.removeProperty('--animateDelay');
+
+        },
+        completionDelay
+    );
+
+}
+
 function initializeAnimationEngine()
 {
 
@@ -443,7 +482,9 @@ function initializeAnimationEngine()
         animatedElements.forEach(function (element)
         {
 
-            element.classList.add('isAnimated');
+            element.classList.add('isAnimated', 'isAnimationComplete');
+
+            element.removeAttribute('data-animate');
 
         });
 
@@ -465,6 +506,10 @@ function initializeAnimationEngine()
 
     });
 
+    const standaloneCounters = document.querySelectorAll(
+        '.statNumber[data-countertarget]:not(.heroStats .statNumber)'
+    );
+
     const revealObserver = new IntersectionObserver(
         function (entries, observer)
         {
@@ -479,9 +524,16 @@ function initializeAnimationEngine()
 
                 }
 
-                entry.target.classList.add('isAnimated');
+                if (entry.target.matches('[data-animate]'))
+                {
 
-                entry.target.querySelectorAll('.statNumber[data-countertarget]').forEach(animateCounter);
+                    entry.target.classList.add('isAnimated');
+
+                    entry.target.querySelectorAll('.statNumber[data-countertarget]').forEach(animateCounter);
+
+                    markAnimationComplete(entry.target, entry.target.dataset.animatedelay);
+
+                }
 
                 if (entry.target.matches('.statNumber[data-countertarget]'))
                 {
@@ -495,7 +547,10 @@ function initializeAnimationEngine()
             });
 
         },
-        { threshold: 0.15 }
+        {
+            rootMargin: '0px 0px -24px 0px',
+            threshold: 0.12
+        }
     );
 
     animatedElements.forEach(function (element)
@@ -505,39 +560,13 @@ function initializeAnimationEngine()
 
     });
 
-    const counterOnlyElements = document.querySelectorAll('.statNumber[data-countertarget]');
-
-    const counterObserver = new IntersectionObserver(
-        function (entries, observer)
-        {
-
-            entries.forEach(function (entry)
-            {
-
-                if (!entry.isIntersecting)
-                {
-
-                    return;
-
-                }
-
-                animateCounter(entry.target);
-
-                observer.unobserve(entry.target);
-
-            });
-
-        },
-        { threshold: 0.4 }
-    );
-
-    counterOnlyElements.forEach(function (element)
+    standaloneCounters.forEach(function (element)
     {
 
         if (!element.closest('[data-animate]'))
         {
 
-            counterObserver.observe(element);
+            revealObserver.observe(element);
 
         }
 
@@ -552,17 +581,145 @@ function initializeAnimationEngine()
    deletion is clearing; the land answers.)
 ============================================================ */
 
-function heroWait(durationMs)
+/* ============================================================
+   HERO ENTRANCE SEQUENCE  (coordinated initial-load narrative)
+============================================================ */
+
+function initializeHeroEntrance()
 {
 
-    return new Promise(
-        function (resolve)
+    const heroAnimatedElements = document.querySelectorAll('[data-heroanimate]');
+
+    const heroStatElements = document.querySelectorAll('.heroStat[data-heroanimate]');
+
+    if (heroAnimatedElements.length === 0)
+    {
+
+        heroEntranceComplete = true;
+
+        return;
+
+    }
+
+    heroAnimatedElements.forEach(function (element)
+    {
+
+        const delay = element.dataset.heroanimatedelay || '0';
+
+        element.style.setProperty('--heroAnimateDelay', delay + 'ms');
+
+    });
+
+    if (prefersReducedMotion)
+    {
+
+        document.documentElement.classList.add('heroSequenceReady', 'heroSequenceComplete');
+
+        heroAnimatedElements.forEach(function (element)
         {
 
-            window.setTimeout(resolve, durationMs);
+            element.removeAttribute('data-heroanimate');
+
+            element.removeAttribute('data-heroanimatedelay');
+
+            element.style.removeProperty('--heroAnimateDelay');
+
+        });
+
+        if (window.animationFallbackTimer)
+        {
+
+            window.clearTimeout(window.animationFallbackTimer);
+
+        }
+
+        return;
+
+    }
+
+    heroStatElements.forEach(function (statElement)
+    {
+
+        const counter = statElement.querySelector('.statNumber[data-herocountertarget]');
+
+        if (!counter)
+        {
+
+            return;
+
+        }
+
+        counter.dataset.countertarget = counter.dataset.herocountertarget;
+
+        counter.dataset.countersuffix = counter.dataset.herocountersuffix || '';
+
+        prepareCounter(counter);
+
+        function startHeroCounter(event)
+        {
+
+            if (event.target !== statElement || event.propertyName !== 'opacity')
+            {
+
+                return;
+
+            }
+
+            statElement.removeEventListener('transitionend', startHeroCounter);
+
+            animateCounter(counter);
+
+        }
+
+        statElement.addEventListener('transitionend', startHeroCounter);
+
+    });
+
+    window.requestAnimationFrame(
+        function ()
+        {
+
+            window.requestAnimationFrame(
+                function ()
+                {
+
+                    document.documentElement.classList.add('heroSequenceReady');
+
+                }
+            );
 
         }
     );
+
+    window.setTimeout(
+        function ()
+        {
+
+            heroEntranceComplete = true;
+
+            document.documentElement.classList.add('heroSequenceComplete');
+
+            heroAnimatedElements.forEach(function (element)
+            {
+
+                element.removeAttribute('data-heroanimate');
+
+                element.removeAttribute('data-heroanimatedelay');
+
+                element.style.removeProperty('--heroAnimateDelay');
+
+            });
+
+        },
+        2200
+    );
+
+    if (window.animationFallbackTimer)
+    {
+
+        window.clearTimeout(window.animationFallbackTimer);
+
+    }
 
 }
 
@@ -570,6 +727,173 @@ function heroRandomBetween(min, max)
 {
 
     return min + (Math.random() * (max - min));
+
+}
+
+function resolveHeroResumeWaiters()
+{
+
+    const waitingResolvers = heroResumeWaiters.splice(0);
+
+    waitingResolvers.forEach(function (resolve)
+    {
+
+        resolve();
+
+    });
+
+}
+
+function waitForHeroResume()
+{
+
+    if (!heroPaused && heroResumeTimerId === null)
+    {
+
+        return Promise.resolve();
+
+    }
+
+    return new Promise(
+        function (resolve)
+        {
+
+            heroResumeWaiters.push(resolve);
+
+        }
+    );
+
+}
+
+function waitForHeroTiming(durationMs)
+{
+
+    return new Promise(
+        function (resolve)
+        {
+
+            let remainingMs = Math.max(Number(durationMs) || 0, 0);
+
+            let timeoutId = null;
+
+            let startedAt = 0;
+
+            let hasCompleted = false;
+
+            function completeTiming()
+            {
+
+                if (hasCompleted)
+                {
+
+                    return;
+
+                }
+
+                hasCompleted = true;
+
+                timeoutId = null;
+
+                heroPauseSubscribers.delete(pauseTiming);
+
+                resolve();
+
+            }
+
+            function pauseTiming()
+            {
+
+                if (timeoutId === null || hasCompleted)
+                {
+
+                    return;
+
+                }
+
+                window.clearTimeout(timeoutId);
+
+                timeoutId = null;
+
+                remainingMs = Math.max(remainingMs - (performance.now() - startedAt), 0);
+
+                heroPauseSubscribers.delete(pauseTiming);
+
+                continueTiming();
+
+            }
+
+            async function continueTiming()
+            {
+
+                await waitForHeroResume();
+
+                if (hasCompleted)
+                {
+
+                    return;
+
+                }
+
+                if (remainingMs <= 0)
+                {
+
+                    completeTiming();
+
+                    return;
+
+                }
+
+                startedAt = performance.now();
+
+                heroPauseSubscribers.add(pauseTiming);
+
+                timeoutId = window.setTimeout(completeTiming, remainingMs);
+
+            }
+
+            continueTiming();
+
+        }
+    );
+
+}
+
+function waitForHeroHookEntrance()
+{
+
+    const heroHeadline = document.querySelector('.heroHeadline[data-heroanimate]');
+
+    if (!heroHeadline)
+    {
+
+        return Promise.resolve();
+
+    }
+
+    return new Promise(
+        function (resolve)
+        {
+
+            function handleHookTransitionEnd(event)
+            {
+
+                if (event.target !== heroHeadline || event.propertyName !== 'opacity')
+                {
+
+                    return;
+
+                }
+
+                heroHeadline.removeEventListener('transitionend', handleHookTransitionEnd);
+
+                resolve();
+
+            }
+
+            heroHeadline.addEventListener('transitionend', handleHookTransitionEnd);
+
+        }
+    );
 
 }
 
@@ -582,20 +906,53 @@ function updateHeroPausedState()
 
     const shouldPause = heroOutOfView || heroTabHidden;
 
-    if (shouldPause && !heroPaused)
+    if (shouldPause === heroPaused)
     {
 
-        heroPaused = true;
+        return;
 
     }
-    else if (!shouldPause && heroPaused)
+
+    heroPaused = shouldPause;
+
+    if (shouldPause)
     {
 
-        heroPaused = false;
+        if (heroResumeTimerId !== null)
+        {
 
-        heroResumeAt = Date.now() + 500;
+            window.clearTimeout(heroResumeTimerId);
+
+            heroResumeTimerId = null;
+
+        }
+
+        heroCursor.classList.add('isPaused');
+
+        heroPauseSubscribers.forEach(function (pauseTiming)
+        {
+
+            pauseTiming();
+
+        });
+
+        return;
 
     }
+
+    heroResumeTimerId = window.setTimeout(
+        function ()
+        {
+
+            heroResumeTimerId = null;
+
+            heroCursor.classList.remove('isPaused');
+
+            resolveHeroResumeWaiters();
+
+        },
+        heroDuetConfig.resumeBreathMs
+    );
 
 }
 
@@ -630,6 +987,10 @@ function initializeHeroPauseTriggers()
 
     heroVisibilityObserver.observe(heroSection);
 
+    heroTabHidden = document.hidden;
+
+    updateHeroPausedState();
+
     document.addEventListener(
         'visibilitychange',
         function ()
@@ -644,158 +1005,73 @@ function initializeHeroPauseTriggers()
 
 }
 
-function heroWaitWhilePaused()
+/* ── Human typing: restrained per-character variation, a short
+     space pause, solid cursor while active, blink at rest. ── */
+
+async function typeHeroPhrase(phrase)
 {
 
-    return new Promise(
-        function (resolve)
+    heroCursor.classList.add('isSolid');
+
+    for (let charIndex = 0; charIndex < phrase.length; charIndex += 1)
+    {
+
+        heroTypedText.textContent = phrase.slice(0, charIndex + 1);
+
+        if (charIndex >= phrase.length - 1)
         {
 
-            function check()
-            {
-
-                if (!heroPaused && Date.now() >= heroResumeAt)
-                {
-
-                    resolve();
-
-                }
-                else
-                {
-
-                    window.setTimeout(check, 150);
-
-                }
-
-            }
-
-            check();
+            continue;
 
         }
-    );
+
+        let delay = heroRandomBetween(
+            heroDuetConfig.typeMsPerCharRange[0],
+            heroDuetConfig.typeMsPerCharRange[1]
+        );
+
+        if (phrase[charIndex] === ' ')
+        {
+
+            delay += 20;
+
+        }
+
+        await waitForHeroTiming(delay);
+
+    }
+
+    heroCursor.classList.remove('isSolid');
 
 }
 
-/* ── Human typing: variable per-character timing, one mid-phrase
-     hesitation, solid cursor while typing/deleting, blink at rest. ── */
-
-function typeHeroPhrase(phrase)
+async function deleteHeroPhrase(phrase)
 {
 
-    return new Promise(
-        function (resolve)
+    heroCursor.classList.add('isSolid');
+
+    for (let remaining = phrase.length - 1; remaining >= 0; remaining -= 1)
+    {
+
+        heroTypedText.textContent = phrase.slice(0, remaining);
+
+        if (remaining <= 0)
         {
 
-            let charIndex = 0;
-
-            heroCursor.classList.add('isSolid');
-
-            const hesitationIndex = 1 + Math.floor(Math.random() * Math.max(phrase.length - 2, 1));
-
-            function typeNextChar()
-            {
-
-                if (charIndex >= phrase.length)
-                {
-
-                    window.setTimeout(
-                        function ()
-                        {
-
-                            heroCursor.classList.remove('isSolid');
-
-                        },
-                        350
-                    );
-
-                    resolve();
-
-                    return;
-
-                }
-
-                heroTypedText.textContent = phrase.slice(0, charIndex + 1);
-
-                charIndex += 1;
-
-                let delay = heroRandomBetween(heroDuetConfig.typeMsPerCharRange[0], heroDuetConfig.typeMsPerCharRange[1]);
-
-                if (phrase[charIndex - 1] === ' ')
-                {
-
-                    delay += 30;
-
-                }
-
-                if (charIndex === hesitationIndex)
-                {
-
-                    delay += heroRandomBetween(heroDuetConfig.hesitationMsRange[0], heroDuetConfig.hesitationMsRange[1]);
-
-                }
-
-                window.setTimeout(typeNextChar, delay);
-
-            }
-
-            typeNextChar();
+            continue;
 
         }
-    );
 
-}
+        const delay = heroRandomBetween(
+            heroDuetConfig.deleteMsPerCharRange[0],
+            heroDuetConfig.deleteMsPerCharRange[1]
+        );
 
-function deleteHeroPhrase(phrase)
-{
+        await waitForHeroTiming(delay);
 
-    return new Promise(
-        function (resolve)
-        {
+    }
 
-            let remaining = phrase.length;
-
-            let tapsDone = 0;
-
-            heroCursor.classList.add('isSolid');
-
-            function deleteNextChar()
-            {
-
-                if (remaining <= 0)
-                {
-
-                    window.setTimeout(
-                        function ()
-                        {
-
-                            heroCursor.classList.remove('isSolid');
-
-                        },
-                        350
-                    );
-
-                    resolve();
-
-                    return;
-
-                }
-
-                remaining -= 1;
-
-                heroTypedText.textContent = phrase.slice(0, remaining);
-
-                tapsDone += 1;
-
-                const delay = tapsDone <= 2 ? heroDuetConfig.deleteFirstTapsMs : heroDuetConfig.deleteRepeatMs;
-
-                window.setTimeout(deleteNextChar, delay);
-
-            }
-
-            deleteNextChar();
-
-        }
-    );
+    heroCursor.classList.remove('isSolid');
 
 }
 
@@ -862,59 +1138,33 @@ function fireHeroReverseDissolve()
 
 }
 
-/* ── Hero stat counters run on their own schedule (decoupled from
-     the shared viewport-triggered engine) so they count up exactly
-     when they become visible in the entrance sequence. ── */
-
-function animateHeroStatCounters()
-{
-
-    document.querySelectorAll('.heroStats .statNumber[data-herocountertarget]').forEach(
-        function (element)
-        {
-
-            element.dataset.countertarget = element.dataset.herocountertarget;
-
-            element.dataset.countersuffix = element.dataset.herocountersuffix || '';
-
-            animateCounter(element);
-
-        }
-    );
-
-}
-
 async function runHeroDuetLoop()
 {
 
     heroCursor.classList.add('isVisible');
 
-    await heroWait(heroDuetConfig.entranceDelayMs);
+    await waitForHeroHookEntrance();
 
     for (;;)
     {
 
         const phrase = heroDuetConfig.phrases[heroPhraseIndex];
 
-        await heroWaitWhilePaused();
+        await waitForHeroResume();
 
         await typeHeroPhrase(phrase);
 
-        await heroWait(heroDuetConfig.settleAfterPeriodMs);
-
-        await heroWaitWhilePaused();
+        await waitForHeroTiming(heroDuetConfig.settleAfterPeriodMs);
 
         await fireHeroForwardSweepAndWait();
 
-        await heroWait(heroDuetConfig.afterHoldMs);
-
-        await heroWaitWhilePaused();
+        await waitForHeroTiming(heroDuetConfig.afterHoldMs);
 
         await deleteHeroPhrase(phrase);
 
         fireHeroReverseDissolve();
 
-        await heroWait(heroDuetConfig.emptyBreathMs);
+        await waitForHeroTiming(heroDuetConfig.emptyBreathMs);
 
         heroPhraseIndex = (heroPhraseIndex + 1) % heroDuetConfig.phrases.length;
 
@@ -961,25 +1211,6 @@ function initializeHeroDuet()
 
     }
 
-    /* The fixed hook is always inside the hero's initial viewport,
-       so it gets a direct, guaranteed timer rather than depending
-       on the shared scroll-triggered IntersectionObserver engine. */
-
-    if (heroHeadlineFixed)
-    {
-
-        window.setTimeout(
-            function ()
-            {
-
-                heroHeadlineFixed.classList.add('isVisible');
-
-            },
-            400
-        );
-
-    }
-
     if (heroPlateAfter.complete && heroPlateAfter.naturalWidth > 0)
     {
 
@@ -1003,8 +1234,6 @@ function initializeHeroDuet()
     }
 
     initializeHeroPauseTriggers();
-
-    animateHeroStatCounters();
 
     runHeroDuetLoop();
 
@@ -1208,6 +1437,19 @@ function updateHeaderScrollState()
     const currentScrollY = Math.max(window.scrollY, 0);
 
     siteHeader.classList.toggle('isScrolled', currentScrollY > 40);
+
+    if (!heroEntranceComplete)
+    {
+
+        siteHeader.classList.remove('isHiddenMobile');
+
+        lastHeaderScrollY = currentScrollY;
+
+        updateFloatingControls(currentScrollY);
+
+        return;
+
+    }
 
     if (prefersReducedMotion || !mobileHeaderMediaQuery.matches)
     {
@@ -2677,6 +2919,8 @@ applyBusinessConfig();
 updateHeaderScrollState();
 
 initializeAnimationEngine();
+
+initializeHeroEntrance();
 
 initializeHeroDuet();
 

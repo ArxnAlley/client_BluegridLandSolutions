@@ -42,7 +42,11 @@
 
     --easePremium: cubic-bezier(0.22, 1, 0.36, 1);
 
-    --durationReveal: 0.8s;
+    --durationReveal: 650ms;
+
+    --durationRevealShort: 420ms;
+
+    --durationHeroReveal: 560ms;
 
     --maxWidth: 1220px;
 
@@ -422,7 +426,7 @@ button
 }
 
 /* ============================================================
-   ANIMATION ENGINE  (reusable — IntersectionObserver driven)
+   ANIMATION ENGINE  (reusable — load sequence + viewport reveal)
 ============================================================ */
 
 html.jsEnabled [data-animate]
@@ -444,28 +448,35 @@ html.jsEnabled [data-animate]
 html.jsEnabled [data-animate="fadeUp"]
 {
 
-    transform: translateY(28px);
+    transform: translate3d(0, 24px, 0);
+
+}
+
+html.jsEnabled [data-animate="fadeIn"]
+{
+
+    transform: none;
 
 }
 
 html.jsEnabled [data-animate="slideLeft"]
 {
 
-    transform: translateX(-44px);
+    transform: translate3d(-32px, 0, 0);
 
 }
 
 html.jsEnabled [data-animate="slideRight"]
 {
 
-    transform: translateX(44px);
+    transform: translate3d(32px, 0, 0);
 
 }
 
 html.jsEnabled [data-animate="scaleIn"]
 {
 
-    transform: scale(0.94);
+    transform: translate3d(0, 14px, 0) scale(0.97);
 
 }
 
@@ -474,7 +485,7 @@ html.jsEnabled [data-animate="clipReveal"]
 
     clip-path: inset(0 0 100% 0);
 
-    transform: translateY(14px);
+    transform: translate3d(0, 14px, 0);
 
 }
 
@@ -487,7 +498,159 @@ html.jsEnabled [data-animate="drawLine"]
 
     transform-origin: left center;
 
-    transition: transform 1.3s var(--easePremium);
+    transition: transform 1.15s var(--easePremium);
+
+}
+
+html.jsEnabled .sectionKicker[data-animate="fadeUp"],
+html.jsEnabled .sectionHeading[data-animate="fadeUp"],
+html.jsEnabled .sectionLede[data-animate="fadeUp"]
+{
+
+    transform: translate3d(-30px, 0, 0);
+
+}
+
+html.jsEnabled .whyContent .sectionKicker[data-animate="fadeUp"],
+html.jsEnabled .whyContent .sectionHeading[data-animate="fadeUp"]
+{
+
+    transform: translate3d(30px, 0, 0);
+
+}
+
+html.jsEnabled .facebookPosts .postCard[data-animate="fadeUp"]
+{
+
+    transform: translate3d(14px, 24px, 0);
+
+}
+
+html.jsEnabled .servicesGrid .serviceCard:nth-child(3n + 1)[data-animate="fadeUp"],
+html.jsEnabled .transformationStories .storyCard:nth-child(3n + 1)[data-animate="fadeUp"]
+{
+
+    transform: translate3d(-14px, 24px, 0);
+
+}
+
+html.jsEnabled .servicesGrid .serviceCard:nth-child(3n)[data-animate="fadeUp"],
+html.jsEnabled .transformationStories .storyCard:nth-child(3n)[data-animate="fadeUp"]
+{
+
+    transform: translate3d(14px, 24px, 0);
+
+}
+
+html.jsEnabled [data-animate="reviewRow"]
+{
+
+    opacity: 1;
+
+    transform: none;
+
+    transition: none;
+
+    will-change: auto;
+
+}
+
+html.jsEnabled [data-animate="reviewRow"] .reviewCard
+{
+
+    opacity: 0;
+
+    transform: translate3d(0, 22px, 0);
+
+    transition:
+        opacity var(--durationReveal) var(--easePremium),
+        transform var(--durationReveal) var(--easePremium);
+
+    transition-delay: var(--animateDelay, 0ms);
+
+}
+
+html.jsEnabled [data-animate="reviewRow"] .reviewCard:nth-child(2)
+{
+
+    transition-delay: calc(var(--animateDelay, 0ms) + 80ms);
+
+}
+
+html.jsEnabled [data-animate="reviewRow"] .reviewCard:nth-child(3)
+{
+
+    transition-delay: calc(var(--animateDelay, 0ms) + 160ms);
+
+}
+
+html.jsEnabled [data-animate="reviewRow"] .reviewCard:nth-child(n + 4)
+{
+
+    transition-delay: calc(var(--animateDelay, 0ms) + 240ms);
+
+}
+
+html.jsEnabled [data-animate="reviewRow"].isAnimated .reviewCard
+{
+
+    opacity: 1;
+
+    transform: none;
+
+}
+
+html.jsEnabled .comparisonSlider[data-animate] .comparisonTag,
+html.jsEnabled .comparisonSlider[data-animate] .comparisonHandle
+{
+
+    opacity: 0;
+
+    transition:
+        opacity var(--durationRevealShort) var(--easePremium),
+        transform var(--durationRevealShort) var(--easePremium);
+
+}
+
+html.jsEnabled .comparisonSlider[data-animate] .comparisonTagBefore
+{
+
+    transform: translate3d(-12px, 0, 0);
+
+}
+
+html.jsEnabled .comparisonSlider[data-animate] .comparisonTagAfter
+{
+
+    transform: translate3d(12px, 0, 0);
+
+}
+
+html.jsEnabled .comparisonSlider[data-animate] .comparisonHandle
+{
+
+    transform: translate3d(-50%, 12px, 0);
+
+}
+
+html.jsEnabled .comparisonSlider[data-animate].isAnimated .comparisonTag,
+html.jsEnabled .comparisonSlider[data-animate].isAnimated .comparisonHandle
+{
+
+    opacity: 1;
+
+    transform: none;
+
+    transition-delay: 260ms;
+
+}
+
+html.jsEnabled .comparisonSlider[data-animate].isAnimated .comparisonHandle
+{
+
+    transform: translate3d(-50%, 0, 0);
+
+    transition-delay: 360ms;
 
 }
 
@@ -499,6 +662,131 @@ html.jsEnabled [data-animate].isAnimated
     transform: none;
 
     clip-path: inset(0 0 0 0);
+
+}
+
+html.jsEnabled .whyContent .sectionKicker[data-animate="fadeUp"].isAnimated,
+html.jsEnabled .whyContent .sectionHeading[data-animate="fadeUp"].isAnimated,
+html.jsEnabled .facebookPosts .postCard[data-animate="fadeUp"].isAnimated,
+html.jsEnabled .servicesGrid .serviceCard:nth-child(3n + 1)[data-animate="fadeUp"].isAnimated,
+html.jsEnabled .servicesGrid .serviceCard:nth-child(3n)[data-animate="fadeUp"].isAnimated,
+html.jsEnabled .transformationStories .storyCard:nth-child(3n + 1)[data-animate="fadeUp"].isAnimated,
+html.jsEnabled .transformationStories .storyCard:nth-child(3n)[data-animate="fadeUp"].isAnimated
+{
+
+    transform: none;
+
+}
+
+html.jsEnabled [data-animate].isAnimationComplete
+{
+
+    will-change: auto;
+
+}
+
+html.jsEnabled [data-heroanimate]
+{
+
+    opacity: 0;
+
+    transition:
+        opacity var(--durationHeroReveal) var(--easePremium),
+        transform var(--durationHeroReveal) var(--easePremium);
+
+    transition-delay: var(--heroAnimateDelay, 0ms);
+
+    will-change: opacity, transform;
+
+}
+
+html.jsEnabled [data-heroanimate="header"]
+{
+
+    transform: translate3d(0, -22px, 0);
+
+}
+
+html.jsEnabled [data-heroanimate="fromLeft"]
+{
+
+    transform: translate3d(-28px, 0, 0);
+
+}
+
+html.jsEnabled [data-heroanimate="fromRight"]
+{
+
+    transform: translate3d(28px, 0, 0);
+
+}
+
+html.jsEnabled [data-heroanimate="fadeUp"]
+{
+
+    transform: translate3d(0, 24px, 0);
+
+}
+
+html.jsEnabled.heroSequenceReady [data-heroanimate]
+{
+
+    opacity: 1;
+
+    transform: none;
+
+}
+
+html.jsEnabled.heroSequenceComplete [data-heroanimate]
+{
+
+    will-change: auto;
+
+}
+
+html.animationFallback [data-animate],
+html.animationFallback [data-heroanimate]
+{
+
+    opacity: 1 !important;
+
+    transform: none !important;
+
+    clip-path: none !important;
+
+    transition: none !important;
+
+    will-change: auto !important;
+
+}
+
+html.animationFallback [data-animate="reviewRow"] .reviewCard
+{
+
+    opacity: 1;
+
+    transform: none;
+
+    transition: none;
+
+}
+
+html.animationFallback .comparisonSlider[data-animate] .comparisonTag,
+html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
+{
+
+    opacity: 1;
+
+    transform: none;
+
+    transition: none;
+
+}
+
+html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
+{
+
+    transform: translate3d(-50%, 0, 0);
 
 }
 
@@ -1568,11 +1856,8 @@ html.jsEnabled [data-animate].isAnimated
 
 }
 
-/* Self-contained reveal — driven directly by the hero's own JS
-   timing engine (a plain setTimeout), not the shared viewport
-   IntersectionObserver system. The fixed hook is always in the
-   hero's initial viewport, so it needs a guaranteed trigger, not
-   a scroll-based one. */
+/* The coordinated hero sequence animates the headline as one unit,
+   keeping the permanent hook, typed line, and cursor synchronized. */
 
 .heroHeadlineFixed
 {
@@ -1594,36 +1879,6 @@ html.jsEnabled [data-animate].isAnimated
     color: var(--colorWhite);
 
     text-shadow: 0 3px 30px rgba(0, 0, 0, 0.65), 0 1px 3px rgba(0, 0, 0, 0.5);
-
-    opacity: 0;
-
-    transform: translateY(14px);
-
-    transition: opacity 0.6s var(--easePremium), transform 0.6s var(--easePremium);
-
-}
-
-html.jsEnabled .heroHeadlineFixed.isVisible,
-.heroHeadlineFixed.isVisible
-{
-
-    opacity: 1;
-
-    transform: none;
-
-}
-
-/* No-JS safety net: if jsEnabled never lands, the hook must still
-   show — this rule only fires when JS truly never ran. */
-
-html:not(.jsEnabled) .heroHeadlineFixed
-{
-
-    opacity: 1;
-
-    transform: none;
-
-    transition: none;
 
 }
 
@@ -1711,7 +1966,7 @@ html:not(.jsEnabled) .heroHeadlineFixed
 
     transition: opacity 200ms ease;
 
-    animation: heroCursorBlink 1.06s ease-in-out infinite;
+    animation: heroCursorBlink 1s ease-in-out infinite;
 
 }
 
@@ -1731,6 +1986,15 @@ html:not(.jsEnabled) .heroHeadlineFixed
 
 }
 
+.heroCursor.isPaused
+{
+
+    animation: none;
+
+    opacity: 1;
+
+}
+
 @keyframes heroCursorBlink
 {
 
@@ -1741,21 +2005,21 @@ html:not(.jsEnabled) .heroHeadlineFixed
 
     }
 
-    45%
+    40%
     {
 
         opacity: 1;
 
     }
 
-    50%
+    55%
     {
 
         opacity: 0;
 
     }
 
-    95%
+    85%
     {
 
         opacity: 0;
@@ -5647,6 +5911,49 @@ html:not(.jsEnabled) .heroHeadlineFixed
 
     }
 
+    html.jsEnabled [data-animate="slideLeft"],
+    html.jsEnabled [data-animate="slideRight"]
+    {
+
+        transform: translate3d(0, 20px, 0);
+
+    }
+
+    html.jsEnabled .servicesGrid .serviceCard:nth-child(3n + 1)[data-animate="fadeUp"],
+    html.jsEnabled .servicesGrid .serviceCard:nth-child(3n)[data-animate="fadeUp"],
+    html.jsEnabled .transformationStories .storyCard:nth-child(3n + 1)[data-animate="fadeUp"],
+    html.jsEnabled .transformationStories .storyCard:nth-child(3n)[data-animate="fadeUp"]
+    {
+
+        transform: translate3d(0, 22px, 0);
+
+    }
+
+    html.jsEnabled .facebookPosts .postCard[data-animate="fadeUp"]
+    {
+
+        transform: translate3d(0, 22px, 0);
+
+    }
+
+    html.jsEnabled .faqItem[data-animate]
+    {
+
+        transition-delay: 0ms;
+
+    }
+
+    html.jsEnabled .facebookPosts .postCard[data-animate="fadeUp"].isAnimated,
+    html.jsEnabled .servicesGrid .serviceCard:nth-child(3n + 1)[data-animate="fadeUp"].isAnimated,
+    html.jsEnabled .servicesGrid .serviceCard:nth-child(3n)[data-animate="fadeUp"].isAnimated,
+    html.jsEnabled .transformationStories .storyCard:nth-child(3n + 1)[data-animate="fadeUp"].isAnimated,
+    html.jsEnabled .transformationStories .storyCard:nth-child(3n)[data-animate="fadeUp"].isAnimated
+    {
+
+        transform: none;
+
+    }
+
     .sectionInner
     {
 
@@ -6211,6 +6518,37 @@ html:not(.jsEnabled) .heroHeadlineFixed
     {
 
         transition: none;
+
+    }
+
+    html.jsEnabled [data-heroanimate]
+    {
+
+        opacity: 1;
+
+        transform: none;
+
+        transition: none;
+
+    }
+
+    html.jsEnabled [data-animate="reviewRow"] .reviewCard,
+    html.jsEnabled .comparisonSlider[data-animate] .comparisonTag,
+    html.jsEnabled .comparisonSlider[data-animate] .comparisonHandle
+    {
+
+        opacity: 1;
+
+        transform: none;
+
+        transition: none;
+
+    }
+
+    html.jsEnabled .comparisonSlider[data-animate] .comparisonHandle
+    {
+
+        transform: translate3d(-50%, 0, 0);
 
     }
 
