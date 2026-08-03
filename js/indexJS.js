@@ -1138,40 +1138,65 @@ function fireHeroForwardSweepAndWait()
 
                 trigger();
 
-            }
-            else
-            {
-
-                heroPlateAfter.addEventListener('load', trigger, { once: true });
+                return;
 
             }
+
+            /* A plate that never loads must not strand the loop, so an
+               error resolves the wait the same way a load does — the
+               cycle then runs on the BEFORE plate alone rather than
+               stopping the hero dead. */
+
+            heroPlateAfter.addEventListener('load', trigger, { once: true });
+
+            heroPlateAfter.addEventListener('error', trigger, { once: true });
 
         }
     );
 
 }
 
-function fireHeroReverseDissolve()
+/* Resolves only once the plate is fully back to BEFORE and its classes
+   are clean. The loop must await this: the reset runs on a timer, and
+   if the next cycle's sweep starts before that timer fires, the stale
+   callback strips the `isRevealed` it just added — the AFTER plate
+   snaps away mid-sweep and the visual loop desyncs from the typing
+   loop. That was the "stops after a couple of cycles" defect.
+
+   The timer itself stays unpaused on purpose: the CSS opacity
+   transition cannot pause either, so the dissolve always finishes.
+   The loop takes its pause at the breath that follows. */
+
+function fireHeroReverseDissolveAndWait()
 {
 
-    heroPlateAfter.classList.add('isDissolving');
-
-    window.setTimeout(
-        function ()
+    return new Promise(
+        function (resolve)
         {
 
-            heroPlateAfter.classList.add('isResetting');
+            heroPlateAfter.classList.add('isDissolving');
 
-            heroPlateAfter.classList.remove('isRevealed');
+            window.setTimeout(
+                function ()
+                {
 
-            heroPlateAfter.classList.remove('isDissolving');
+                    heroPlateAfter.classList.add('isResetting');
 
-            void heroPlateAfter.offsetHeight;
+                    heroPlateAfter.classList.remove('isRevealed');
 
-            heroPlateAfter.classList.remove('isResetting');
+                    heroPlateAfter.classList.remove('isDissolving');
 
-        },
-        heroDuetConfig.reverseDissolveMs
+                    void heroPlateAfter.offsetHeight;
+
+                    heroPlateAfter.classList.remove('isResetting');
+
+                    resolve();
+
+                },
+                heroDuetConfig.reverseDissolveMs
+            );
+
+        }
     );
 
 }
@@ -1200,7 +1225,7 @@ async function runHeroDuetLoop()
 
         await deleteHeroPhrase(phrase);
 
-        fireHeroReverseDissolve();
+        await fireHeroReverseDissolveAndWait();
 
         await waitForHeroTiming(heroDuetConfig.emptyBreathMs);
 

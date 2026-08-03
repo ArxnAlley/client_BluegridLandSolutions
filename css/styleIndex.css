@@ -5893,6 +5893,103 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     }
 
+    /* ── Hero background decoupled from the estimate card ──
+       .heroInner collapses to one column at this breakpoint, so the
+       estimate card stacks underneath the hero copy. .heroMedia was
+       pinned to inset: 0, which meant the photograph grew with the
+       card and ran hundreds of pixels past the fold.
+
+       The correction is to stop letting section height drive the
+       picture at all: .heroMedia is pinned to the top with an explicit
+       height, the hero copy is sized to fill that same band, and the
+       estimate card sits on its own background below the seam.
+       Changing the form can no longer change the photograph. */
+
+    .heroSection
+    {
+
+        /* One number drives the media band, the copy block, and the
+           estimate band. lvh keeps the picture covering the viewport
+           in every browser-chrome state; vh is the older fallback. */
+        --heroMediaHeight: 100vh;
+        --heroMediaHeight: 100lvh;
+
+        min-height: var(--heroMediaHeight);
+
+        padding-top: calc(var(--headerHeight) + 2rem);
+
+        padding-bottom: 3rem;
+
+    }
+
+    /* The estimate band. Its own background, opening in the same
+       near-black the photograph fades into, so the seam reads as one
+       continuous surface rather than two stacked sections. */
+
+    .heroSection::after
+    {
+
+        content: "";
+
+        position: absolute;
+
+        top: var(--heroMediaHeight);
+
+        right: 0;
+
+        bottom: 0;
+
+        left: 0;
+
+        z-index: 0;
+
+        background: linear-gradient(180deg, var(--colorNearBlack) 0%, var(--colorCharcoal) 100%);
+
+    }
+
+    .heroMedia
+    {
+
+        inset: 0 0 auto;
+
+        height: var(--heroMediaHeight);
+
+    }
+
+    /* Lands the photograph on solid --colorNearBlack exactly at the
+       bottom of the media band. Done on the overlay rather than on
+       .heroPlate because the AFTER plate's mask-image *is* the sweep
+       animation and must not be overwritten. */
+
+    .heroOverlay
+    {
+
+        background:
+            linear-gradient(
+                100deg,
+                rgba(10, 11, 12, 0.72) 0%,
+                rgba(10, 11, 12, 0.48) 24%,
+                rgba(16, 18, 20, 0.20) 48%,
+                rgba(16, 18, 20, 0) 70%
+            ),
+            linear-gradient(
+                180deg,
+                rgba(16, 18, 20, 0.38) 0%,
+                rgba(16, 18, 20, 0) 26%,
+                rgba(16, 18, 20, 0.34) 64%,
+                rgba(16, 18, 20, 0.88) 88%,
+                var(--colorNearBlack) 100%
+            );
+
+    }
+
+    .heroPlate
+    {
+
+        object-position: center 68%;
+
+    }
+
     .heroInner
     {
 
@@ -5904,21 +6001,15 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     }
 
-    .heroSection
+    /* Holds the copy to the first screen so the estimate card always
+       arrives at the seam, whatever the copy happens to measure.
+       This is the min-height that used to live on .heroSection — it
+       belongs on the block it actually describes. */
+
+    .heroContent
     {
 
-        min-height: 90svh;
-
-        padding-top: calc(var(--headerHeight) + 2rem);
-
-        padding-bottom: 3rem;
-
-    }
-
-    .heroPlate
-    {
-
-        object-position: center 68%;
+        min-height: calc(var(--heroMediaHeight) - var(--headerHeight) - 3rem);
 
     }
 
@@ -5929,10 +6020,14 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     }
 
+    /* Rides up over the seam for the layered edge. */
+
     .estimateFormCard
     {
 
         max-width: 560px;
+
+        margin-top: -4.5rem;
 
     }
 
@@ -6151,11 +6246,19 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
     .heroSection
     {
 
-        min-height: 86svh;
-
         padding-top: calc(var(--headerHeight) + 1.2rem);
 
         padding-bottom: 2.2rem;
+
+    }
+
+    /* Tracks the tighter top padding above so the copy block still
+       ends exactly on the media seam. */
+
+    .heroContent
+    {
+
+        min-height: calc(var(--heroMediaHeight) - var(--headerHeight) - 2.2rem);
 
     }
 

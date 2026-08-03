@@ -14,6 +14,8 @@
 
 **Phase 2B — Service Area Pages: first wave complete.** The six cities `seoPlan.md` stages as the Phase 7 build set are live and wired. Rows 7–11 (Jackson, Gallipolis, Waverly, Greenup, Louisa) have **not** been built.
 
+**Phase 2C — Hero Mobile Refinement: complete.** The hero background is decoupled from the estimate form, the before/after transition alternates indefinitely, and the refreshed `hero_after` asset's filename casing is normalized.
+
 Still deferred by instruction until the production domain exists: `robots.txt`, `sitemap.xml`, canonical finalization, Open Graph absolute URLs.
 
 ---
@@ -74,11 +76,21 @@ Take the existing BlueGrid Land Solutions website from "built but not launchable
 - **Rowan County added to coverage data** — Morehead has always been advertised in the nav but Rowan County was absent from `serviceRegions`, the `LocalBusiness` `areaServed`, the map panel, and the homepage FAQ. All four now agree. **TODO-marked for client confirmation** (see Waiting on Client).
 - **Validation:** 14 pages, **1,372 internal links and assets checked, zero broken**; every same-page and cross-page anchor resolves; one `<h1>` per page; zero duplicate IDs; tag balance across 16 element types; every JSON-LD block parses; titles and meta descriptions unique sitewide; `serviceNeeded` enum identical across all 14 pages and `config.gs`; CSS braces balanced; `node --check` clean on `js/indexJS.js`; Apps Script harness still 64/64.
 
+### Phase 2C — Hero Mobile Refinement
+
+- **Hero background decoupled from the estimate form.** `.heroMedia` was `inset: 0`, so on mobile — where `.heroInner` collapses to one column and the estimate card stacks below the copy — the photograph stretched to cover the whole doubled section and ran far past the fold. It is now pinned top-only with an explicit `height: var(--heroMediaHeight)` (`100lvh`, with a `100vh` fallback), and that one custom property drives the media band, the copy block, and the estimate band. Changing the form can no longer change the picture.
+- **The estimate area is its own background band.** `.heroSection::after` paints from the media seam to the section bottom, opening in `--colorNearBlack` and settling into `--colorCharcoal`. `.heroOverlay` now lands on solid `--colorNearBlack` at the bottom of the media band, so the photograph dissolves into the band's opening colour and the seam is invisible. The estimate card rides **24px** up over that seam for the layered edge.
+- **The fade lives on the overlay, not the plates** — a bottom `mask-image` on `.heroPlate` would have overwritten `.heroPlateAfter`'s mask, which *is* the sweep animation. A validator check now guards against exactly that.
+- **Before/after transition alternates forever.** `fireHeroReverseDissolve()` was fire-and-forget with an 1800ms cleanup timer while the loop moved on after 220ms, so the stale cleanup from one cycle stripped the `isRevealed` of the next — the AFTER plate snapped away mid-sweep. It is now `fireHeroReverseDissolveAndWait()` and the loop awaits it. `fireHeroForwardSweepAndWait()` also gained an `error` fallback so an image that fails to load can no longer strand the loop permanently.
+- **Hero asset casing normalized.** The refreshed image arrived as `hero_after.jpg` on disk while git still tracked `hero_after.JPG`; harmless on Windows, a 404 waiting to happen on case-sensitive hosting. Renamed in git and all 3 references updated.
+- **Desktop untouched** — every layout change lives inside the `1080px` media query, and `--heroMediaHeight` does not exist above it. The typing animation and all typography were not modified.
+- **Validation:** a VM harness ran the real `runHeroDuetLoop()` against a virtual clock for 10 minutes of page time — **92 cycles, perfectly alternating, 6.13–6.94s cadence, zero clipped reveals**; the same harness fails on the pre-fix code (90 of 108 reveals clipped). A layout validator parses the shipped stylesheet and confirms the copy block ends **exactly** on the seam with a **24px** card overlap at 360×640, 390×844, 430×932, 768×1024, and 1024×1366.
+
 ---
 
 ## Currently In Progress
 
-Nothing. Phase 2B's first wave is complete and committed. The session ended at a clean stopping point.
+Nothing. Phase 2C is complete and committed. The session ended at a clean stopping point.
 
 ---
 

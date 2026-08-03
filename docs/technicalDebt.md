@@ -81,6 +81,14 @@ Mitigated: interior pages were generated from a guarded assembler, not hand-copi
 ### 15. Photo upload not implemented
 Phase 1 records `photoCount` and `photoNames` only; no bytes are uploaded and `photoUrls` stays `[]`. The owner email says so explicitly and tells the owner to request photos directly. `leads.addPhotos` is specced in `phase11PhotoUploadService.md`; `routes.gs` is the extension point.
 
+### 15a. Hero animation durations are duplicated between CSS and JS
+`heroDuetConfig.forwardSweepMs` (1400) and `reverseDissolveMs` (1800) in `js/indexJS.js` must stay in lockstep with `transition: --heroSweepPos 1400ms` and `transition: opacity 1800ms` in `css/styleIndex.css`. Nothing enforces the pairing.
+They agree today, and Phase 2C made the loop await the dissolve, so a drift would now show up as a visible gap rather than a desync — but it would still be wrong. The clean fix is to read the durations from CSS custom properties via `getComputedStyle` so the stylesheet is the single source.
+
+### 15b. Orphan hero asset
+`graphics/images/after.JPG` (427KB) was committed in `fb15070` alongside the hero refresh and is referenced nowhere in the site. It appears to be the previous `hero_after` image kept as a backup.
+Harmless but it ships to visitors' hosting. Delete it or move it out of the deployed tree — left in place because it is the client's asset, not one this project created.
+
 ### 16. No Lighthouse / performance pass yet
 Deferred by instruction until Priorities 1–4 complete. Known candidates: hero images are full-resolution (`2048×1536`) with no responsive `srcset`; Google Fonts loads render-blocking.
 
@@ -90,6 +98,10 @@ Copy says "the owner" throughout because naming Chase publicly was never approve
 ### 18. Current service is not highlighted in the mega menu
 `servicePageArchitecture.md` (Shared Template Anatomy, row 1) specifies "current service highlighted in the Services menu". It is not implemented — the header block is byte-identical across all 7 service pages and all 6 location pages. Pre-existing; found while splicing chrome for the location tier.
 Cosmetic and low risk, but it is a documented requirement the build does not meet. Two ways to fix it: a per-page class on one `<li>` in 13 files, or a small `js/indexJS.js` routine that marks the nav item matching `window.location.pathname`. The JS route is better — one place, no duplication, and it covers location pages for free.
+
+### 18a. Nothing has been checked in a real browser
+No session on this project has had Playwright or Chrome DevTools available, so every validation to date is static analysis or simulation. That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything actually *looks*.
+Before launch someone should open the homepage on a real phone and confirm: the hero photo ends at the fold, the seam into the estimate band is invisible, the estimate card's overlap reads as intentional, and the before/after transition alternates smoothly. Same pass on a tablet and a desktop.
 
 ### 19. Rowan County coverage is asserted, not confirmed
 Morehead has been advertised in the mega menu and mobile menu since Phase 1, but Rowan County appeared in none of the four places the site lists counties (`serviceRegions` in `js/indexJS.js`, `LocalBusiness` `areaServed`, the static map panel list, and both copies of the "Do you travel to my county?" FAQ answer).
