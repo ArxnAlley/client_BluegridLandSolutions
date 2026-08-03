@@ -260,7 +260,12 @@ const serviceRegions = {
 
     carter: { state: 'Eastern Kentucky', name: 'Carter County', towns: ['Grayson', 'Olive Hill'] },
 
-    lawrenceKy: { state: 'Eastern Kentucky', name: 'Lawrence County', towns: ['Louisa', 'Blaine'] }
+    lawrenceKy: { state: 'Eastern Kentucky', name: 'Lawrence County', towns: ['Louisa', 'Blaine'] },
+
+    // TODO: Confirm with the client. Morehead has always been advertised in the
+    // nav and now has a service area page, so Rowan County is listed here for
+    // consistency — it sits one county past the original core coverage map.
+    rowan: { state: 'Eastern Kentucky', name: 'Rowan County', towns: ['Morehead', 'Clearfield', 'Farmers'] }
 
 };
 

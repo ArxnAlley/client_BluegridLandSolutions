@@ -10,11 +10,11 @@
 
 ## Current Phase
 
-**Phase 2A — Lead Capture Infrastructure: code-complete.**
+**Phase 2A — Lead Capture Infrastructure: code-complete.** Everything remaining is account-level work requiring Google credentials. Re-verified this session: `node appsScript/localTestRunner.js` → **64/64 passing**, built-in `runSelfTest` **6/6**.
 
-Everything remaining in 2A is account-level work requiring Google credentials. No further code is needed from an engineering session to finish it.
+**Phase 2B — Service Area Pages: first wave complete.** The six cities `seoPlan.md` stages as the Phase 7 build set are live and wired. Rows 7–11 (Jackson, Gallipolis, Waverly, Greenup, Louisa) have **not** been built.
 
-Phase 2B (SEO / service area pages) has **not** been started.
+Still deferred by instruction until the production domain exists: `robots.txt`, `sitemap.xml`, canonical finalization, Open Graph absolute URLs.
 
 ---
 
@@ -59,11 +59,26 @@ Take the existing BlueGrid Land Solutions website from "built but not launchable
 - **`localTestRunner.js`** — Node harness running the real `.gs` modules against in-memory Google mocks. **64/64 passing**, including the built-in `runSelfTest` at **6/6**.
 - **Documentation:** `appsScript/README.md` (endpoints, 10-step deployment sequence, 12-case manual test plan) and `docs/googleSheetArchitecture.md` (tabs, columns, dropdowns, config keys, named ranges, Script Properties, verification checklist).
 
+### Phase 2B — Service Area Pages (first wave)
+
+- **6 location pages built** in `locations/`, using the hyphenated exact-match slugs `seoPlan.md` specifies:
+  `forestry-mulching-ashland-ky`, `-portsmouth-oh`, `-ironton-oh`, `-chillicothe-oh`, `-grayson-ky`, `-morehead-ky`.
+  These are rows 1–6 of the `seoPlan.md` location table — the documented first wave, chosen over 13 thin pages.
+- **Each page carries genuinely local content**, not a city name swapped into a template: hero + H1, a three-paragraph local intent block, a four-tile fact grid (county, terrain, dominant growth, routes in), a terrain write-up with 3 supporting cards, 4 "what landowners here call us about" cards, all 7 services linked up with localized anchor text, **5 unique local FAQs**, the embedded estimate form with `serviceNeeded` preselected, and a nearby-communities block.
+- **The uniqueness bar is enforced mechanically, not by memory.** Worst pairwise overlap across the six pages is **14.7%** of 5-word phrases against a 25% gate; body copy runs **1,133–1,283 words** per page. Swapping the city name genuinely breaks each page — Grayson is about karst and sinkholes, Chillicothe about the glacial line and fence rows, Morehead about cliff bands and slope limits, Portsmouth about river bottom versus hillside, Ironton about ridge-and-hollow and the Wayne boundary, Ashland about river-bench town lots.
+- **All service-area links wired sitewide.** The 6 built cities now resolve to real pages from the mega menu, the mobile menu, and the footer service-area column on **all 14 pages**. The 7 cities without pages still point at the `#serviceAreas` anchor, deliberately.
+- **New homepage block** — a "Forestry mulching, town by town" link row inside `#serviceAreas`, so the anchor the unbuilt cities point at now leads somewhere useful.
+- **"Where We Work" block added to `services/forestryMulching.html`** — the parent service page for the location tier, and the only place body content links to location pages. Location pages link **up** (parent service page, homepage, all 7 services) and never sideways to each other, per `seoPlan.md`.
+- **Three JSON-LD blocks per location page** — `Service` (with `areaServed` City + County), `BreadcrumbList` (Home › Forestry Mulching › City), `FAQPage`. Every schema FAQ question is verified to actually render on the page.
+- **`css/stylePages.css`** — activated the previously unused `SERVICE AREA PAGES (locations/)` block and added three rules it was missing (`.localSection`, `.localProse`, `.localProblemGrid`). `.nearbyList` was changed from styling links to styling plain list items, because nearby towns must not be links.
+- **Rowan County added to coverage data** — Morehead has always been advertised in the nav but Rowan County was absent from `serviceRegions`, the `LocalBusiness` `areaServed`, the map panel, and the homepage FAQ. All four now agree. **TODO-marked for client confirmation** (see Waiting on Client).
+- **Validation:** 14 pages, **1,372 internal links and assets checked, zero broken**; every same-page and cross-page anchor resolves; one `<h1>` per page; zero duplicate IDs; tag balance across 16 element types; every JSON-LD block parses; titles and meta descriptions unique sitewide; `serviceNeeded` enum identical across all 14 pages and `config.gs`; CSS braces balanced; `node --check` clean on `js/indexJS.js`; Apps Script harness still 64/64.
+
 ---
 
 ## Currently In Progress
 
-Nothing. Phase 2A is code-complete and committed. The session ended at a clean stopping point.
+Nothing. Phase 2B's first wave is complete and committed. The session ended at a clean stopping point.
 
 ---
 
@@ -76,12 +91,12 @@ Nothing. Phase 2A is code-complete and committed. The session ended at a clean s
 4. Paste the `/exec` URL into `businessConfig.estimateEndpoint`
 5. Live end-to-end verification
 
-### Phase 2B (not started)
-6. Service area / location pages — **0 of 13 built**; all 13 city links in nav and mobile menu still point at the `#serviceAreas` anchor, and footer cities are plain text, not links
-7. `robots.txt`
-8. `sitemap.xml`
-9. Canonical URL finalization across all pages (8 today, 21 once location pages ship)
-10. Open Graph finalization (absolute URLs)
+### Phase 2B remainder
+6. Location pages rows 7–11 — Jackson OH, Gallipolis OH, Waverly OH, Greenup KY, Louisa KY. `seoPlan.md` stages these after the first six index and rank. West Union OH and Flatwoods KY are advertised in the nav but are **not** in the `seoPlan.md` set at all — decide whether they get pages or come out of the nav.
+7. `robots.txt` — deferred, depends on the domain
+8. `sitemap.xml` — deferred, depends on the domain
+9. Canonical URL finalization — **14 pages today**, 19 once rows 7–11 ship
+10. Open Graph finalization (absolute URLs) — same 14 pages
 11. Lighthouse / performance pass
 
 ---
@@ -93,14 +108,17 @@ Nothing. Phase 2A is code-complete and committed. The session ended at a clean s
 | 1 | **`businessConfig.estimateEndpoint` is empty** | The form **simulates success** — nothing reaches a sheet, no email sends. Console warns loudly. This is the single launch blocker. |
 | 2 | `MODULE_API_KEY` not generated | `leads.list` / `leads.update` unusable (dashboard, Phase 2). Does not block the public form. |
 | 3 | `BlueGrid Leads` spreadsheet does not exist | Nothing to write to. |
-| 4 | Production domain undecided | Canonical says `www.bluegridlandsolutions.com`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. Blocks sitemap.xml, canonicals, and OG absolute URLs (8 pages today, 21 once location pages ship). |
+| 4 | Production domain undecided | Canonical says `www.bluegridlandsolutions.com`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. Blocks sitemap.xml, canonicals, and OG absolute URLs across 14 pages today. |
 
 ---
 
 ## Waiting on Client (Chase)
 
 - **Owner introduction video** — section is built and video-ready; placeholder ships until supplied
-- **Real project photos** — 3 service cards on the homepage still hotlink Unsplash stock (trail, property cleanup, hunting). Photo library is thin: 13 images total, several reused across pages
+- **Real project photos** — 3 service cards on the homepage still hotlink Unsplash stock (trail, property cleanup, hunting). Photo library is thin: 13 images total, now reused across 14 pages. **The 6 location pages ship without galleries** because no photo can be honestly captioned to a specific town
+- **Confirm Rowan County / Morehead coverage.** Morehead was always in the nav but Rowan County was never in the coverage data. This session added it so the new page, the map panel, the schema, and the FAQ agree. If Chase does not actually work Rowan County, the Morehead page and the Rowan entries come back out
+- **Price ranges.** `seoPlan.md` content rule 5 asks location pages to answer cost directly with real ranges — the strongest available SEO differentiator in this trade. No page quotes a dollar figure, because none has been approved. Every cost FAQ instead names the factors that move the price on that county's ground. Chase supplying even rough per-acre or per-day ranges would meaningfully strengthen all 14 pages
+- **Copy review of the 6 location pages** — written in the owner's voice, describing local terrain and typical problems. No page claims a completed job in any named town
 - **Confirm phone number** `(740) 464-2526` (TODO-marked, sourced from the flyer)
 - **Confirm business email** — `estimates@bluegridlandsolutions.com` is a placeholder
 - **Confirm Facebook page renders in the Page Plugin** → flip `facebookPageConfigured` to `true`
@@ -110,10 +128,9 @@ Nothing. Phase 2A is code-complete and committed. The session ended at a clean s
 
 ## Waiting on Aron
 
-- **Google Apps Script deployment** — full sequence in `appsScript/README.md`
+- **Google Apps Script deployment** — full sequence in `appsScript/README.md`. This is the only thing standing between the current build and a site that captures leads
 - **Decision: which Google account deploys.** `MailApp` sends *from the deploying account*, so that address becomes the "From" on Chase's alerts and every customer auto-reply. Changing it later means redeploying under the other account
 - **Domain purchase / decision** — see Blocker 4
-- **Location page scope** — nav advertises 13 cities; `seoPlan.md` stages 11 with a 6-city first wave. Recommend the 6-city wave with genuinely local content over 13 thin pages
 - **Final launch approval**
 - **Merge `phase2a-lead-capture` into `main`** when satisfied
 
@@ -121,6 +138,6 @@ Nothing. Phase 2A is code-complete and committed. The session ended at a clean s
 
 ## Next Recommended Task
 
-**Deploy the Apps Script and paste the `/exec` URL.** It is the only thing standing between the current build and a site that actually captures leads, it needs no further engineering, and it unblocks live verification of the entire pipeline.
+**Deploy the Apps Script and paste the `/exec` URL.** Unchanged and still the top priority: it needs no engineering, and until it is done every lead the new location pages generate is discarded silently.
 
-If deployment is not yet possible, the next engineering task is **service area pages** — but the production domain (Blocker 4) should be settled first so canonicals and internal links are written once rather than twice.
+After that, **settle the production domain** — it is now blocking SEO work across 14 pages rather than 8, and the second location wave would push it to 19. Rows 7–11 are the next engineering task once the domain is fixed, so canonicals and OG URLs are written once.

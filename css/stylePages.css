@@ -599,6 +599,51 @@
    SERVICE AREA PAGES  (locations/)
 ============================================================ */
 
+/* Light band used between the off-white card sections on a location
+   page, so the page keeps the same alternating rhythm the service
+   pages have without borrowing a class named for something else. */
+
+.localSection
+{
+
+    background-color: var(--colorWhite);
+
+}
+
+/* Prose measure for the terrain and problem write-ups. The section
+   shell runs to --maxWidth, which is right for card grids and far
+   too wide to read a paragraph across. */
+
+.localProse
+{
+
+    max-width: 780px;
+
+    margin-bottom: 2.8rem;
+
+}
+
+.localProse .intentCopy:last-child
+{
+
+    margin-bottom: 0;
+
+}
+
+/* Problem cards run two-up — four of them in the three-column
+   .benefitGrid would leave an orphan on the second row. */
+
+.localProblemGrid
+{
+
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 1.6rem;
+
+}
+
 .localFactGrid
 {
 
@@ -738,7 +783,7 @@
 
     gap: 0.7rem;
 
-    margin: 2rem 0 0;
+    margin: 0 0 2.4rem;
 
     padding: 0;
 
@@ -746,7 +791,11 @@
 
 }
 
-.nearbyList a
+/* Nearby communities are plain text, not links — location pages pass
+   authority up to their parent service page, never sideways to each
+   other (see docs/seoPlan.md, Internal Linking Map). */
+
+.nearbyList li
 {
 
     display: inline-block;
@@ -764,19 +813,6 @@
     font-weight: 600;
 
     color: var(--colorInk);
-
-    transition:
-        border-color 0.25s var(--easePremium),
-        color 0.25s var(--easePremium);
-
-}
-
-.nearbyList a:hover
-{
-
-    border-color: var(--colorSky);
-
-    color: var(--colorSkyDeep);
 
 }
 
@@ -833,7 +869,8 @@
     .benefitGrid,
     .relatedGrid,
     .galleryGrid,
-    .localServiceList
+    .localServiceList,
+    .localProblemGrid
     {
 
         grid-template-columns: 1fr;

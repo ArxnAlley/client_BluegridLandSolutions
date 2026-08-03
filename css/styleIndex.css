@@ -4649,6 +4649,83 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* ── Town pages ── */
+
+.serviceAreaTowns
+{
+
+    margin-top: 2.6rem;
+
+}
+
+.serviceAreaTownsLabel
+{
+
+    margin: 0 0 1rem;
+
+    font-size: 0.82rem;
+
+    font-weight: 600;
+
+    letter-spacing: 0.14em;
+
+    text-transform: uppercase;
+
+    color: var(--colorSteel);
+
+}
+
+.serviceAreaTownList
+{
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 0.7rem;
+
+    margin: 0;
+
+    padding: 0;
+
+    list-style: none;
+
+}
+
+.serviceAreaTownList a
+{
+
+    display: inline-block;
+
+    padding: 0.55rem 1.15rem;
+
+    background-color: var(--colorWhite);
+
+    border: 1px solid var(--colorLineLight);
+
+    border-radius: var(--radiusPill);
+
+    font-size: 0.92rem;
+
+    font-weight: 600;
+
+    color: var(--colorInk);
+
+    transition:
+        border-color 0.25s var(--easePremium),
+        color 0.25s var(--easePremium);
+
+}
+
+.serviceAreaTownList a:hover
+{
+
+    border-color: var(--colorSky);
+
+    color: var(--colorSkyDeep);
+
+}
+
 .mapFrame
 {
 
