@@ -54,7 +54,46 @@
 
     --radiusPill: 999px;
 
+    /* ── Header layout ──
+       The header morphs through three states: full desktop, compact
+       desktop (≤1280px), and mobile (≤1150px). Every dimension that
+       differs between them lives here and is overridden in those two
+       media queries; the header rules themselves only ever read these,
+       so retuning the spacing is one edit in one place rather than a
+       hunt through the stylesheet.
+
+       --headerTransition puts every one of those changes on the same
+       curve, matching the 0.35s the header already uses for its
+       scrolled background, so a resize morphs rather than snaps. */
+
     --headerHeight: 78px;
+
+    --headerPadX: 1.5rem;
+
+    --headerGap: 1.6rem;
+
+    --headerBrandGap: 1rem;
+
+    --headerBadgeSize: 69px;
+
+    --headerBrandNameSize: 1.7rem;
+
+    --headerNavGap: 0.4rem;
+
+    --headerNavLinkPadX: 0.95rem;
+
+    --headerNavChevronGap: 0.4rem;
+
+    --headerActionsGap: 0.9rem;
+
+    --headerPhonePadX: 1rem;
+
+    /* Deliberately constant at every width — the primary CTA keeps its
+       prominence while everything around it gives ground. */
+
+    --headerCtaPadX: 1.3rem;
+
+    --headerTransition: 0.35s var(--easePremium);
 
     --shadowCard: 0 18px 45px rgba(16, 18, 20, 0.14);
 
@@ -765,7 +804,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     align-items: center;
 
-    gap: 1.6rem;
+    gap: var(--headerGap);
 
     max-width: 1360px;
 
@@ -773,7 +812,12 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     margin: 0 auto;
 
-    padding: 0 1.5rem;
+    padding: 0 var(--headerPadX);
+
+    transition:
+        gap var(--headerTransition),
+        height var(--headerTransition),
+        padding var(--headerTransition);
 
 }
 
@@ -786,22 +830,28 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     align-items: center;
 
-    gap: 1rem;
+    gap: var(--headerBrandGap);
 
     margin-right: auto;
+
+    transition: gap var(--headerTransition);
 
 }
 
 .brandBadge
 {
 
-    width: 69px;
+    width: var(--headerBadgeSize);
 
-    height: 69px;
+    height: var(--headerBadgeSize);
 
     border-radius: 50%;
 
     filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+
+    transition:
+        width var(--headerTransition),
+        height var(--headerTransition);
 
 }
 
@@ -816,7 +866,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     font-family: var(--fontDisplay);
 
-    font-size: 1.7rem;
+    font-size: var(--headerBrandNameSize);
 
     font-weight: 700;
 
@@ -827,6 +877,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
     text-transform: uppercase;
 
     color: var(--colorWhite);
+
+    transition: font-size var(--headerTransition);
 
 }
 
@@ -873,13 +925,15 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     align-items: center;
 
-    gap: 0.4rem;
+    gap: var(--headerNavGap);
 
     margin: 0;
 
     padding: 0;
 
     list-style: none;
+
+    transition: gap var(--headerTransition);
 
 }
 
@@ -897,9 +951,9 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     align-items: center;
 
-    gap: 0.4rem;
+    gap: var(--headerNavChevronGap);
 
-    padding: 0.6rem 0.95rem;
+    padding: 0.6rem var(--headerNavLinkPadX);
 
     white-space: nowrap;
 
@@ -917,7 +971,14 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     border-radius: 8px;
 
-    transition: color 0.25s var(--easePremium), background-color 0.25s var(--easePremium);
+    /* Hover colour keeps its own quicker timing; only the layout
+       properties ride the shared header curve. */
+
+    transition:
+        color 0.25s var(--easePremium),
+        background-color 0.25s var(--easePremium),
+        gap var(--headerTransition),
+        padding var(--headerTransition);
 
 }
 
@@ -1170,7 +1231,9 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     align-items: center;
 
-    gap: 0.9rem;
+    gap: var(--headerActionsGap);
+
+    transition: gap var(--headerTransition);
 
 }
 
@@ -1183,7 +1246,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     gap: 0.5rem;
 
-    padding: 0.55rem 1rem;
+    padding: 0.55rem var(--headerPhonePadX);
 
     white-space: nowrap;
 
@@ -1197,7 +1260,10 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     border-radius: var(--radiusPill);
 
-    transition: border-color 0.25s var(--easePremium), background-color 0.25s var(--easePremium);
+    transition:
+        border-color 0.25s var(--easePremium),
+        background-color 0.25s var(--easePremium),
+        padding var(--headerTransition);
 
 }
 
@@ -1228,7 +1294,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 .headerCta
 {
 
-    padding: 0.62rem 1.3rem;
+    padding: 0.62rem var(--headerCtaPadX);
 
     white-space: nowrap;
 
@@ -5883,61 +5949,34 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 @media (max-width: 1280px)
 {
 
-    .headerInner
+    /* Tokens only — every header rule already reads these, so the
+       compact state is expressed as data rather than as a second copy
+       of the layout. --headerCtaPadX is pointedly absent: the primary
+       CTA keeps its padding at every width. */
+
+    :root
     {
 
-        gap: 1.1rem;
+        --headerPadX: 1.25rem;
 
-        padding: 0 1.25rem;
+        --headerGap: 1.1rem;
 
-    }
+        /* The logo area is the one part allowed to give ground, which
+           is what its margin-right: auto already implies. */
 
-    /* The logo area is the one part allowed to give ground, which is
-       what its margin-right: auto already implies. */
+        --headerBrandGap: 0.75rem;
 
-    .brandLockup
-    {
+        --headerBadgeSize: 60px;
 
-        gap: 0.75rem;
+        --headerNavGap: 0.25rem;
 
-    }
+        --headerNavLinkPadX: 0.7rem;
 
-    .brandBadge
-    {
+        --headerNavChevronGap: 0.3rem;
 
-        width: 60px;
+        --headerActionsGap: 0.7rem;
 
-        height: 60px;
-
-    }
-
-    .navList
-    {
-
-        gap: 0.25rem;
-
-    }
-
-    .navLink
-    {
-
-        gap: 0.3rem;
-
-        padding: 0.6rem 0.7rem;
-
-    }
-
-    .headerActions
-    {
-
-        gap: 0.7rem;
-
-    }
-
-    .phoneChip
-    {
-
-        padding: 0.55rem 0.75rem;
+        --headerPhonePadX: 0.75rem;
 
     }
 
@@ -5966,6 +6005,10 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
         --headerHeight: 70px;
 
+        --headerBadgeSize: 56px;
+
+        --headerBrandNameSize: 1.45rem;
+
     }
 
     .siteHeader.isHiddenMobile
@@ -5974,6 +6017,12 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
         transform: translate3d(0, calc(-100% - env(safe-area-inset-top, 0px)), 0);
 
     }
+
+    /* The only part of the morph that cannot be animated: display is
+       not an interpolable property, and there is no honest tween from
+       a five-item nav to a hamburger. The bar's height, logo, and
+       padding still ease across, so the switch reads as the header
+       resolving into its compact form rather than as a jump cut. */
 
     .primaryNav
     {
@@ -5993,22 +6042,6 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
     {
 
         display: none;
-
-    }
-
-    .brandBadge
-    {
-
-        width: 56px;
-
-        height: 56px;
-
-    }
-
-    .brandName
-    {
-
-        font-size: 1.45rem;
 
     }
 
@@ -6266,6 +6299,10 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
         --headerHeight: 64px;
 
+        --headerBadgeSize: 50px;
+
+        --headerBrandNameSize: 1.35rem;
+
     }
 
     html.jsEnabled [data-animate="slideLeft"],
@@ -6404,22 +6441,6 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
     {
 
         padding: 1.6rem 1.3rem;
-
-    }
-
-    .brandBadge
-    {
-
-        width: 50px;
-
-        height: 50px;
-
-    }
-
-    .brandName
-    {
-
-        font-size: 1.35rem;
 
     }
 
@@ -6847,6 +6868,17 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
     {
 
         scroll-behavior: auto;
+
+    }
+
+    /* The header morph is motion like any other — snap between the
+       three states instead of easing. One override kills all of it
+       because every rule shares --headerTransition. */
+
+    :root
+    {
+
+        --headerTransition: 0s linear;
 
     }
 
