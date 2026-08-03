@@ -16,6 +16,8 @@
 
 **Phase 2C — Hero Mobile Refinement: complete.** The hero background is decoupled from the estimate form, the before/after transition alternates indefinitely, and the refreshed `hero_after` asset's filename casing is normalized.
 
+**Header Navigation Polish — complete.** Desktop header no longer wraps at any width; spacing tightened by 101px and the mobile-nav switch moved from 1080px to 1150px.
+
 **Phase 2D — Live Backend Connected: complete. Lead capture is live.** The production `/exec` URL is wired into the single shared config, verified against the running endpoint. **The project's oldest launch blocker is closed** — the form no longer discards submissions. The production domain is now the only outright blocker left.
 
 Still deferred by instruction until the production domain exists: `robots.txt`, `sitemap.xml`, canonical finalization, Open Graph absolute URLs.
@@ -96,11 +98,19 @@ Take the existing BlueGrid Land Solutions website from "built but not launchable
 - **Verified live against production, with zero side effects:** `ping` returns the matching `forestryModule` / `bluegrid` / `1.0.0` identity, confirming the deployed script is this repo's code; `leads.explode` → `UNKNOWN_ACTION`; `leads.list` without a key → `UNAUTHORIZED`; and a honeypot-tripped `POST leads.create` returns a correct success envelope — exercising the full transport chain (`text/plain`, no CORS preflight, Apps Script's 302, JSON envelope) while the server short-circuits before writing a row or sending mail.
 - **Static contract check across all 14 pages:** 20 payload keys all mapping to `LEADS_HEADERS` columns except the honeypot; no server-owned column ever sent; all 5 required fields present; honeypot name/id/config agreement; every HTML enum value legal; all 9 element ids the payload reads present on every page; all 6 field-error targets present; POST + `text/plain` preserved; `leads.create` registered POST and unauthenticated; non-200, success, error, and rejection all handled; honeypot checked before the fetch; `leadId` format satisfying the server's own regex.
 
+### Header Navigation Polish
+
+- **Root cause.** `.headerInner` is a flex row whose items shrink before anything else gives, and nothing in the header carried `white-space: nowrap` — so once content stopped fitting, nav links and the phone number broke onto a second line inside a fixed-height bar. Measured against the real Inter/Rokkitt metrics the full-spacing header needs **1207px**, while the mobile switch sat at **1080px**: a 126px band where the desktop nav was live and could not fit.
+- **Optimized first, 101px saved** (1207px → 1106px): nav link padding `0.95→0.7rem` (−40), header gap `1.6→1.1rem` (−16), nav list gap `0.4→0.25rem` (−10), brand badge `69→60px` (−9), header padding `1.5→1.25rem` (−8), phone chip padding `1→0.75rem` (−8), brand gap `1→0.75rem` (−4), chevron gap (−3), actions gap (−3). **The `Free Estimate` CTA padding was left untouched** so the primary CTA keeps its prominence; nav/phone/CTA font sizes were not changed.
+- **The breakpoint did move.** Optimization alone was not enough — at 1100px the tightened header is still 6px short. The switch moved **1080px → 1150px**, which leaves **45px of slack** at 1151px, enough to absorb the wider `'Segoe UI'` fallback before Inter loads. 1200px would have worked but drops the desktop nav earlier than necessary.
+- **Two structural choices.** The compact band starts at **1280px**, above the 1207px wrap point, so crossing it downward makes the bar roomier (74px → 174px slack) rather than snapping tighter; above 1280px nothing changed. And the switch is a **header-only** media query — the existing 1080px query also drives the hero and the services grid, so the six header rules were moved out rather than retargeting the whole query.
+- **Validation:** downloaded the real Inter 600/700 and Rokkitt 700 fonts and wrote a TrueType metrics parser, then **swept every integer width from 900 to 1600px** re-resolving which tokens apply. **Zero widths wrap**; tightest desktop width is 1151px at +45px. All ten requested widths verified. Structural checks assert the nowrap guards, the untouched CTA padding, and that no header rule was left behind in the 1080px query.
+
 ---
 
 ## Currently In Progress
 
-Nothing. Phase 2D is complete and committed. The session ended at a clean stopping point.
+Nothing. The header polish is complete and committed. The session ended at a clean stopping point.
 
 ---
 

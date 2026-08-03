@@ -812,6 +812,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     flex-direction: column;
 
+    white-space: nowrap;
+
     font-family: var(--fontDisplay);
 
     font-size: 1.7rem;
@@ -831,6 +833,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 .brandNameSub
 {
 
+    white-space: nowrap;
+
     margin-top: 0.28rem;
 
     font-family: var(--fontBody);
@@ -845,12 +849,27 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
-/* ── Primary nav ── */
+/* ── Primary nav ──
+   The nav and the actions never compress; the brand lockup is the
+   flexible one, which is why it carries margin-right: auto. Nothing
+   in the header is allowed to wrap to a second line — the header is
+   a fixed-height bar, so a wrap is always a defect rather than a
+   graceful fallback. When the bar can no longer hold everything the
+   mobile nav takes over (see the 1150px query). */
+
+.primaryNav
+{
+
+    flex-shrink: 0;
+
+}
 
 .navList
 {
 
     display: flex;
+
+    flex-wrap: nowrap;
 
     align-items: center;
 
@@ -881,6 +900,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
     gap: 0.4rem;
 
     padding: 0.6rem 0.95rem;
+
+    white-space: nowrap;
 
     background: none;
 
@@ -1145,6 +1166,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     display: flex;
 
+    flex-shrink: 0;
+
     align-items: center;
 
     gap: 0.9rem;
@@ -1161,6 +1184,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
     gap: 0.5rem;
 
     padding: 0.55rem 1rem;
+
+    white-space: nowrap;
 
     font-size: 0.92rem;
 
@@ -1196,10 +1221,16 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* The primary CTA keeps its padding at every width. Everything else
+   in the header gives ground first — shrinking this is what makes a
+   header look cramped rather than tidy. */
+
 .headerCta
 {
 
     padding: 0.62rem 1.3rem;
+
+    white-space: nowrap;
 
     font-size: 0.94rem;
 
@@ -5832,7 +5863,102 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
    MEDIA QUERIES
 ============================================================ */
 
-@media (max-width: 1080px)
+/* ============================================================
+   HEADER — COMPACT DESKTOP BAND
+
+   Measured against the real Inter/Rokkitt metrics, the full-spacing
+   header needs 1207px of viewport. Below that the nav links and the
+   phone number wrapped, because .headerInner is a flex row whose
+   items shrink before anything else gives.
+
+   This band tightens spacing only — no font sizes, no CTA padding —
+   and buys 101px, bringing the requirement down to 1106px. It starts
+   at 1280px, comfortably above the 1207px wrap point, so the change
+   is never visible as a jump: crossing 1280 downward makes the bar
+   roomier, not tighter.
+
+   Above 1280px nothing changes. Large-desktop spacing is untouched.
+============================================================ */
+
+@media (max-width: 1280px)
+{
+
+    .headerInner
+    {
+
+        gap: 1.1rem;
+
+        padding: 0 1.25rem;
+
+    }
+
+    /* The logo area is the one part allowed to give ground, which is
+       what its margin-right: auto already implies. */
+
+    .brandLockup
+    {
+
+        gap: 0.75rem;
+
+    }
+
+    .brandBadge
+    {
+
+        width: 60px;
+
+        height: 60px;
+
+    }
+
+    .navList
+    {
+
+        gap: 0.25rem;
+
+    }
+
+    .navLink
+    {
+
+        gap: 0.3rem;
+
+        padding: 0.6rem 0.7rem;
+
+    }
+
+    .headerActions
+    {
+
+        gap: 0.7rem;
+
+    }
+
+    .phoneChip
+    {
+
+        padding: 0.55rem 0.75rem;
+
+    }
+
+}
+
+/* ============================================================
+   HEADER — MOBILE NAV SWITCH
+
+   Even fully tightened the desktop bar needs 1106px, so a 1100px
+   viewport is still 6px short. The switch therefore moves from
+   1080px to 1150px, which is the first round number that leaves the
+   bar genuinely comfortable rather than merely fitting: at 1151px
+   there is 45px of slack, enough to absorb the wider 'Segoe UI'
+   fallback if Inter has not loaded yet.
+
+   This is header-only on purpose. The 1080px query below also drives
+   the hero, the services grid, and other section layouts; moving all
+   of that would be a redesign of things nobody asked about.
+============================================================ */
+
+@media (max-width: 1150px)
 {
 
     :root
@@ -5892,6 +6018,11 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
         display: flex;
 
     }
+
+}
+
+@media (max-width: 1080px)
+{
 
     /* ── Hero background decoupled from the estimate card ──
        .heroInner collapses to one column at this breakpoint, so the

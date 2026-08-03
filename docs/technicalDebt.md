@@ -107,6 +107,11 @@ Cosmetic and low risk, but it is a documented requirement the build does not mee
 No session on this project has had Playwright or Chrome DevTools available, so every validation to date is static analysis or simulation. That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything actually *looks*.
 Before launch someone should open the homepage on a real phone and confirm: the hero photo ends at the fold, the seam into the estimate band is invisible, the estimate card's overlap reads as intentional, and the before/after transition alternates smoothly. Same pass on a tablet and a desktop.
 
+### 18b. Header spacing is tuned to the current nav labels
+The desktop bar fits with 45px of slack at its tightest width (1151px). That margin was measured against today's five nav items — Services, Service Areas, Before & After, Reviews, FAQ.
+**Adding a sixth nav item, or lengthening a label, will consume it.** "Portfolio" would cost roughly 90px and push the wrap point back above 1150px, reintroducing a broken band. If the nav grows, re-run the width sweep and expect the switch to move up again.
+Not a defect — just a constraint that is invisible in the CSS and easy to trip over.
+
 ### 19. Rowan County coverage is asserted, not confirmed
 Morehead has been advertised in the mega menu and mobile menu since Phase 1, but Rowan County appeared in none of the four places the site lists counties (`serviceRegions` in `js/indexJS.js`, `LocalBusiness` `areaServed`, the static map panel list, and both copies of the "Do you travel to my county?" FAQ answer).
 Phase 2B shipped a Morehead location page, so all four were updated to agree. The `serviceRegions` entry carries a `TODO:` explaining why.

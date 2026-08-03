@@ -4,6 +4,94 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-03 — Header navigation polish
+
+### Summary
+
+The desktop header wrapped between roughly 1100px and 1200px. Tightened the spacing to buy 101px, then moved the mobile-nav switch from 1080px to 1150px, because even fully optimized the bar still could not fit at 1100px.
+
+Measured rather than eyeballed: this session pulled the real Inter and Rokkitt font files and wrote a minimal TrueType metrics parser, so every number below is an advance-width measurement, not an estimate.
+
+### Files Modified
+
+- `css/styleIndex.css` — anti-wrap guards on the base header rules; new `@media (max-width: 1280px)` compact band; new `@media (max-width: 1150px)` mobile-nav switch; the six header rules that used to live in the `1080px` query moved into it
+
+### The Audit
+
+`.headerInner` is a flex row whose items shrink before anything else gives, and nothing in the header carried `white-space: nowrap` — so once the content stopped fitting, the nav links and the phone number broke onto a second line inside a fixed-height bar.
+
+Measured, the full-spacing header needs **1207px** of viewport:
+
+| Part | Width |
+|---|---|
+| Brand lockup (badge 69 + gap 16 + text 118) | 203px |
+| Primary nav — Services 112, Service Areas 150, Before & After 135, Reviews 92, FAQ 62, plus gaps | 577px |
+| Phone chip | 171px |
+| Free Estimate | 142px |
+| Two 25.6px header gaps + 48px padding | 99px |
+| **Viewport required** | **1207px** |
+
+The mobile switch sat at 1080px, so **1081–1207px was a 126px-wide band where the desktop nav was live and could not fit.** That is exactly the reported symptom.
+
+### Optimization First
+
+Every requested lever, applied cumulatively and measured:
+
+| Change | Saved |
+|---|---|
+| Nav link padding `0.95rem` → `0.7rem` | 40px |
+| Header gap `1.6rem` → `1.1rem` | 16px |
+| Nav list gap `0.4rem` → `0.25rem` | 10px |
+| Brand badge `69px` → `60px` | 9px |
+| Header padding `1.5rem` → `1.25rem` | 8px |
+| Phone chip padding `1rem` → `0.75rem` | 8px |
+| Brand lockup gap `1rem` → `0.75rem` | 4px |
+| Nav chevron gap `0.4rem` → `0.3rem` | 3px |
+| Header actions gap `0.9rem` → `0.7rem` | 3px |
+| **Total** | **101px** |
+
+**The `Free Estimate` CTA padding was deliberately left alone.** Shrinking the primary CTA is what makes a header read as cramped rather than tidy, so everything else gave ground first. Nav, phone, and CTA font sizes were also untouched — that would be changing typography. The only type change is the brand mark, which the brief explicitly allowed to shrink and which the stylesheet already shrank at smaller widths.
+
+### The Breakpoint Did Move — and Optimization Alone Was Not Enough
+
+Optimized, the header needs **1106px**. At a 1100px viewport that is still **6px short**. Leaving the switch at 1080px would have left a small but real broken band at 1081–1106px, so the switch moved to **1150px**.
+
+Why 1150 and not 1100 or 1200:
+
+- **1100px fails outright** — 6px of overflow.
+- **1130px** is the bare minimum for 24px of slack, with nothing spare.
+- **1150px** leaves **45px of slack** at 1151px, the last desktop width. That margin matters because `--fontBody` falls back to `'Segoe UI'`, which is wider than Inter; without headroom the header would wrap during the brief window before the webfont loads.
+- **1200px** would work but drops the desktop nav earlier than it needs to, against the instruction to keep it active as long as it stays clean.
+
+1150px keeps the desktop nav on every common laptop width (1280, 1366, 1440, 1600) and on iPad-class landscape viewports of 1180–1194px.
+
+### Two Deliberate Structural Choices
+
+1. **The compact band starts at 1280px, not at the 1207px wrap point.** Crossing 1280 downward therefore makes the bar *roomier* (74px slack → 174px), never tighter. A band that began at the wrap point would have produced a visible snap exactly where the layout was already under strain. Above 1280px nothing changed at all.
+
+2. **The switch is a header-only media query.** The existing `1080px` query also drives the hero, the services grid, and other section layouts. Retargeting the whole query to 1150px would have moved all of that — a redesign of sections nobody asked about. The six header rules were moved out into the new `1150px` query and the `1080px` query kept everything else. A check now fails if a header rule reappears in the `1080px` block.
+
+### Validation Performed
+
+- Downloaded the real **Inter 600/700 and Rokkitt 700** from Google Fonts (legacy UA → EOT, TTF payload extracted from the wrapper) and wrote a `head`/`hhea`/`hmtx`/`cmap`-format-4 parser. Kerning is ignored on purpose: it almost always subtracts width, so omitting it errs wide, which is the safe direction for a fit question.
+- **Swept every integer width from 900 to 1600px**, resolving which tokens apply at each and re-measuring. **Zero widths wrap.** The tightest desktop width is **1151px with 45px of slack**.
+- All ten requested widths verified: 1600/1440/1366 clean at +153px, 1280 at +174px, 1200 at +94px; 1100/1024/992/900/768 on the hamburger.
+- Transition continuity asserted — the compact band must not reduce slack at its own boundary.
+- Structural checks: `white-space: nowrap` on `.navLink`, `.phoneChip`, `.headerCta`, `.brandName`, `.brandNameSub`; `flex-wrap: nowrap` on `.navList`; `flex-shrink: 0` on `.primaryNav` and `.headerActions`; the CTA's padding absent from the compact band; the `1150px` query genuinely hiding the nav/phone/CTA and showing the hamburger; no header rule left behind in the `1080px` query.
+- Regression suite unchanged: 14 pages / 1,372 links and assets / zero broken; hero seam exact on five viewports; hero loop 92/92 alternating; lead flow contract clean on all 14 pages; `node --check` clean; Apps Script 64/64.
+
+### Not Verified
+
+Still no browser. The arithmetic is measured from the real fonts and the real stylesheet, but nothing was rendered — the mega-panel drop shadows, the hamburger's optical alignment at 1150px, and the general feel of the compact band have not been seen. Covered by `technicalDebt.md` item 18a.
+
+### Lessons Learned
+
+- **"Reduce the spacing" and "move the breakpoint" were not alternatives.** The brief framed them as a fallback chain, and measuring showed both were needed: optimization alone still left a 6px deficit at 1100px. Without numbers it would have been easy to ship the tightening, feel that it looked better, and leave a narrow broken band behind.
+- **Font files are gettable, so text width is measurable.** Guessing average character widths would have put the answer off by enough to pick the wrong breakpoint. An hour of TrueType parsing turned a judgement call into arithmetic.
+- **Start a compact band above the point where it is needed.** Putting the boundary at 1280 rather than 1207 means the adjustment lands where there is still slack, so it reads as a smooth change rather than a rescue.
+
+---
+
 ## 2026-08-03 — Phase 2D: live Apps Script backend connected
 
 ### Summary
