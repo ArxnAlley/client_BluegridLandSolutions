@@ -915,424 +915,130 @@
         </div>
 
         <!-- ============================================================
-             REVIEWS SECTION
+             OWNER INTRODUCTION SECTION
+
+             Video-ready. To publish Chase's introduction video, set
+             businessConfig.introVideoUrl in js/indexJS.js and flip
+             introVideoConfigured to true — the player is injected into
+             #introMediaSlot and replaces the fallback figure below.
+             Supports YouTube, Vimeo, and self-hosted files in
+             graphics/videos/. No markup changes required.
         ============================================================ -->
 
-        <section class="reviewsSection darkSection" id="reviews">
+        <section class="introSection darkSection" id="meetTheOwner">
 
-            <div class="sectionInner reviewsIntro">
+            <div class="sectionInner">
 
-                <p class="sectionKicker" data-animate="fadeUp">Straight From the Porch</p>
+                <p class="sectionKicker" data-animate="fadeUp">Meet the Owner</p>
 
                 <h2 class="sectionHeading" data-animate="fadeUp" data-animatedelay="100">
-                    What Landowners Say
+                    The Man in the Seat
                 </h2>
 
-                <p class="sampleBadge" data-animate="fadeUp" data-animatedelay="200">
-                    Sample Reviews — for demonstration
+                <p class="sectionLede" data-animate="fadeUp" data-animatedelay="200">
+                    No call center. No crew of subcontractors. No salesman who has never
+                    run a mulching head. You talk to the owner — and the owner is the one
+                    who shows up.
                 </p>
 
-            </div>
+                <div class="introLayout">
 
-            <div class="marqueeRow" data-animate="reviewRow">
+                    <div class="introMediaFrame" data-animate="scaleIn">
 
-                <div class="marqueeTrack marqueeTrackLeft">
+                        <div class="introMediaSlot" id="introMediaSlot">
 
-                    <ul class="marqueeGroup">
+                            <!--
+                                Placeholder only. When the video is supplied this whole
+                                figure is replaced by the player (see initializeIntroVideo
+                                in js/indexJS.js). The 16:9 ratio is owned by
+                                .introMediaSlot, so the embed drops straight in.
+                            -->
+                            <figure class="introVideoPlaceholder">
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">M</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Mark R.</span>
-                                    <span class="reviewTown">Wheelersburg, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Six acres of multiflora rose gone in a day and a half. You could
-                                not walk this hillside in June — now I mow it. Worth every penny.
-                            </p>
-                        </li>
+                                <img
+                                    class="introVideoPoster"
+                                    src="graphics/images/excavator2.jpg"
+                                    alt="BlueGrid's New Holland C337 track loader with its mulching head, working at dusk"
+                                    width="2048"
+                                    height="1536"
+                                    loading="lazy"
+                                >
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">D</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Dana W.</span>
-                                    <span class="reviewTown">Ashland, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Sent photos Sunday night, had a number Monday morning, machine on
-                                site Thursday. That kind of communication is rare around here.
-                            </p>
-                        </li>
+                                <figcaption class="introVideoOverlay">
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">J</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Jeff T.</span>
-                                    <span class="reviewTown">Chillicothe, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Cut a half-mile access trail back to our creek bottom. Clean
-                                enough to drive the side-by-side the same afternoon.
-                            </p>
-                        </li>
+                                    <span class="introVideoPlayMark" aria-hidden="true">
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">C</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Carla M.</span>
-                                    <span class="reviewTown">Greenup, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Storm dropped three big oaks across our lane. He was out within
-                                days and left the place looking better than before the storm.
-                            </p>
-                        </li>
+                                        <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M9 7.5 L17 12 L9 16.5 Z"></path>
+                                        </svg>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">B</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Brian K.</span>
-                                    <span class="reviewTown">Jackson, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                No burn piles, no ruts, no mess. The mulch layer actually looks
-                                good — like the field got a fresh start instead of a scraping.
-                            </p>
-                        </li>
+                                    </span>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">S</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Steve H.</span>
-                                    <span class="reviewTown">Waverly, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Quoted from photos, price never changed, done in two days. Fence
-                                line I hadn't seen in ten years is wide open again.
-                            </p>
-                        </li>
+                                    <span class="introVideoCaption">
+                                        Introduction video coming soon
+                                    </span>
 
-                    </ul>
+                                </figcaption>
 
-                    <ul class="marqueeGroup" aria-hidden="true">
+                            </figure>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">M</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Mark R.</span>
-                                    <span class="reviewTown">Wheelersburg, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Six acres of multiflora rose gone in a day and a half. You could
-                                not walk this hillside in June — now I mow it. Worth every penny.
-                            </p>
-                        </li>
+                        </div>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">D</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Dana W.</span>
-                                    <span class="reviewTown">Ashland, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Sent photos Sunday night, had a number Monday morning, machine on
-                                site Thursday. That kind of communication is rare around here.
-                            </p>
-                        </li>
+                    </div>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">J</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Jeff T.</span>
-                                    <span class="reviewTown">Chillicothe, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Cut a half-mile access trail back to our creek bottom. Clean
-                                enough to drive the side-by-side the same afternoon.
-                            </p>
-                        </li>
+                    <div class="introAside">
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">C</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Carla M.</span>
-                                    <span class="reviewTown">Greenup, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Storm dropped three big oaks across our lane. He was out within
-                                days and left the place looking better than before the storm.
-                            </p>
-                        </li>
+                        <blockquote class="introQuote" data-animate="fadeUp">
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">B</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Brian K.</span>
-                                    <span class="reviewTown">Jackson, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                No burn piles, no ruts, no mess. The mulch layer actually looks
-                                good — like the field got a fresh start instead of a scraping.
-                            </p>
-                        </li>
+                            <p>When the storm clears, we're just getting started.</p>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">S</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Steve H.</span>
-                                    <span class="reviewTown">Waverly, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Quoted from photos, price never changed, done in two days. Fence
-                                line I hadn't seen in ten years is wide open again.
-                            </p>
-                        </li>
+                        </blockquote>
 
-                    </ul>
+                        <p class="introCopy" data-animate="fadeUp" data-animatedelay="120">
+                            BlueGrid Land Solutions is owner-operated, which means the person
+                            who prices your property is the same person who clears it — and
+                            the same person who picks up the phone afterward.
+                        </p>
 
-                </div>
+                        <ul class="introPointList" data-animate="fadeUp" data-animatedelay="240">
 
-            </div>
+                            <li class="introPoint">
 
-            <div class="marqueeRow" data-animate="reviewRow" data-animatedelay="140">
+                                <svg class="introPointIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M12 3 L20 6 V11 C20 16 16.7 20 12 21 C7.3 20 4 16 4 11 V6 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+                                </svg>
 
-                <div class="marqueeTrack marqueeTrackRight">
+                                <span><strong>Fully insured.</strong> Certificate available before a track ever touches your ground.</span>
 
-                    <ul class="marqueeGroup">
+                            </li>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">R</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Rhonda P.</span>
-                                    <span class="reviewTown">Ironton, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Cleared two acres behind the house that we'd given up on. My
-                                grandkids have a place to play now instead of a tick farm.
-                            </p>
-                        </li>
+                            <li class="introPoint">
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">M</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Mike D.</span>
-                                    <span class="reviewTown">Grayson, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Opened up shooting lanes and a food plot site before bow season.
-                                Saw more deer this fall than the last three years combined.
-                            </p>
-                        </li>
+                                <svg class="introPointIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M12 21 C8 16.5 5 13 5 9.5 C5 5.9 8.1 3 12 3 C15.9 3 19 5.9 19 9.5 C19 13 16 16.5 12 21 Z M12 12 A2.5 2.5 0 1 0 12 7 A2.5 2.5 0 0 0 12 12 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+                                </svg>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">A</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Angie S.</span>
-                                    <span class="reviewTown">Portsmouth, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                We were quoted twice this price by a dozer crew that wanted to
-                                strip the lot bare. BlueGrid mulched it and it looks like a park.
-                            </p>
-                        </li>
+                                <span><strong>Locally owned and operated.</strong> Based in the corridor we serve, not dispatched in from three states away.</span>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">T</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Tom B.</span>
-                                    <span class="reviewTown">Louisa, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Steep ground, wet spring, and he still got it done without
-                                tearing up the hillside. Knows his machine, no question.
-                            </p>
-                        </li>
+                            </li>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">K</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Kevin L.</span>
-                                    <span class="reviewTown">Gallipolis, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Texted the owner directly the whole way through. Showed up when
-                                he said, finished when he said, charged what he said.
-                            </p>
-                        </li>
+                            <li class="introPoint">
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">S</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Sarah J.</span>
-                                    <span class="reviewTown">Morehead, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <span class="visuallyHidden">Rated 5 out of 5 stars</span>
-                            <p class="reviewText">
-                                Pond edge was a wall of willows and briars. Now we can see the
-                                water from the porch again. Fast, fair, and tidy.
-                            </p>
-                        </li>
+                                <svg class="introPointIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M9 12 L12 15 L20 6 M21 12 A9 9 0 1 1 12 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
 
-                    </ul>
+                                <span><strong>Landowner focused.</strong> We clear what you want cleared and leave standing what you want left.</span>
 
-                    <ul class="marqueeGroup" aria-hidden="true">
+                            </li>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">R</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Rhonda P.</span>
-                                    <span class="reviewTown">Ironton, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Cleared two acres behind the house that we'd given up on. My
-                                grandkids have a place to play now instead of a tick farm.
-                            </p>
-                        </li>
+                        </ul>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">M</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Mike D.</span>
-                                    <span class="reviewTown">Grayson, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Opened up shooting lanes and a food plot site before bow season.
-                                Saw more deer this fall than the last three years combined.
-                            </p>
-                        </li>
+                        <a class="buttonPrimary" href="#estimateForm" data-animate="fadeUp" data-animatedelay="360">
+                            Talk to the Owner
+                        </a>
 
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">A</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Angie S.</span>
-                                    <span class="reviewTown">Portsmouth, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                We were quoted twice this price by a dozer crew that wanted to
-                                strip the lot bare. BlueGrid mulched it and it looks like a park.
-                            </p>
-                        </li>
-
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">T</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Tom B.</span>
-                                    <span class="reviewTown">Louisa, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Steep ground, wet spring, and he still got it done without
-                                tearing up the hillside. Knows his machine, no question.
-                            </p>
-                        </li>
-
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">K</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Kevin L.</span>
-                                    <span class="reviewTown">Gallipolis, OH</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Texted the owner directly the whole way through. Showed up when
-                                he said, finished when he said, charged what he said.
-                            </p>
-                        </li>
-
-                        <li class="reviewCard">
-                            <div class="reviewCardHeader">
-                                <span class="reviewAvatar">S</span>
-                                <div class="reviewMeta">
-                                    <span class="reviewName">Sarah J.</span>
-                                    <span class="reviewTown">Morehead, KY</span>
-                                </div>
-                            </div>
-                            <p class="reviewStars">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
-                            <p class="reviewText">
-                                Pond edge was a wall of willows and briars. Now we can see the
-                                water from the porch again. Fast, fair, and tidy.
-                            </p>
-                        </li>
-
-                    </ul>
+                    </div>
 
                 </div>
 
@@ -2302,6 +2008,99 @@
             </div>
 
         </section>
+
+        <!-- ============================================================
+             DIVIDER — CONTOUR FADE UP (DARK TO LIGHT)
+        ============================================================ -->
+
+        <div class="sectionDivider dividerTopo dividerFadeUp" aria-hidden="true">
+
+            <svg viewBox="0 0 1440 90" preserveAspectRatio="none" focusable="false">
+                <path d="M0 30 C180 10 320 55 480 45 C640 35 760 5 920 20 C1080 35 1260 60 1440 40" fill="none"></path>
+                <path d="M0 55 C200 35 340 75 520 65 C700 55 820 25 980 40 C1140 55 1300 78 1440 60" fill="none"></path>
+                <path d="M0 75 C160 62 360 88 540 82 C720 76 880 52 1040 62 C1200 72 1330 86 1440 78" fill="none"></path>
+            </svg>
+
+        </div>
+
+        <!-- ============================================================
+             REVIEWS SECTION
+
+             Honest placeholder. BlueGrid has no published reviews yet, so
+             this section states that plainly and routes visitors to the
+             places feedback actually exists today. Never populate this
+             with sample or fabricated testimonials — when real reviews
+             arrive, see docs/phasePrompts/phase12ReviewsIntegration.md.
+        ============================================================ -->
+
+        <section class="reviewsSection" id="reviews">
+
+            <div class="sectionInner reviewsInner">
+
+                <p class="sectionKicker" data-animate="fadeUp">Word of Mouth</p>
+
+                <h2 class="sectionHeading" data-animate="fadeUp" data-animatedelay="100">
+                    Building Our Reputation One Property at a Time
+                </h2>
+
+                <p class="sectionLede" data-animate="fadeUp" data-animatedelay="200">
+                    BlueGrid Land Solutions is focused on delivering quality work and
+                    earning every review the right way. As customers begin sharing their
+                    experiences, you'll see them here.
+                </p>
+
+                <div class="reviewsPending" data-animate="fadeUp" data-animatedelay="300">
+
+                    <div class="reviewsPendingMark" aria-hidden="true">
+
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M21 11.5 C21 15.6 16.97 19 12 19 C10.87 19 9.78 18.82 8.79 18.5 L4 20 L5.4 15.9 C4.52 14.63 4 13.12 4 11.5 C4 7.4 8.03 4 12 4 C16.97 4 21 7.4 21 11.5 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+                        </svg>
+
+                    </div>
+
+                    <div class="reviewsPendingBody">
+
+                        <p class="reviewsPendingCopy">
+                            Until then, check out our recent projects on Facebook to see the
+                            quality of our work.
+                        </p>
+
+                        <div class="reviewsPendingActions">
+
+                            <a
+                                class="buttonPrimary"
+                                href="https://www.facebook.com/profile.php?id=61587582490592"
+                                data-confighref="facebookUrl"
+                                target="_blank"
+                                rel="noopener"
+                            >
+                                See Our Recent Projects
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- ============================================================
+             DIVIDER — TREE RINGS
+        ============================================================ -->
+
+        <div class="sectionDivider dividerRings" aria-hidden="true">
+
+            <svg viewBox="0 0 1440 100" preserveAspectRatio="none" focusable="false">
+                <circle cx="720" cy="50" r="18" fill="none"></circle>
+                <circle cx="720" cy="50" r="32" fill="none"></circle>
+                <circle cx="720" cy="50" r="46" fill="none"></circle>
+            </svg>
+
+        </div>
 
         <!-- ============================================================
              FAQ SECTION

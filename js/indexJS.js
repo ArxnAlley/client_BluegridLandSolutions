@@ -9,9 +9,15 @@
 
 const businessConfig = {
 
-    // TODO: Paste the BlueGridAPI Apps Script deployment URL here (Phase 10).
-    // While this is empty, submissions are logged to the console and success
-    // is simulated so the demo flow works end to end.
+    // ⚠ LAUNCH BLOCKER — paste the Apps Script Web App /exec URL here.
+    //
+    // Deploy the project in appsScript/ (see appsScript/README.md), then
+    // paste the deployment URL below. It looks like:
+    //   https://script.google.com/macros/s/AKfycb.../exec
+    //
+    // While this stays empty the form SIMULATES success: the payload is
+    // logged to the console, nothing reaches the Google Sheet, and no
+    // email is sent. Do not go live until this is filled in.
     estimateEndpoint: '',
 
     // TODO: Confirm phone number with the owner — pulled from the BlueGrid flyer.
@@ -36,7 +42,20 @@ const businessConfig = {
     // TODO: Paste the client's Google Business Profile URL here once it
     // exists. The footer icon is already in place; while this is empty it
     // stays pointed at "#" and applyBusinessConfig() leaves it alone.
-    googleBusinessUrl: ''
+    googleBusinessUrl: '',
+
+    // TODO: Chase's introduction video. Paste any one of these, then flip
+    // introVideoConfigured to true — the player replaces the placeholder
+    // panel in #introMediaSlot automatically:
+    //   YouTube      https://www.youtube.com/watch?v=VIDEO_ID  (or youtu.be/ID)
+    //   Vimeo        https://vimeo.com/VIDEO_ID
+    //   Self-hosted  graphics/videos/chaseIntroduction.mp4
+    introVideoUrl: '',
+
+    introVideoConfigured: false,
+
+    // Poster frame used by the self-hosted player and the placeholder.
+    introVideoPoster: 'graphics/images/excavator2.jpg'
 
 };
 
@@ -113,6 +132,8 @@ const viewWorkButton = document.getElementById('viewWorkButton');
 const siteFooter = document.querySelector('.siteFooter');
 
 const facebookEmbedSlot = document.getElementById('facebookEmbedSlot');
+
+const introMediaSlot = document.getElementById('introMediaSlot');
 
 const reviewSummaryList = document.getElementById('reviewSummaryList');
 
@@ -289,12 +310,24 @@ function captureAttribution()
 
 }
 
+/* Lead attribution wants the page a lead came from, including its folder
+   (e.g. "services/forestryMulching.html#estimateForm") so service and
+   location pages are distinguishable in the sheet. */
+
 function getSourcePage()
 {
 
-    const pathName = window.location.pathname.split('/').pop() || 'index.html';
+    const segments = window.location.pathname.split('/').filter(Boolean);
 
-    return pathName + '#estimateForm';
+    const fileName = segments.pop() || 'index.html';
+
+    const folderName = segments.pop();
+
+    const pagePath = (folderName === 'services' || folderName === 'locations')
+        ? folderName + '/' + fileName
+        : fileName;
+
+    return pagePath + '#estimateForm';
 
 }
 
@@ -1991,6 +2024,15 @@ function buildEstimatePayload()
 
         sourcePage: getSourcePage(),
 
+        /* Sent so the API can run its own honeypot check. The client
+           already blocks trapped submissions, but a bot posting
+           straight to the endpoint bypasses that — the server needs
+           to see the field to catch it. */
+
+        companyWebsite: document.getElementById('companyWebsite')
+            ? document.getElementById('companyWebsite').value
+            : '',
+
         leadSource: attribution.leadSource,
 
         utmSource: attribution.utmSource,
@@ -2039,7 +2081,12 @@ function submitEstimateRequest()
     if (!businessConfig.estimateEndpoint)
     {
 
-        console.info('BlueGrid estimate payload (no endpoint configured yet):', payload);
+        console.warn(
+            'BlueGrid: estimateEndpoint is not configured — this submission was '
+            + 'NOT saved and NO email was sent. Set businessConfig.estimateEndpoint '
+            + 'in js/indexJS.js before launch. Payload that would have been sent:',
+            payload
+        );
 
         window.setTimeout(
             function ()
@@ -2057,6 +2104,11 @@ function submitEstimateRequest()
 
     }
 
+    /* Content-Type is text/plain on purpose: Apps Script web apps
+       cannot answer a CORS preflight, and text/plain keeps the
+       request "simple" so no preflight is sent. The body is still
+       JSON and the API parses it as such. */
+
     fetch(
         businessConfig.estimateEndpoint + '?action=leads.create',
         {
@@ -2069,7 +2121,19 @@ function submitEstimateRequest()
 
         }
     )
-        .then(function (response) { return response.json(); })
+        .then(function (response)
+        {
+
+            if (!response.ok)
+            {
+
+                throw new Error('Request failed with status ' + response.status);
+
+            }
+
+            return response.json();
+
+        })
         .then(function (result)
         {
 
@@ -2080,23 +2144,88 @@ function submitEstimateRequest()
 
                 showSubmissionSuccess();
 
-            }
-            else
-            {
-
-                formSubmitError.hidden = false;
+                return;
 
             }
+
+            showSubmissionError(result && result.error);
 
         })
-        .catch(function ()
+        .catch(function (requestError)
         {
 
             estimateSubmitButton.classList.remove('isLoading');
 
-            formSubmitError.hidden = false;
+            console.error('BlueGrid estimate submission failed:', requestError);
+
+            showSubmissionError(null);
 
         });
+
+}
+
+/* Surfaces whatever the API objected to. Field-level messages are
+   mapped back onto the inputs so the visitor can see which answer
+   needs fixing instead of a generic failure. */
+
+function showSubmissionError(apiError)
+{
+
+    formSubmitError.hidden = false;
+
+    if (!apiError)
+    {
+
+        formSubmitError.textContent = 'Something went wrong sending your request. '
+            + 'Please call us at ' + businessConfig.phoneDisplay + ' instead.';
+
+        return;
+
+    }
+
+    if (apiError.code === 'VALIDATION_ERROR' && apiError.fields)
+    {
+
+        const fieldErrorIds = {
+
+            fullName: 'fullNameError',
+
+            phone: 'phoneError',
+
+            email: 'emailError',
+
+            serviceNeeded: 'serviceNeededError',
+
+            propertyAddress: 'propertyAddressError',
+
+            estimatedAcres: 'estimatedAcresError'
+
+        };
+
+        Object.keys(apiError.fields).forEach(function (fieldName)
+        {
+
+            const errorElement = document.getElementById(fieldErrorIds[fieldName]);
+
+            if (errorElement)
+            {
+
+                errorElement.textContent = apiError.fields[fieldName];
+
+                errorElement.hidden = false;
+
+            }
+
+        });
+
+        formSubmitError.textContent = 'Please check the highlighted details and try again.';
+
+        return;
+
+    }
+
+    formSubmitError.textContent = apiError.message
+        || 'Something went wrong sending your request. Please call us instead.';
 
 }
 
@@ -2704,6 +2833,98 @@ function initializeFacebookEmbed()
 }
 
 /* ============================================================
+   OWNER INTRODUCTION VIDEO  (reusable — YouTube / Vimeo / self-hosted)
+============================================================ */
+
+/* Returns an embeddable player URL for a YouTube or Vimeo share link,
+   or null when the URL is neither. */
+
+function buildVideoEmbedSource(videoUrl)
+{
+
+    const youTubeMatch = videoUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
+
+    if (youTubeMatch)
+    {
+
+        return 'https://www.youtube-nocookie.com/embed/' + youTubeMatch[1] + '?rel=0';
+
+    }
+
+    const vimeoMatch = videoUrl.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+
+    if (vimeoMatch)
+    {
+
+        return 'https://player.vimeo.com/video/' + vimeoMatch[1];
+
+    }
+
+    return null;
+
+}
+
+function initializeIntroVideo()
+{
+
+    if (!introMediaSlot || !businessConfig.introVideoConfigured || !businessConfig.introVideoUrl)
+    {
+
+        return;
+
+    }
+
+    const embedSource = buildVideoEmbedSource(businessConfig.introVideoUrl);
+
+    let player;
+
+    if (embedSource)
+    {
+
+        player = document.createElement('iframe');
+
+        player.src = embedSource;
+
+        player.title = 'Introduction from the owner of BlueGrid Land Solutions';
+
+        player.loading = 'lazy';
+
+        player.setAttribute('frameborder', '0');
+
+        player.setAttribute('allowfullscreen', '');
+
+        player.setAttribute(
+            'allow',
+            'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+        );
+
+    }
+    else
+    {
+
+        /* Anything else is treated as a self-hosted file path. */
+
+        player = document.createElement('video');
+
+        player.src = businessConfig.introVideoUrl;
+
+        player.poster = businessConfig.introVideoPoster;
+
+        player.controls = true;
+
+        player.preload = 'metadata';
+
+        player.setAttribute('playsinline', '');
+
+    }
+
+    introMediaSlot.textContent = '';
+
+    introMediaSlot.appendChild(player);
+
+}
+
+/* ============================================================
    BUSINESS CONFIG APPLICATION
 ============================================================ */
 
@@ -2738,6 +2959,22 @@ function applyBusinessConfig()
 
     });
 
+    /* The Google Business Profile does not exist yet. Rather than ship a
+       dead href="#" that opens a blank tab, hide the icon until
+       googleBusinessUrl is filled in above. */
+
+    if (!businessConfig.googleBusinessUrl)
+    {
+
+        document.querySelectorAll('.footerGoogleLink').forEach(function (link)
+        {
+
+            link.hidden = true;
+
+        });
+
+    }
+
 }
 
 /* ============================================================
@@ -2756,9 +2993,23 @@ window.addEventListener(
     }
 );
 
-mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+/* Every listener below is guarded: this script is shared by the homepage,
+   the service pages, and the location pages, and not every page renders
+   every component. */
 
-mobileMenuClose.addEventListener('click', closeMobileMenu);
+if (mobileMenuToggle)
+{
+
+    mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+
+}
+
+if (mobileMenuClose)
+{
+
+    mobileMenuClose.addEventListener('click', closeMobileMenu);
+
+}
 
 if (mobileFloatingEstimate)
 {
@@ -2799,116 +3050,177 @@ if (backToTopButton)
 
 }
 
-estimateMiniForm.addEventListener(
-    'submit',
-    function (event)
-    {
+if (estimateMiniForm)
+{
 
-        event.preventDefault();
-
-        if (!validateMiniForm())
+    estimateMiniForm.addEventListener(
+        'submit',
+        function (event)
         {
 
-            return;
+            event.preventDefault();
+
+            if (!validateMiniForm())
+            {
+
+                return;
+
+            }
+
+            if (modalHasBeenSubmitted)
+            {
+
+                estimateModalForm.hidden = true;
+
+                formSuccessPanel.hidden = false;
+
+            }
+
+            openEstimateModal();
 
         }
+    );
 
-        if (modalHasBeenSubmitted)
+}
+
+if (modalNextButton)
+{
+
+    modalNextButton.addEventListener(
+        'click',
+        function ()
         {
 
-            estimateModalForm.hidden = true;
+            if (!validateModalStep(currentModalStep))
+            {
 
-            formSuccessPanel.hidden = false;
+                return;
+
+            }
+
+            currentModalStep = Math.min(currentModalStep + 1, totalModalSteps);
+
+            updateModalStep();
 
         }
+    );
 
-        openEstimateModal();
+}
 
-    }
-);
+if (modalBackButton)
+{
 
-modalNextButton.addEventListener(
-    'click',
-    function ()
-    {
-
-        if (!validateModalStep(currentModalStep))
+    modalBackButton.addEventListener(
+        'click',
+        function ()
         {
 
-            return;
+            currentModalStep = Math.max(currentModalStep - 1, 1);
+
+            updateModalStep();
 
         }
+    );
 
-        currentModalStep = Math.min(currentModalStep + 1, totalModalSteps);
+}
 
-        updateModalStep();
+if (estimateModalForm)
+{
 
-    }
-);
-
-modalBackButton.addEventListener(
-    'click',
-    function ()
-    {
-
-        currentModalStep = Math.max(currentModalStep - 1, 1);
-
-        updateModalStep();
-
-    }
-);
-
-estimateModalForm.addEventListener(
-    'submit',
-    function (event)
-    {
-
-        event.preventDefault();
-
-        if (validateModalStep(1) && validateModalStep(3))
+    estimateModalForm.addEventListener(
+        'submit',
+        function (event)
         {
 
-            submitEstimateRequest();
+            event.preventDefault();
+
+            if (validateModalStep(1) && validateModalStep(3))
+            {
+
+                submitEstimateRequest();
+
+            }
 
         }
+    );
 
-    }
-);
+}
 
-estimateModalClose.addEventListener('click', closeEstimateModal);
+if (estimateModalClose)
+{
 
-estimateModalBackdrop.addEventListener('click', closeEstimateModal);
+    estimateModalClose.addEventListener('click', closeEstimateModal);
 
-viewWorkButton.addEventListener(
-    'click',
-    function ()
-    {
+}
 
-        closeEstimateModal();
+if (estimateModalBackdrop)
+{
 
-        document.getElementById('beforeAfter').scrollIntoView({
-            behavior: prefersReducedMotion ? 'auto' : 'smooth'
-        });
+    estimateModalBackdrop.addEventListener('click', closeEstimateModal);
 
-    }
-);
+}
 
-document.addEventListener(
-    'keydown',
-    function (event)
-    {
+if (viewWorkButton)
+{
 
-        if (event.key === 'Escape' && !estimateModal.hidden)
+    viewWorkButton.addEventListener(
+        'click',
+        function ()
         {
 
             closeEstimateModal();
 
+            /* Service and location pages carry data-workhref, because the
+               transformation gallery only lives on the homepage. */
+
+            const workHref = viewWorkButton.dataset.workhref;
+
+            if (workHref)
+            {
+
+                window.location.href = workHref;
+
+                return;
+
+            }
+
+            const transformationSection = document.getElementById('beforeAfter');
+
+            if (transformationSection)
+            {
+
+                transformationSection.scrollIntoView({
+                    behavior: prefersReducedMotion ? 'auto' : 'smooth'
+                });
+
+            }
+
         }
+    );
 
-        trapModalFocus(event);
+}
 
-    }
-);
+if (estimateModal)
+{
+
+    document.addEventListener(
+        'keydown',
+        function (event)
+        {
+
+            if (event.key === 'Escape' && !estimateModal.hidden)
+            {
+
+                closeEstimateModal();
+
+            }
+
+            trapModalFocus(event);
+
+        }
+    );
+
+}
 
 /* ============================================================
    INITIALIZATION
@@ -2939,3 +3251,5 @@ initializeServiceAreaMap();
 initializeFaqAccordion();
 
 initializeFacebookEmbed();
+
+initializeIntroVideo();

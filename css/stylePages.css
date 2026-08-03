@@ -1,0 +1,884 @@
+/* ============================================================
+   BLUEGRID LAND SOLUTIONS — INTERIOR PAGE STYLES
+   Shared by every service page (services/) and every service area
+   page (locations/). Loads AFTER css/styleIndex.css and only adds
+   what the interior templates need — the header, footer, buttons,
+   forms, modal, FAQ, and animation engine all come from styleIndex.
+============================================================ */
+
+/* ============================================================
+   BREADCRUMB
+============================================================ */
+
+.breadcrumbNav
+{
+
+    background-color: var(--colorWhite);
+
+    border-bottom: 1px solid var(--colorLineLight);
+
+}
+
+.breadcrumbList
+{
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    gap: 0.5rem;
+
+    max-width: var(--maxWidth);
+
+    margin: 0 auto;
+
+    padding: 0.9rem 1.5rem;
+
+    list-style: none;
+
+    font-size: 0.86rem;
+
+    color: var(--colorSteel);
+
+}
+
+.breadcrumbList a
+{
+
+    color: var(--colorSkyDeep);
+
+    text-decoration: none;
+
+}
+
+.breadcrumbList a:hover
+{
+
+    text-decoration: underline;
+
+}
+
+.breadcrumbList li + li::before
+{
+
+    content: "\203A";
+
+    margin-right: 0.5rem;
+
+    color: rgba(124, 136, 148, 0.7);
+
+}
+
+.breadcrumbCurrent
+{
+
+    color: var(--colorInk);
+
+    font-weight: 600;
+
+}
+
+/* ============================================================
+   PAGE HERO  (interior pages — shorter, quieter than the homepage)
+============================================================ */
+
+.pageHero
+{
+
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    min-height: 460px;
+
+    padding-top: var(--headerHeight);
+
+    overflow: hidden;
+
+    background-color: var(--colorCharcoal);
+
+}
+
+.pageHeroMedia
+{
+
+    position: absolute;
+
+    inset: 0;
+
+}
+
+.pageHeroMedia img
+{
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+}
+
+.pageHeroOverlay
+{
+
+    position: absolute;
+
+    inset: 0;
+
+    background:
+        linear-gradient(90deg, rgba(16, 18, 20, 0.90) 0%, rgba(16, 18, 20, 0.62) 55%, rgba(16, 18, 20, 0.38) 100%);
+
+}
+
+.pageHeroInner
+{
+
+    position: relative;
+
+    width: 100%;
+
+    max-width: var(--maxWidth);
+
+    margin: 0 auto;
+
+    padding: 4.5rem 1.5rem;
+
+}
+
+.pageHeroContent
+{
+
+    max-width: 720px;
+
+}
+
+.pageHeroKicker
+{
+
+    margin: 0 0 0.9rem;
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1rem;
+
+    font-weight: 600;
+
+    letter-spacing: 0.22em;
+
+    text-transform: uppercase;
+
+    color: var(--colorSky);
+
+}
+
+.pageHeroTitle
+{
+
+    margin: 0 0 1.2rem;
+
+    font-family: var(--fontDisplay);
+
+    font-size: clamp(2.3rem, 5vw, 3.6rem);
+
+    font-weight: 700;
+
+    line-height: 1.05;
+
+    text-transform: uppercase;
+
+    color: var(--colorWhite);
+
+}
+
+.pageHeroCopy
+{
+
+    max-width: 620px;
+
+    margin: 0 0 2rem;
+
+    font-size: 1.12rem;
+
+    color: rgba(247, 249, 251, 0.82);
+
+}
+
+.pageHeroActions
+{
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    gap: 1rem;
+
+}
+
+/* ============================================================
+   INTENT BLOCK  (answers "is this the service I need?")
+============================================================ */
+
+.intentSection
+{
+
+    background-color: var(--colorWhite);
+
+}
+
+.intentInner
+{
+
+    max-width: 860px;
+
+    padding-top: 4.5rem;
+
+    padding-bottom: 4.5rem;
+
+}
+
+.intentCopy
+{
+
+    margin: 0 0 1.3rem;
+
+    font-size: 1.14rem;
+
+    line-height: 1.75;
+
+    color: var(--colorInk);
+
+}
+
+.intentCopy:last-child
+{
+
+    margin-bottom: 0;
+
+}
+
+.intentCopy a
+{
+
+    color: var(--colorSkyDeep);
+
+    font-weight: 600;
+
+}
+
+/* ============================================================
+   BENEFIT GRID
+============================================================ */
+
+.benefitGrid
+{
+
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 1.6rem;
+
+}
+
+.benefitCard
+{
+
+    padding: 2rem 1.7rem;
+
+    background-color: var(--colorWhite);
+
+    border: 1px solid var(--colorLineLight);
+
+    border-top: 3px solid var(--colorSky);
+
+    border-radius: var(--radiusCard);
+
+    box-shadow: var(--shadowCard);
+
+}
+
+.benefitIcon
+{
+
+    width: 34px;
+
+    height: 34px;
+
+    margin-bottom: 1rem;
+
+    color: var(--colorSkyDeep);
+
+}
+
+.benefitTitle
+{
+
+    margin: 0 0 0.7rem;
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1.32rem;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+
+    color: var(--colorCharcoal);
+
+}
+
+.benefitCopy
+{
+
+    margin: 0;
+
+    font-size: 0.98rem;
+
+    line-height: 1.65;
+
+    color: var(--colorSteel);
+
+}
+
+/* ============================================================
+   PAGE GALLERY
+============================================================ */
+
+.galleryGrid
+{
+
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 1.4rem;
+
+}
+
+.galleryFigure
+{
+
+    position: relative;
+
+    margin: 0;
+
+    overflow: hidden;
+
+    border-radius: var(--radiusCard);
+
+    box-shadow: var(--shadowCard);
+
+}
+
+.galleryFigure img
+{
+
+    display: block;
+
+    width: 100%;
+
+    height: 320px;
+
+    object-fit: cover;
+
+    transition: transform 0.5s var(--easePremium);
+
+}
+
+.galleryFigure:hover img
+{
+
+    transform: scale(1.04);
+
+}
+
+.galleryCaption
+{
+
+    position: absolute;
+
+    right: 0;
+
+    bottom: 0;
+
+    left: 0;
+
+    padding: 1.6rem 1.2rem 1rem;
+
+    font-size: 0.9rem;
+
+    font-weight: 500;
+
+    color: var(--colorWhite);
+
+    background: linear-gradient(180deg, rgba(16, 18, 20, 0) 0%, rgba(16, 18, 20, 0.82) 100%);
+
+}
+
+/* ============================================================
+   EMBEDDED ESTIMATE BLOCK  (interior pages)
+============================================================ */
+
+.pageFormSection
+{
+
+    position: relative;
+
+    background-color: var(--colorCharcoal);
+
+}
+
+.pageFormLayout
+{
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 3rem;
+
+    align-items: center;
+
+}
+
+.pageFormIntro .sectionHeading
+{
+
+    color: var(--colorWhite);
+
+}
+
+.pageFormPoints
+{
+
+    margin: 1.8rem 0 0;
+
+    padding: 0;
+
+    list-style: none;
+
+    display: grid;
+
+    gap: 0.9rem;
+
+}
+
+.pageFormPoints li
+{
+
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 0.8rem;
+
+    font-size: 1rem;
+
+    color: rgba(247, 249, 251, 0.80);
+
+}
+
+.pageFormPoints svg
+{
+
+    flex-shrink: 0;
+
+    width: 22px;
+
+    height: 22px;
+
+    margin-top: 0.2rem;
+
+    color: var(--colorSky);
+
+}
+
+/* ============================================================
+   RELATED SERVICES
+============================================================ */
+
+.relatedGrid
+{
+
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 1.6rem;
+
+}
+
+.relatedCard
+{
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.7rem;
+
+    padding: 1.8rem 1.6rem;
+
+    background-color: var(--colorWhite);
+
+    border: 1px solid var(--colorLineLight);
+
+    border-radius: var(--radiusCard);
+
+    transition:
+        transform 0.25s var(--easePremium),
+        box-shadow 0.25s var(--easePremium);
+
+}
+
+.relatedCard:hover
+{
+
+    transform: translateY(-3px);
+
+    box-shadow: var(--shadowCardHover);
+
+}
+
+.relatedCardTitle
+{
+
+    margin: 0;
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1.28rem;
+
+    font-weight: 700;
+
+    color: var(--colorCharcoal);
+
+}
+
+.relatedCardCopy
+{
+
+    margin: 0;
+
+    font-size: 0.95rem;
+
+    line-height: 1.6;
+
+    color: var(--colorSteel);
+
+}
+
+.relatedCardLink
+{
+
+    margin-top: auto;
+
+    padding-top: 0.4rem;
+
+    font-weight: 700;
+
+    color: var(--colorSkyDeep);
+
+}
+
+.relatedCardLink:hover
+{
+
+    color: var(--colorSky);
+
+}
+
+/* ============================================================
+   SERVICE AREA PAGES  (locations/)
+============================================================ */
+
+.localFactGrid
+{
+
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 1.2rem;
+
+    margin-top: 2.6rem;
+
+}
+
+.localFact
+{
+
+    padding: 1.5rem 1.3rem;
+
+    background-color: var(--colorWhite);
+
+    border: 1px solid var(--colorLineLight);
+
+    border-radius: var(--radiusCard);
+
+    text-align: center;
+
+}
+
+.localFactLabel
+{
+
+    display: block;
+
+    margin-bottom: 0.4rem;
+
+    font-size: 0.76rem;
+
+    font-weight: 600;
+
+    letter-spacing: 0.14em;
+
+    text-transform: uppercase;
+
+    color: var(--colorSteel);
+
+}
+
+.localFactValue
+{
+
+    display: block;
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1.35rem;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+
+    color: var(--colorCharcoal);
+
+}
+
+.localServiceList
+{
+
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 1rem;
+
+    margin: 0;
+
+    padding: 0;
+
+    list-style: none;
+
+}
+
+.localServiceList a
+{
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.8rem;
+
+    padding: 1.1rem 1.3rem;
+
+    background-color: var(--colorWhite);
+
+    border: 1px solid var(--colorLineLight);
+
+    border-radius: var(--radiusCard);
+
+    font-weight: 600;
+
+    color: var(--colorCharcoal);
+
+    transition:
+        border-color 0.25s var(--easePremium),
+        transform 0.25s var(--easePremium);
+
+}
+
+.localServiceList a:hover
+{
+
+    border-color: var(--colorSky);
+
+    transform: translateX(3px);
+
+}
+
+.localServiceList svg
+{
+
+    flex-shrink: 0;
+
+    width: 22px;
+
+    height: 22px;
+
+    color: var(--colorSkyDeep);
+
+}
+
+.nearbyList
+{
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 0.7rem;
+
+    margin: 2rem 0 0;
+
+    padding: 0;
+
+    list-style: none;
+
+}
+
+.nearbyList a
+{
+
+    display: inline-block;
+
+    padding: 0.5rem 1.1rem;
+
+    background-color: var(--colorWhite);
+
+    border: 1px solid var(--colorLineLight);
+
+    border-radius: var(--radiusPill);
+
+    font-size: 0.92rem;
+
+    font-weight: 600;
+
+    color: var(--colorInk);
+
+    transition:
+        border-color 0.25s var(--easePremium),
+        color 0.25s var(--easePremium);
+
+}
+
+.nearbyList a:hover
+{
+
+    border-color: var(--colorSky);
+
+    color: var(--colorSkyDeep);
+
+}
+
+/* ============================================================
+   MEDIA QUERIES
+============================================================ */
+
+@media (max-width: 1080px)
+{
+
+    .benefitGrid,
+    .relatedGrid
+    {
+
+        grid-template-columns: repeat(2, 1fr);
+
+    }
+
+    .localFactGrid
+    {
+
+        grid-template-columns: repeat(2, 1fr);
+
+    }
+
+    .pageFormLayout
+    {
+
+        grid-template-columns: 1fr;
+
+        gap: 2.4rem;
+
+    }
+
+}
+
+@media (max-width: 640px)
+{
+
+    .pageHero
+    {
+
+        min-height: 380px;
+
+    }
+
+    .pageHeroInner
+    {
+
+        padding: 3.2rem 1.25rem;
+
+    }
+
+    .benefitGrid,
+    .relatedGrid,
+    .galleryGrid,
+    .localServiceList
+    {
+
+        grid-template-columns: 1fr;
+
+    }
+
+    .galleryFigure img
+    {
+
+        height: 240px;
+
+    }
+
+    .intentInner
+    {
+
+        padding-top: 3.2rem;
+
+        padding-bottom: 3.2rem;
+
+    }
+
+}
+
+/* ============================================================
+   REDUCED MOTION
+============================================================ */
+
+@media (prefers-reduced-motion: reduce)
+{
+
+    .galleryFigure img,
+    .relatedCard,
+    .localServiceList a
+    {
+
+        transition: none;
+
+    }
+
+    .galleryFigure:hover img
+    {
+
+        transform: none;
+
+    }
+
+}

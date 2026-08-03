@@ -542,64 +542,6 @@ html.jsEnabled .transformationStories .storyCard:nth-child(3n)[data-animate="fad
 
 }
 
-html.jsEnabled [data-animate="reviewRow"]
-{
-
-    opacity: 1;
-
-    transform: none;
-
-    transition: none;
-
-    will-change: auto;
-
-}
-
-html.jsEnabled [data-animate="reviewRow"] .reviewCard
-{
-
-    opacity: 0;
-
-    transform: translate3d(0, 22px, 0);
-
-    transition:
-        opacity var(--durationReveal) var(--easePremium),
-        transform var(--durationReveal) var(--easePremium);
-
-    transition-delay: var(--animateDelay, 0ms);
-
-}
-
-html.jsEnabled [data-animate="reviewRow"] .reviewCard:nth-child(2)
-{
-
-    transition-delay: calc(var(--animateDelay, 0ms) + 80ms);
-
-}
-
-html.jsEnabled [data-animate="reviewRow"] .reviewCard:nth-child(3)
-{
-
-    transition-delay: calc(var(--animateDelay, 0ms) + 160ms);
-
-}
-
-html.jsEnabled [data-animate="reviewRow"] .reviewCard:nth-child(n + 4)
-{
-
-    transition-delay: calc(var(--animateDelay, 0ms) + 240ms);
-
-}
-
-html.jsEnabled [data-animate="reviewRow"].isAnimated .reviewCard
-{
-
-    opacity: 1;
-
-    transform: none;
-
-}
-
 html.jsEnabled .comparisonSlider[data-animate] .comparisonTag,
 html.jsEnabled .comparisonSlider[data-animate] .comparisonHandle
 {
@@ -757,17 +699,6 @@ html.animationFallback [data-heroanimate]
     transition: none !important;
 
     will-change: auto !important;
-
-}
-
-html.animationFallback [data-animate="reviewRow"] .reviewCard
-{
-
-    opacity: 1;
-
-    transform: none;
-
-    transition: none;
 
 }
 
@@ -4302,201 +4233,132 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 }
 
 /* ============================================================
-   REVIEWS SECTION  (reusable dual marquee)
+   OWNER INTRODUCTION SECTION  (video-ready)
 ============================================================ */
 
-.reviewsSection
+.introSection
 {
-
-    padding-bottom: 6.5rem;
 
     overflow: hidden;
 
 }
 
-.reviewsIntro
+.introLayout
 {
 
-    padding-bottom: 2.4rem;
+    display: grid;
+
+    grid-template-columns: 1.15fr 1fr;
+
+    gap: 2.8rem;
+
+    align-items: start;
 
 }
 
-.sampleBadge
+/* ── Video frame ── */
+
+.introMediaFrame
 {
 
-    display: inline-block;
-
-    margin: 0;
-
-    padding: 0.4rem 1rem;
-
-    font-size: 0.78rem;
-
-    font-weight: 600;
-
-    letter-spacing: 0.12em;
-
-    text-transform: uppercase;
-
-    color: rgba(247, 249, 251, 0.65);
-
-    border: 1px dashed rgba(247, 249, 251, 0.35);
-
-    border-radius: var(--radiusPill);
-
-}
-
-.marqueeRow
-{
-
-    width: 100%;
-
-    max-width: 100vw;
-
-    margin-bottom: 1.4rem;
-
-    overflow: hidden;
-
-    overflow-x: clip;
-
-    contain: paint;
-
-    -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
-
-    mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
-
-}
-
-.marqueeTrack
-{
-
-    display: flex;
-
-    width: max-content;
-
-}
-
-.marqueeTrackLeft
-{
-
-    animation: marqueeScrollLeft 48s linear infinite;
-
-}
-
-.marqueeTrackRight
-{
-
-    animation: marqueeScrollRight 52s linear infinite;
-
-}
-
-.marqueeRow:hover .marqueeTrack
-{
-
-    animation-play-state: paused;
-
-}
-
-@keyframes marqueeScrollLeft
-{
-
-    from
-    {
-
-        transform: translateX(0);
-
-    }
-
-    to
-    {
-
-        transform: translateX(-50%);
-
-    }
-
-}
-
-@keyframes marqueeScrollRight
-{
-
-    from
-    {
-
-        transform: translateX(-50%);
-
-    }
-
-    to
-    {
-
-        transform: translateX(0);
-
-    }
-
-}
-
-.marqueeGroup
-{
-
-    display: flex;
-
-    gap: 1.4rem;
-
-    margin: 0;
-
-    padding: 0.6rem 0.7rem;
-
-    list-style: none;
-
-}
-
-.reviewCard
-{
-
-    width: 360px;
-
-    flex-shrink: 0;
-
-    padding: 1.3rem 1.4rem;
-
-    background-color: rgba(247, 249, 251, 0.05);
+    position: relative;
 
     border: 1px solid var(--colorLineDark);
 
     border-radius: var(--radiusCard);
 
-    transition:
-        transform 0.35s var(--easePremium),
-        border-color 0.35s var(--easePremium),
-        box-shadow 0.35s var(--easePremium);
+    background-color: var(--colorNearBlack);
+
+    box-shadow: var(--shadowCard);
+
+    overflow: hidden;
 
 }
 
-.reviewCard:hover
+/* The slot owns the 16:9 ratio, so an <iframe> or <video> injected
+   later needs no styling of its own. */
+
+.introMediaSlot
 {
 
-    transform: translateY(-6px);
+    position: relative;
 
-    border-color: rgba(91, 155, 213, 0.55);
+    width: 100%;
 
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+    aspect-ratio: 16 / 9;
 
 }
 
-.reviewCardHeader
+.introMediaSlot iframe,
+.introMediaSlot video
 {
+
+    position: absolute;
+
+    inset: 0;
+
+    display: block;
+
+    width: 100%;
+
+    height: 100%;
+
+    border: 0;
+
+}
+
+/* ── Placeholder (shown until the video is supplied) ── */
+
+.introVideoPlaceholder
+{
+
+    position: absolute;
+
+    inset: 0;
+
+    margin: 0;
+
+}
+
+.introVideoPoster
+{
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+    filter: saturate(0.72) brightness(0.52);
+
+}
+
+.introVideoOverlay
+{
+
+    position: absolute;
+
+    inset: 0;
 
     display: flex;
 
+    flex-direction: column;
+
     align-items: center;
 
-    gap: 0.8rem;
+    justify-content: center;
 
-    margin-bottom: 0.6rem;
+    gap: 1.1rem;
+
+    padding: 1.5rem;
+
+    text-align: center;
+
+    background: radial-gradient(ellipse at center, rgba(16, 18, 20, 0.12) 0%, rgba(16, 18, 20, 0.58) 100%);
 
 }
 
-.reviewAvatar
+.introVideoPlayMark
 {
 
     display: flex;
@@ -4505,78 +4367,261 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     justify-content: center;
 
-    width: 42px;
+    width: 74px;
 
-    height: 42px;
+    height: 74px;
 
-    background-color: rgba(91, 155, 213, 0.2);
-
-    border: 1px solid rgba(91, 155, 213, 0.5);
+    border: 2px solid rgba(247, 249, 251, 0.75);
 
     border-radius: 50%;
 
+    background-color: rgba(91, 155, 213, 0.22);
+
+}
+
+.introVideoPlayMark svg
+{
+
+    width: 34px;
+
+    height: 34px;
+
+    margin-left: 4px;
+
+    fill: var(--colorWhite);
+
+}
+
+.introVideoCaption
+{
+
     font-family: var(--fontDisplay);
 
-    font-size: 1.15rem;
+    font-size: 0.95rem;
 
-    font-weight: 700;
+    font-weight: 600;
+
+    letter-spacing: 0.2em;
+
+    text-transform: uppercase;
+
+    color: rgba(247, 249, 251, 0.86);
+
+}
+
+/* ── Aside ── */
+
+.introAside
+{
+
+    padding-top: 0.4rem;
+
+}
+
+.introQuote
+{
+
+    margin: 0 0 1.5rem;
+
+    padding-left: 1.2rem;
+
+    border-left: 3px solid var(--colorSky);
+
+}
+
+.introQuote p
+{
+
+    margin: 0;
+
+    font-family: var(--fontDisplay);
+
+    font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+
+    font-weight: 600;
+
+    line-height: 1.25;
+
+    color: var(--colorWhite);
+
+}
+
+.introCopy
+{
+
+    margin: 0 0 1.8rem;
+
+    color: rgba(247, 249, 251, 0.78);
+
+}
+
+.introPointList
+{
+
+    display: grid;
+
+    gap: 1rem;
+
+    margin: 0 0 2rem;
+
+    padding: 0;
+
+    list-style: none;
+
+}
+
+.introPoint
+{
+
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 0.85rem;
+
+    font-size: 0.98rem;
+
+    line-height: 1.55;
+
+    color: rgba(247, 249, 251, 0.78);
+
+}
+
+.introPoint strong
+{
+
+    color: var(--colorWhite);
+
+}
+
+.introPointIcon
+{
+
+    flex-shrink: 0;
+
+    width: 24px;
+
+    height: 24px;
+
+    margin-top: 0.15rem;
 
     color: var(--colorSky);
 
 }
 
-.reviewMeta
+/* ============================================================
+   REVIEWS SECTION  (honest placeholder — never fabricated reviews)
+============================================================ */
+
+.reviewsInner
+{
+
+    max-width: 900px;
+
+    text-align: center;
+
+}
+
+.reviewsInner .sectionLede
+{
+
+    max-width: 640px;
+
+    margin-right: auto;
+
+    margin-left: auto;
+
+}
+
+.reviewsPending
 {
 
     display: flex;
 
     flex-direction: column;
 
-}
+    align-items: center;
 
-.reviewName
-{
+    gap: 1.5rem;
 
-    font-size: 0.95rem;
+    padding: 3rem 2rem;
 
-    font-weight: 700;
+    background-color: var(--colorWhite);
 
-    color: var(--colorWhite);
+    border: 1px dashed rgba(124, 136, 148, 0.40);
 
-}
-
-.reviewTown
-{
-
-    font-size: 0.78rem;
-
-    color: rgba(247, 249, 251, 0.55);
+    border-radius: var(--radiusCard);
 
 }
 
-.reviewStars
+.reviewsPendingMark
 {
 
-    margin: 0 0 0.45rem;
+    display: flex;
 
-    font-size: 0.95rem;
+    align-items: center;
 
-    letter-spacing: 0.18em;
+    justify-content: center;
 
-    color: var(--colorGold);
+    width: 66px;
+
+    height: 66px;
+
+    color: var(--colorSkyDeep);
+
+    background-color: rgba(91, 155, 213, 0.12);
+
+    border-radius: 50%;
 
 }
 
-.reviewText
+.reviewsPendingMark svg
 {
+
+    width: 32px;
+
+    height: 32px;
+
+}
+
+.reviewsPendingBody
+{
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 1.6rem;
+
+}
+
+.reviewsPendingCopy
+{
+
+    max-width: 520px;
 
     margin: 0;
 
-    font-size: 0.92rem;
+    font-size: 1.05rem;
 
-    line-height: 1.6;
+    color: var(--colorSteel);
 
-    color: rgba(247, 249, 251, 0.78);
+}
+
+.reviewsPendingActions
+{
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 1rem;
 
 }
 
@@ -5878,6 +5923,15 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     }
 
+    .introLayout
+    {
+
+        grid-template-columns: 1fr;
+
+        gap: 2.2rem;
+
+    }
+
     .serviceAreaLayout
     {
 
@@ -6122,13 +6176,6 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
         grid-template-columns: 1fr;
 
         gap: 2.2rem;
-
-    }
-
-    .reviewCard
-    {
-
-        width: 300px;
 
     }
 
@@ -6532,7 +6579,6 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     }
 
-    html.jsEnabled [data-animate="reviewRow"] .reviewCard,
     html.jsEnabled .comparisonSlider[data-animate] .comparisonTag,
     html.jsEnabled .comparisonSlider[data-animate] .comparisonHandle
     {
@@ -6657,30 +6703,6 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     }
 
-    .marqueeTrackLeft,
-    .marqueeTrackRight
-    {
-
-        animation: none;
-
-    }
-
-    .marqueeTrack
-    {
-
-        flex-wrap: wrap;
-
-        width: 100%;
-
-    }
-
-    .marqueeGroup[aria-hidden="true"]
-    {
-
-        display: none;
-
-    }
-
     .estimateModalShell,
     .modalStep,
     .formSuccessPanel
@@ -6692,7 +6714,6 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     .serviceCardMedia img,
     .serviceCard,
-    .reviewCard,
     .postCard,
     .storyCard
     {
