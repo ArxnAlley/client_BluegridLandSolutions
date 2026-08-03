@@ -84,8 +84,27 @@ Why 1150 and not 1100 or 1200:
 
 Still no browser. The arithmetic is measured from the real fonts and the real stylesheet, but nothing was rendered — the mega-panel drop shadows, the hamburger's optical alignment at 1150px, and the general feel of the compact band have not been seen. Covered by `technicalDebt.md` item 18a.
 
+### Follow-up refactor — tokens and a unified morph
+
+Requested after the first commit; no visual change, every measured width reports identical slack.
+
+**Twelve `:root` tokens** replaced the duplicated layout rules: `--headerPadX`, `--headerGap`, `--headerBrandGap`, `--headerBadgeSize`, `--headerBrandNameSize`, `--headerNavGap`, `--headerNavLinkPadX`, `--headerNavChevronGap`, `--headerActionsGap`, `--headerPhonePadX`, `--headerCtaPadX`, `--headerTransition`. The `1280px` and `1150px` queries became **token overrides only**, and the `.brandBadge` / `.brandName` rules that were duplicated in the `1150px` and `640px` queries are gone — both sizes now come from tokens, so all four header states are described in one vocabulary. Only header variables were added; nothing existing was refactored.
+
+`--headerCtaPadX` exists specifically so the CTA's constancy is explicit rather than incidental. A check fails if any breakpoint overrides it.
+
+**One shared timing.** Every dimension that differs between states animates on `--headerTransition` (`0.35s var(--easePremium)`), matching what `.siteHeader` already used for its scrolled background: `.headerInner` gap/height/padding, `.brandLockup` gap, `.brandBadge` width/height, `.brandName` font-size, `.navList` gap, `.navLink` gap/padding, `.headerActions` gap, `.phoneChip` padding. Hover colour keeps its quicker 0.25s timing — only layout properties ride the shared curve.
+
+The switch itself cannot animate: `display` is not interpolable and there is no honest tween from a five-item nav to a hamburger. But the bar's height, logo, and padding still ease across it, so 1150px reads as the header resolving into its compact form rather than a jump cut.
+
+`prefers-reduced-motion` sets `--headerTransition: 0s`, which kills the entire morph in **one declaration** because every rule shares the token.
+
+New checks: every token is actually consumed by a header rule (an orphaned token is worse than a hardcoded value); no breakpoint overrides `--headerCtaPadX`; all eight rules animate their layout properties on `var(--headerTransition)`; reduced motion zeroes it; no `.brandBadge`/`.brandName` rule survives in the `1150px` or `640px` queries.
+
+Verified at 1600/1440/1366/1280/1200/**1151**/**1150**/1100/1024/992/900/768 — desktop widths clean at +153/+153/+153/+174/+94/+45, hamburger below. Sweep of every integer width 900–1600 still reports zero wrapping and the same 45px tightest slack.
+
 ### Lessons Learned
 
+- **A token nothing reads is worse than a hardcoded value.** The refactor's first check verifies each custom property is actually consumed, because the failure mode of "tokenize everything" is a variable that silently does nothing while looking authoritative.
 - **"Reduce the spacing" and "move the breakpoint" were not alternatives.** The brief framed them as a fallback chain, and measuring showed both were needed: optimization alone still left a 6px deficit at 1100px. Without numbers it would have been easy to ship the tightening, feel that it looked better, and leave a narrow broken band behind.
 - **Font files are gettable, so text width is measurable.** Guessing average character widths would have put the answer off by enough to pick the wrong breakpoint. An hour of TrueType parsing turned a judgement call into arithmetic.
 - **Start a compact band above the point where it is needed.** Putting the boundary at 1280 rather than 1207 means the adjustment lands where there is still slack, so it reads as a smooth change rather than a rescue.
