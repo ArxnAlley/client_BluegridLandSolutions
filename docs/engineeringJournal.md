@@ -4,6 +4,76 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-03 — Phase 2D: live Apps Script backend connected
+
+### Summary
+
+The production Web App URL is wired into `businessConfig.estimateEndpoint` and lead capture is live. **This closes the project's oldest and largest launch blocker** — since Phase 1 the form had been showing visitors a confirmation while discarding their request.
+
+The endpoint was already architected as a single shared value, so no refactor was needed; the audit below proves that rather than assuming it. The code review that followed the wiring found one real defect, which is fixed.
+
+### Files Modified
+
+- `js/indexJS.js` — production `/exec` URL set in `businessConfig`; double-submit guard added (`estimateSubmissionInFlight`, `endEstimateSubmission()`); `leadId` held stable for the page load via `currentEstimateLeadId`
+
+### Single Source of Truth — audited, not assumed
+
+The endpoint appears **exactly once** in shipped code. All 14 pages load the same `js/indexJS.js`, and there is **exactly one `fetch()` call site**, which builds its URL from `businessConfig.estimateEndpoint + '?action=leads.create'`. No page inlines a handler; every `<form>` carries `action="#"` and is JS-handled. A future redeployment is a one-line change.
+
+Checks now enforce this: one live URL in shipped code, one `fetch()` call site, no hardcoded endpoint in any HTML/CSS, every page loading the shared script, and no form posting anywhere.
+
+### Defect Found and Fixed — duplicate leads on a double-tap
+
+`submitEstimateRequest()` had no in-flight guard. `isLoading` was a cosmetic class; the button was never `disabled` and nothing checked whether a request was already running. Worse, `buildEstimatePayload()` minted `leadId: 'BG-' + Date.now()` **on every call**, so two taps produced two *different* leadIds — and the API's dedupe is keyed on `leadId`, so it could not collapse them.
+
+Result, had this shipped: one visitor double-tapping the submit button (on mobile, under a thumb) produces **two rows in the client's sheet, two owner emails, two customer auto-replies**, and burns double the MailApp quota — which is only ~100 recipients/day on consumer Gmail.
+
+This was harmless while the endpoint was empty, because the unconfigured branch never made a request. **Wiring the endpoint is what made it real**, which is exactly why the review was worth doing after the wiring rather than before.
+
+Fix:
+- `estimateSubmissionInFlight` short-circuits a second call.
+- The button is genuinely `disabled` for the duration, so Enter cannot re-trigger it either.
+- `endEstimateSubmission()` releases the lock, and is called on **all three** terminal paths — unconfigured, resolved, rejected — so a failed attempt can still be retried rather than locking the form forever.
+- `currentEstimateLeadId` holds the id steady for the page load, so a retry after a network failure carries the *same* id and the server's dedupe collapses it into the original row. Holding it for the page load is correct because the flow allows one submission per load: once the success panel shows, reopening the modal shows the panel again, not a blank form.
+
+### Validation Performed
+
+**Live, against the production endpoint** (zero side effects on the client's sheet or inbox):
+
+- `GET ?action=ping` → `200` `{"success":true,"data":{"module":"forestryModule","clientId":"bluegrid","version":"1.0.0",…}}`. The identity triple matches `config.gs` exactly, confirming the deployed script is the code in this repo.
+- `GET ?action=leads.explode` → `UNKNOWN_ACTION`
+- `GET ?action=leads.list` with no key → `UNAUTHORIZED`
+- `POST ?action=leads.create` with the honeypot filled → `200` `{"success":true,"data":{"lead":{"leadId":"BG-…"},"honeypot":true}}`. This exercises the **entire real transport chain** — `text/plain` body, no CORS preflight, Apps Script's 302 to `script.googleusercontent.com`, JSON envelope — while `handleCreateLead` short-circuits before writing a row or sending mail. A genuine end-to-end test with nothing to clean up afterward.
+
+**Static contract check** (`validateLeadFlow.js`), covering all 14 pages:
+
+- 20 payload keys, every one mapping to a `LEADS_HEADERS` column except the honeypot; **no server-owned column** (`photoUrls`, `propertySize`, `terrainType`, `status`, `estimateAmount`, `assignedTo`, `internalNotes`, `lastUpdated`) is ever sent by the client
+- All 5 `REQUIRED_CREATE_FIELDS` present
+- `HONEYPOT_FIELD` in `config.gs` matches the input's `id` **and** `name` on all 14 pages, each wrapped in an `aria-hidden` container with `tabindex="-1"` and `autocomplete="off"`, exactly one per page
+- Every `serviceNeeded`, `preferredTime`, and `preferredContactMethod` value offered in HTML is in `ENUM_VALUES`; the `preferredContactMethod` fallback is itself a legal enum
+- All 9 element ids `buildEstimatePayload()` reads exist on all 14 pages — it calls `getElementById(...).value` without null guards, so a missing one would throw at submit
+- All 6 field-error targets referenced by `showSubmissionError()` exist on all 14 pages
+- Transport stays `POST` + `text/plain`; `routes.gs` registers `leads.create` as POST with no auth
+- Response handling covers non-200, the success envelope, the error envelope, and network rejection; `VALIDATION_ERROR` matches `ERROR_CODES.validation`
+- The client honeypot check runs **before** the fetch
+- `leadId` format satisfies the server's own `isValidLeadId` regex, extracted from `validation.gs` rather than hardcoded
+
+Regression suite unchanged: 14 pages / 1,372 links and assets / zero broken; hero loop 92/92 alternating; hero seam exact on five viewports; `node --check` clean; Apps Script harness 64/64.
+
+### Not Verified
+
+- **A real lead was never created.** That path writes a row and emails both the owner and the customer, so it is not mine to trigger unilaterally. The deployment reportedly passed it during setup; it should be re-run once from the live site as the final pre-launch check.
+- **Whether `MODULE_API_KEY` is actually set** cannot be determined from outside — `leads.list` returns `UNAUTHORIZED` identically whether the key is missing or simply not supplied. Only `leads.list`/`leads.update` (the Phase 2 dashboard) depend on it; the public form does not.
+- **Still no browser.** Same limitation as Phase 2C: no rendered check of the form UI on a real device.
+
+### Lessons Learned
+
+- **Wiring an endpoint changes which bugs are real.** The double-submit hole existed for the whole project and cost nothing, because the unconfigured branch never issued a request. It became a live data-integrity defect the moment the URL was set. Reviewing the flow *after* the wiring, as instructed, is what surfaced it.
+- **The honeypot path is a free production smoke test.** It exercises the complete transport — content type, preflight avoidance, redirect, envelope — and by design writes nothing and sends nothing. Worth remembering for any Apps Script backend that has one.
+- **"Single source of truth" is a claim to verify, not to assert.** The endpoint really was already in one place, but the check that proves it is what keeps it in one place through the next change.
+
+---
+
 ## 2026-08-03 — Phase 2C: hero mobile refinement
 
 ### Summary

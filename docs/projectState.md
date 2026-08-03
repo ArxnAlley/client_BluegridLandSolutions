@@ -16,6 +16,8 @@
 
 **Phase 2C — Hero Mobile Refinement: complete.** The hero background is decoupled from the estimate form, the before/after transition alternates indefinitely, and the refreshed `hero_after` asset's filename casing is normalized.
 
+**Phase 2D — Live Backend Connected: complete. Lead capture is live.** The production `/exec` URL is wired into the single shared config, verified against the running endpoint. **The project's oldest launch blocker is closed** — the form no longer discards submissions. The production domain is now the only outright blocker left.
+
 Still deferred by instruction until the production domain exists: `robots.txt`, `sitemap.xml`, canonical finalization, Open Graph absolute URLs.
 
 ---
@@ -86,22 +88,28 @@ Take the existing BlueGrid Land Solutions website from "built but not launchable
 - **Desktop untouched** — every layout change lives inside the `1080px` media query, and `--heroMediaHeight` does not exist above it. The typing animation and all typography were not modified.
 - **Validation:** a VM harness ran the real `runHeroDuetLoop()` against a virtual clock for 10 minutes of page time — **92 cycles, perfectly alternating, 6.13–6.94s cadence, zero clipped reveals**; the same harness fails on the pre-fix code (90 of 108 reveals clipped). A layout validator parses the shipped stylesheet and confirms the copy block ends **exactly** on the seam with a **24px** card overlap at 360×640, 390×844, 430×932, 768×1024, and 1024×1366.
 
+### Phase 2D — Live Apps Script Backend
+
+- **Production endpoint wired** into `businessConfig.estimateEndpoint` in `js/indexJS.js`. Lead capture is live; the form no longer simulates success.
+- **One source of truth, audited rather than assumed.** The endpoint appears exactly once in shipped code, all 14 pages load the same `js/indexJS.js`, and there is exactly one `fetch()` call site building its URL from the config value. No page inlines a handler; every `<form>` carries `action="#"`. A redeployment is a one-line change. Checks now enforce all of it.
+- **Defect found by the post-wiring review and fixed — duplicate leads on a double-tap.** `submitEstimateRequest()` had no in-flight guard (`isLoading` was cosmetic; the button was never `disabled`), and `buildEstimatePayload()` minted a fresh `leadId` per call — so two taps produced two *different* ids that the API's `leadId` dedupe could not collapse. One visitor would have produced two rows, two owner emails, two auto-replies, and double MailApp quota. Harmless while the endpoint was empty; real the moment it was wired. Fixed with an in-flight lock, a genuinely disabled button, release on all three terminal paths, and a `leadId` held stable for the page load so a retry collapses into the original row.
+- **Verified live against production, with zero side effects:** `ping` returns the matching `forestryModule` / `bluegrid` / `1.0.0` identity, confirming the deployed script is this repo's code; `leads.explode` → `UNKNOWN_ACTION`; `leads.list` without a key → `UNAUTHORIZED`; and a honeypot-tripped `POST leads.create` returns a correct success envelope — exercising the full transport chain (`text/plain`, no CORS preflight, Apps Script's 302, JSON envelope) while the server short-circuits before writing a row or sending mail.
+- **Static contract check across all 14 pages:** 20 payload keys all mapping to `LEADS_HEADERS` columns except the honeypot; no server-owned column ever sent; all 5 required fields present; honeypot name/id/config agreement; every HTML enum value legal; all 9 element ids the payload reads present on every page; all 6 field-error targets present; POST + `text/plain` preserved; `leads.create` registered POST and unauthenticated; non-200, success, error, and rejection all handled; honeypot checked before the fetch; `leadId` format satisfying the server's own regex.
+
 ---
 
 ## Currently In Progress
 
-Nothing. Phase 2C is complete and committed. The session ended at a clean stopping point.
+Nothing. Phase 2D is complete and committed. The session ended at a clean stopping point.
 
 ---
 
 ## Remaining Tasks
 
-### Phase 2A closeout (no code required)
-1. Create the `BlueGrid Leads` spreadsheet
-2. Paste the 7 `.gs` files, set `MODULE_API_KEY`, run `setupSpreadsheet()` then `runSelfTest()`
-3. Deploy as Web App (Execute as **Me**, Access **Anyone**)
-4. Paste the `/exec` URL into `businessConfig.estimateEndpoint`
-5. Live end-to-end verification
+### Phase 2A / 2D closeout — DONE except one check
+Steps 1–4 (spreadsheet, `.gs` paste, `setupSpreadsheet()`, `runSelfTest()`, Web App deployment, endpoint wired) are all complete.
+
+1. **One real end-to-end submission from the live site.** Not run by this project: it writes a row and emails both the owner and the customer, which is not an action to trigger unilaterally. Confirm all five outcomes in `appsScript/README.md` step 10, then check `errorLog` is still empty.
 
 ### Phase 2B remainder
 6. Location pages rows 7–11 — Jackson OH, Gallipolis OH, Waverly OH, Greenup KY, Louisa KY. `seoPlan.md` stages these after the first six index and rank. West Union OH and Flatwoods KY are advertised in the nav but are **not** in the `seoPlan.md` set at all — decide whether they get pages or come out of the nav.
@@ -117,10 +125,10 @@ Nothing. Phase 2C is complete and committed. The session ended at a clean stoppi
 
 | # | Blocker | Impact |
 |---|---------|--------|
-| 1 | **`businessConfig.estimateEndpoint` is empty** | The form **simulates success** — nothing reaches a sheet, no email sends. Console warns loudly. This is the single launch blocker. |
-| 2 | `MODULE_API_KEY` not generated | `leads.list` / `leads.update` unusable (dashboard, Phase 2). Does not block the public form. |
-| 3 | `BlueGrid Leads` spreadsheet does not exist | Nothing to write to. |
-| 4 | Production domain undecided | Canonical says `www.bluegridlandsolutions.com`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. Blocks sitemap.xml, canonicals, and OG absolute URLs across 14 pages today. |
+| 1 | **Production domain undecided** | Canonical says `www.bluegridlandsolutions.com`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. Blocks `sitemap.xml`, `robots.txt`, canonicals, and OG absolute URLs across 14 pages. **The only outright launch blocker left.** |
+| 2 | `MODULE_API_KEY` state unknown | Cannot be verified from outside — `leads.list` returns `UNAUTHORIZED` whether the key is unset or merely not supplied. Blocks only the Phase 2 dashboard, never the public form. |
+
+Resolved this session: `estimateEndpoint` is wired and answering, and the `BlueGrid Leads` spreadsheet exists with `setupSpreadsheet()` and `runSelfTest()` both passed.
 
 ---
 
@@ -150,6 +158,9 @@ Nothing. Phase 2C is complete and committed. The session ended at a clean stoppi
 
 ## Next Recommended Task
 
-**Deploy the Apps Script and paste the `/exec` URL.** Unchanged and still the top priority: it needs no engineering, and until it is done every lead the new location pages generate is discarded silently.
+**Settle the production domain.** It is the only outright launch blocker left, and it gates four pieces of work at once — `robots.txt`, `sitemap.xml`, canonical finalization, and Open Graph absolute URLs across 14 pages (19 once the second location wave ships). Every affected tag is already `TODO:`-marked so one sweep catches all of them.
 
-After that, **settle the production domain** — it is now blocking SEO work across 14 pages rather than 8, and the second location wave would push it to 19. Rows 7–11 are the next engineering task once the domain is fixed, so canonicals and OG URLs are written once.
+Two short checks should happen before launch regardless of the domain, neither requiring engineering:
+
+1. **One real submission from the live site**, confirming all five outcomes in `appsScript/README.md` step 10.
+2. **Open the site on a real phone.** No session on this project has had a browser available, so nothing has been visually confirmed — see `technicalDebt.md` item 18a.

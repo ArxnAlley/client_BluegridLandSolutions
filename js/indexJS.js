@@ -9,16 +9,21 @@
 
 const businessConfig = {
 
-    // ⚠ LAUNCH BLOCKER — paste the Apps Script Web App /exec URL here.
+    // The BlueGridAPI Apps Script Web App. THIS IS THE ONLY PLACE the
+    // endpoint is written down — index.html, all 7 service pages, and
+    // all 6 location pages share this one file, and there is exactly
+    // one fetch() call site (submitEstimateRequest). A future
+    // redeployment is a one-line change here and nowhere else.
     //
-    // Deploy the project in appsScript/ (see appsScript/README.md), then
-    // paste the deployment URL below. It looks like:
-    //   https://script.google.com/macros/s/AKfycb.../exec
+    // Redeploy note: use Deploy → Manage deployments → edit → New
+    // version, which keeps this /exec URL stable. Creating a *new*
+    // deployment mints a different URL and silently breaks every form
+    // on the site. See appsScript/README.md.
     //
-    // While this stays empty the form SIMULATES success: the payload is
-    // logged to the console, nothing reaches the Google Sheet, and no
-    // email is sent. Do not go live until this is filled in.
-    estimateEndpoint: '',
+    // If this is ever blanked, the form SIMULATES success: the payload
+    // is logged to the console, nothing reaches the sheet, and no email
+    // is sent. submitEstimateRequest() warns loudly when that happens.
+    estimateEndpoint: 'https://script.google.com/macros/s/AKfycbzFolev7d8cjWopIe_Z7zfMJ27SDw4HgQ9qIsxSuGiBz0anc-R_IebTlG0mKDtD3IhD/exec',
 
     // TODO: Confirm phone number with the owner — pulled from the BlueGrid flyer.
     phoneDisplay: '(740) 464-2526',
@@ -170,6 +175,20 @@ const totalModalSteps = 5;
 let currentModalStep = 1;
 
 let modalHasBeenSubmitted = false;
+
+/* One request at a time, and one leadId for the whole page load.
+
+   The API dedupes on leadId, so holding it steady lets that dedupe
+   collapse a retry into the original row — minting a fresh id per
+   attempt would defeat it. Holding it for the page load is right
+   because the flow allows exactly one submission per load: once the
+   success panel is showing, reopening the modal shows the panel
+   again rather than a blank form. A second request means a reload,
+   which resets this anyway. */
+
+let estimateSubmissionInFlight = false;
+
+let currentEstimateLeadId = null;
 
 let photoFiles = [];
 
@@ -2024,9 +2043,16 @@ function buildEstimatePayload()
 
     const contactMethod = estimateModalForm.querySelector('input[name="preferredContactMethod"]:checked');
 
+    if (!currentEstimateLeadId)
+    {
+
+        currentEstimateLeadId = 'BG-' + Date.now();
+
+    }
+
     return {
 
-        leadId: 'BG-' + Date.now(),
+        leadId: currentEstimateLeadId,
 
         submittedAt: new Date().toISOString(),
 
@@ -2090,8 +2116,34 @@ function showSubmissionSuccess()
 
 }
 
+/* Releases the button for a retry after a failure. Success never
+   calls this — the form is replaced by the success panel. */
+
+function endEstimateSubmission()
+{
+
+    estimateSubmissionInFlight = false;
+
+    estimateSubmitButton.disabled = false;
+
+    estimateSubmitButton.classList.remove('isLoading');
+
+}
+
 function submitEstimateRequest()
 {
+
+    /* A double-tap on the submit button would otherwise fire two
+       requests. Each carried its own leadId, so the API's dedupe could
+       not collapse them: one visitor, two rows in the sheet, two owner
+       emails, two auto-replies, and double the MailApp quota. */
+
+    if (estimateSubmissionInFlight)
+    {
+
+        return;
+
+    }
 
     if (isHoneypotTripped())
     {
@@ -2103,6 +2155,10 @@ function submitEstimateRequest()
     }
 
     const payload = buildEstimatePayload();
+
+    estimateSubmissionInFlight = true;
+
+    estimateSubmitButton.disabled = true;
 
     estimateSubmitButton.classList.add('isLoading');
 
@@ -2122,7 +2178,7 @@ function submitEstimateRequest()
             function ()
             {
 
-                estimateSubmitButton.classList.remove('isLoading');
+                endEstimateSubmission();
 
                 showSubmissionSuccess();
 
@@ -2167,7 +2223,7 @@ function submitEstimateRequest()
         .then(function (result)
         {
 
-            estimateSubmitButton.classList.remove('isLoading');
+            endEstimateSubmission();
 
             if (result && result.success)
             {
@@ -2184,7 +2240,7 @@ function submitEstimateRequest()
         .catch(function (requestError)
         {
 
-            estimateSubmitButton.classList.remove('isLoading');
+            endEstimateSubmission();
 
             console.error('BlueGrid estimate submission failed:', requestError);
 

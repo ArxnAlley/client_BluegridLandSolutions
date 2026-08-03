@@ -8,11 +8,15 @@ Known debt, deferred work, and intentional trade-offs. Items are listed by launc
 
 ## High Priority
 
-### 1. Lead capture is not live
-`businessConfig.estimateEndpoint` in `js/indexJS.js` is empty. The form **simulates success**: nothing reaches a sheet, no email sends, and the visitor sees a confirmation anyway.
-**Blocks launch outright.** Fix: deploy per `appsScript/README.md`, paste the `/exec` URL.
+### 1. ~~Lead capture is not live~~ — RESOLVED 2026-08-03
+The production `/exec` URL is set in `businessConfig.estimateEndpoint` and the endpoint answers. Verified live: `ping` returns the matching `forestryModule` / `bluegrid` / `1.0.0` identity, and a honeypot-tripped `POST leads.create` returns a correct success envelope, proving the whole transport chain works.
+
+Two follow-ups remain, neither blocking:
+- **A real lead has never been created from the live site by this project.** That path writes a row and emails the owner and the customer, so it was not triggered unilaterally. Run one real submission as the final pre-launch check and confirm all five outcomes in `appsScript/README.md` step 10.
+- **`MODULE_API_KEY` cannot be verified from outside** — `leads.list` returns `UNAUTHORIZED` identically whether the key is unset or simply not supplied. Only the Phase 2 dashboard depends on it; the public form does not.
 
 ### 2. Production domain undecided
+**This is now the only outright launch blocker.**
 Canonical tags say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. They disagree.
 Affects canonical URLs and OG `og:url` on **all 14 existing pages** (19 once the second location wave ships), plus `sitemap.xml` and `robots.txt` (neither exists yet). Settle this *before* writing SEO files, or the work is done twice. Every page carries a `TODO:` comment above both tags so the eventual sweep catches all of them.
 
@@ -128,6 +132,8 @@ Recorded so future sessions don't "fix" them:
 - **`leads.create` is a public endpoint.** Deliberate — a browser cannot hold a secret. The honeypot, validation, and dedupe are its gate.
 - **`Content-Type: text/plain` on form POSTs.** Deliberate — Apps Script web apps cannot answer a CORS preflight, so `application/json` would fail from the browser.
 - **The form's file input never uploads.** Deliberate Phase 1 scope; see item 15.
+- **`leadId` is held for the whole page load, not per attempt.** Deliberate. The API dedupes on `leadId`, so a stable id lets a retry after a network failure collapse into the original row instead of creating a second one. The flow allows one submission per page load, so there is nothing to reset.
+- **The unconfigured-endpoint branch in `submitEstimateRequest()` is now unreachable.** Kept on purpose: it is the safety net that makes a blanked or mistyped endpoint obvious in the console instead of silently failing, and it costs four lines.
 - **Location pages do not link to each other.** Deliberate, per the Internal Linking Map in `seoPlan.md` — they pass authority up to the parent service page, not sideways. Nearby towns render as plain text pills for this reason, which is why `.nearbyList` styles `li` rather than `a`. The sitewide mega menu, mobile menu, and footer *do* link to them; `seoPlan.md` rule 4 explicitly allows that, and page-type-dependent chrome across 14 files would be a maintenance trap.
 - **Location pages have no gallery.** Same reason as items 7 and the Phase 1 decision on `stormCleanup` — no photo in the library can be honestly captioned to a named town. Adding one would mean captioning a Greenup County photo as Chillicothe work.
 - **The location page assembler is not in the repo.** The six pages were generated once from a guarded splice plus a content data file, then committed as plain static HTML. Phase 13 builds the real generator; shipping a half-generator now would leave two competing sources of truth.
