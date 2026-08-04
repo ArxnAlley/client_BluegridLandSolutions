@@ -817,6 +817,392 @@
 }
 
 /* ============================================================
+   FAQ PAGE  (faq/)
+============================================================ */
+
+.faqCategoryNav
+{
+
+    margin-top: 2.4rem;
+
+}
+
+.faqCategoryNav ul
+{
+
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 0.9rem;
+
+    margin: 0;
+
+    padding: 0;
+
+    list-style: none;
+
+}
+
+.faqCategoryNav a
+{
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.25rem;
+
+    height: 100%;
+
+    padding: 1rem 1.2rem;
+
+    background-color: var(--colorWhite);
+
+    border: 1px solid var(--colorLineLight);
+
+    border-left: 3px solid var(--colorSky);
+
+    border-radius: var(--radiusCard);
+
+    transition:
+        transform 0.25s var(--easePremium),
+        box-shadow 0.25s var(--easePremium);
+
+}
+
+.faqCategoryNav a:hover,
+.faqCategoryNav a:focus-visible
+{
+
+    transform: translateY(-2px);
+
+    box-shadow: var(--shadowCard);
+
+}
+
+.faqNavLabel
+{
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1.1rem;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+
+    color: var(--colorCharcoal);
+
+}
+
+.faqNavCount
+{
+
+    font-size: 0.8rem;
+
+    font-weight: 600;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+
+    color: var(--colorSteel);
+
+}
+
+.faqCategory + .faqCategory
+{
+
+    margin-top: 4.5rem;
+
+    padding-top: 4.5rem;
+
+    border-top: 1px solid var(--colorLineLight);
+
+}
+
+.faqCategoryHeading
+{
+
+    font-size: clamp(1.9rem, 3.4vw, 2.5rem);
+
+}
+
+/* ============================================================
+   INSIGHTS  (insights/)
+============================================================ */
+
+.insightsSection
+{
+
+    background-color: var(--colorOffWhite);
+
+}
+
+.insightsGrid
+{
+
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 1.8rem;
+
+}
+
+.insightCard
+{
+
+    display: flex;
+
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background-color: var(--colorWhite);
+
+    border: 1px solid var(--colorLineLight);
+
+    border-radius: var(--radiusCard);
+
+    transition:
+        transform 0.25s var(--easePremium),
+        box-shadow 0.25s var(--easePremium);
+
+}
+
+.insightCard:hover
+{
+
+    transform: translateY(-4px);
+
+    box-shadow: var(--shadowCardHover);
+
+}
+
+.insightCardMedia
+{
+
+    display: block;
+
+    overflow: hidden;
+
+    aspect-ratio: 3 / 2;
+
+}
+
+.insightCardMedia img
+{
+
+    display: block;
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+    transition: transform 0.5s var(--easePremium);
+
+}
+
+.insightCard:hover .insightCardMedia img
+{
+
+    transform: scale(1.05);
+
+}
+
+.insightCardBody
+{
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.6rem;
+
+    padding: 1.5rem 1.4rem 1.6rem;
+
+}
+
+.insightCardCategory
+{
+
+    margin: 0;
+
+    font-size: 0.74rem;
+
+    font-weight: 600;
+
+    letter-spacing: 0.16em;
+
+    text-transform: uppercase;
+
+    color: var(--colorSkyDeep);
+
+}
+
+.insightCardTitle
+{
+
+    margin: 0;
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1.35rem;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+
+}
+
+.insightCardTitle a
+{
+
+    color: var(--colorCharcoal);
+
+}
+
+.insightCardTitle a:hover
+{
+
+    color: var(--colorSkyDeep);
+
+}
+
+.insightCardExcerpt
+{
+
+    margin: 0;
+
+    font-size: 0.95rem;
+
+    line-height: 1.6;
+
+    color: var(--colorSteel);
+
+}
+
+.insightCardMeta
+{
+
+    margin: auto 0 0;
+
+    padding-top: 0.4rem;
+
+    font-size: 0.8rem;
+
+    font-weight: 600;
+
+    color: var(--colorSteel);
+
+}
+
+/* ── Article body ── */
+
+.articleSectionWrap
+{
+
+    display: block;
+
+    background-color: var(--colorWhite);
+
+}
+
+.articleInner
+{
+
+    max-width: 780px;
+
+}
+
+.articleMeta
+{
+
+    margin: 0 0 1.6rem;
+
+    font-size: 0.78rem;
+
+    font-weight: 600;
+
+    letter-spacing: 0.16em;
+
+    text-transform: uppercase;
+
+    color: var(--colorSkyDeep);
+
+}
+
+.articleLede
+{
+
+    margin: 0 0 1.4rem;
+
+    font-size: 1.24rem;
+
+    line-height: 1.7;
+
+    color: var(--colorInk);
+
+}
+
+.articleSection
+{
+
+    margin-top: 3rem;
+
+}
+
+.articleHeading
+{
+
+    margin: 0 0 1.2rem;
+
+    font-family: var(--fontDisplay);
+
+    font-size: clamp(1.6rem, 3vw, 2.1rem);
+
+    font-weight: 700;
+
+    line-height: 1.2;
+
+    color: var(--colorCharcoal);
+
+}
+
+.articleServiceLink
+{
+
+    margin: 3rem 0 0;
+
+    padding-top: 1.8rem;
+
+    border-top: 1px solid var(--colorLineLight);
+
+    font-size: 1.05rem;
+
+    font-weight: 700;
+
+}
+
+.articleServiceLink a
+{
+
+    color: var(--colorSkyDeep);
+
+}
+
+.articleServiceLink a:hover
+{
+
+    color: var(--colorSky);
+
+}
+
+/* ============================================================
    MEDIA QUERIES
 ============================================================ */
 
@@ -832,6 +1218,14 @@
     }
 
     .localFactGrid
+    {
+
+        grid-template-columns: repeat(2, 1fr);
+
+    }
+
+    .faqCategoryNav ul,
+    .insightsGrid
     {
 
         grid-template-columns: repeat(2, 1fr);
@@ -870,7 +1264,9 @@
     .relatedGrid,
     .galleryGrid,
     .localServiceList,
-    .localProblemGrid
+    .localProblemGrid,
+    .faqCategoryNav ul,
+    .insightsGrid
     {
 
         grid-template-columns: 1fr;

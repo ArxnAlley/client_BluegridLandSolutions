@@ -1,6 +1,6 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-04
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `phase2a-lead-capture` (branched from `main`, not yet merged, nothing pushed)
 
@@ -15,6 +15,8 @@
 **Phase 2B — Service Area Pages: first wave complete.** The six cities `seoPlan.md` stages as the Phase 7 build set are live and wired. Rows 7–11 (Jackson, Gallipolis, Waverly, Greenup, Louisa) have **not** been built.
 
 **Phase 2C — Hero Mobile Refinement: complete.** The hero background is decoupled from the estimate form, the before/after transition alternates indefinitely, and the refreshed `hero_after` asset's filename casing is normalized.
+
+**Navigation & Content Expansion — complete.** Primary nav is now Services · Service Areas · FAQ · Insights; FAQ became a desktop mega menu; a dedicated FAQ hub and an Insights resource centre with seven articles shipped. **The site is 23 pages.**
 
 **Header Navigation Polish — complete.** Desktop header no longer wraps at any width; spacing tightened by 101px and the mobile-nav switch moved from 1080px to 1150px.
 
@@ -107,11 +109,20 @@ Take the existing BlueGrid Land Solutions website from "built but not launchable
 - **Tokenized and given a unified morph.** All compact-state values are now `:root` custom properties (`--headerPadX`, `--headerGap`, `--headerBrandGap`, `--headerBadgeSize`, `--headerBrandNameSize`, `--headerNavGap`, `--headerNavLinkPadX`, `--headerNavChevronGap`, `--headerActionsGap`, `--headerPhonePadX`, `--headerCtaPadX`, `--headerTransition`), so the `1280px` and `1150px` queries are token overrides only and all four header states share one vocabulary. Every dimension that differs between states animates on `--headerTransition` (`0.35s var(--easePremium)`, matching the header's existing scrolled-background timing); `prefers-reduced-motion` zeroes it in one declaration. The nav→hamburger swap itself cannot animate (`display` is not interpolable), but height, logo, and padding ease across the boundary.
 - **Validation:** downloaded the real Inter 600/700 and Rokkitt 700 fonts and wrote a TrueType metrics parser, then **swept every integer width from 900 to 1600px** re-resolving the `:root` cascade at each. **Zero widths wrap**; tightest desktop width is 1151px at +45px. All twelve requested widths verified. Structural checks assert the nowrap guards, that every token is actually consumed by a rule, that no breakpoint overrides the CTA padding, that all eight rules animate on the shared token, and that no header rule was left behind in the 1080px or 640px queries.
 
+### Navigation & Content Expansion
+
+- **Primary nav restructured** to Services · Service Areas · FAQ · Insights across all 23 pages. Reviews was removed as instructed. **Before & After also came out** — the brief spelled the resulting order out as a four-item list. It stays reachable from the homepage hero CTA ("See Transformations") and the footer Quick Links, so nothing is orphaned; restoring it to the nav is a one-line change if that was not the intent.
+- **FAQ is now a desktop mega menu** — 9 questions, each a bold question plus a two-sentence preview, two-up in a 760px panel capped against the viewport, with a "View All FAQs" CTA. Several items link to the service page that already owns the answer rather than restating it. Mobile stays two plain links, by instruction.
+- **`faq/index.html`** — 28 questions in 6 categories with a jump-link grid, per-question anchors so the mega menu can deep-link, `FAQPage` schema, and cross-links to all 7 service pages. **All 28 are new**: the site already had 75 FAQs and `seoPlan.md` bans duplicate questions, so the hub took the ground nobody had covered — insurance, deposits, 811 locates, property lines, livestock and gates, ground pressure, weather delays, aftercare.
+- **`insights/`** — a landing page plus seven articles, 550–900 body words each, worst pairwise 5-word-phrase overlap **0.3%**. No dates anywhere by instruction. Hero and card images are real BlueGrid job photos standing in for topic-specific photography, every one TODO-marked.
+- **Validation:** 23 pages, **2,407 links and assets, zero broken**; nav order parsed and verified on every page; mega menu structure, `aria` wiring, and preview length checked on every page; mobile drawer confirmed to carry no mega markup; all 28 question anchors and 6 category jump links resolve; **zero duplicate questions** against the 74 elsewhere on the site.
+- **Side effect worth knowing:** the new nav is 127px narrower, so the header now needs 1080px rather than 1207px and carries 163px of slack at 1151px. The 1150px breakpoint was left alone — see `technicalDebt.md` item 18b.
+
 ---
 
 ## Currently In Progress
 
-Nothing. The header polish is complete and committed. The session ended at a clean stopping point.
+Nothing. The navigation and content expansion is complete and committed. The session ended at a clean stopping point.
 
 ---
 
@@ -126,8 +137,8 @@ Steps 1–4 (spreadsheet, `.gs` paste, `setupSpreadsheet()`, `runSelfTest()`, We
 6. Location pages rows 7–11 — Jackson OH, Gallipolis OH, Waverly OH, Greenup KY, Louisa KY. `seoPlan.md` stages these after the first six index and rank. West Union OH and Flatwoods KY are advertised in the nav but are **not** in the `seoPlan.md` set at all — decide whether they get pages or come out of the nav.
 7. `robots.txt` — deferred, depends on the domain
 8. `sitemap.xml` — deferred, depends on the domain
-9. Canonical URL finalization — **14 pages today**, 19 once rows 7–11 ship
-10. Open Graph finalization (absolute URLs) — same 14 pages
+9. Canonical URL finalization — **23 pages today**, 28 once location rows 7–11 ship
+10. Open Graph finalization (absolute URLs) — same 23 pages
 11. Lighthouse / performance pass
 
 ---
@@ -136,7 +147,7 @@ Steps 1–4 (spreadsheet, `.gs` paste, `setupSpreadsheet()`, `runSelfTest()`, We
 
 | # | Blocker | Impact |
 |---|---------|--------|
-| 1 | **Production domain undecided** | Canonical says `www.bluegridlandsolutions.com`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. Blocks `sitemap.xml`, `robots.txt`, canonicals, and OG absolute URLs across 14 pages. **The only outright launch blocker left.** |
+| 1 | **Production domain undecided** | Canonical says `www.bluegridlandsolutions.com`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. Blocks `sitemap.xml`, `robots.txt`, canonicals, and OG absolute URLs across 23 pages. **The only outright launch blocker left.** |
 | 2 | `MODULE_API_KEY` state unknown | Cannot be verified from outside — `leads.list` returns `UNAUTHORIZED` whether the key is unset or merely not supplied. Blocks only the Phase 2 dashboard, never the public form. |
 
 Resolved this session: `estimateEndpoint` is wired and answering, and the `BlueGrid Leads` spreadsheet exists with `setupSpreadsheet()` and `runSelfTest()` both passed.

@@ -4,6 +4,91 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-04 — Navigation restructure, FAQ hub, and Insights
+
+### Summary
+
+Replaced Reviews with Insights in the primary nav, turned FAQ into a desktop mega menu, and built two new sections: a dedicated FAQ hub and an Insights resource centre with seven launch articles. The site went from 14 pages to **23**.
+
+### Files Created
+
+- `faq/index.html` — 28 questions across 6 categories
+- `insights/index.html` — the resource centre landing page
+- `insights/{benefits-of-forestry-mulching, brush-hogging-vs-forestry-mulching, when-to-clear-overgrown-property, preparing-land-for-building, storm-cleanup-best-practices, fence-line-clearing-tips, signs-your-property-needs-land-management}.html`
+
+### Files Modified
+
+- All 14 existing pages — nav tail replaced, mobile drawer simplified, footer FAQ link retargeted with Insights added
+- `css/styleIndex.css` — `.megaPanelFaq` and its contents
+- `css/stylePages.css` — FAQ page and Insights components
+
+### Navigation
+
+Final order is **Services · Service Areas · FAQ · Insights**.
+
+**A judgement call worth flagging:** the brief said to remove Reviews and replace it with Insights, then gave the resulting order as a four-item list that does not include *Before & After*. Read literally that is a complete specification, so Before & After came out of the primary nav. It remains reachable from the homepage hero CTA ("See Transformations") and from the footer Quick Links, so nothing is orphaned — but if the intent was a five-item nav, putting it back is a one-line change.
+
+### FAQ Mega Menu
+
+Nine questions, each a bold question plus a two-sentence preview, two-up in a 760px panel capped against the viewport so it cannot overhang at the narrowest desktop width. A "View All FAQs" CTA sits under a divider.
+
+**The nine items do not all point at the FAQ page.** Several of the most common questions were already answered elsewhere — "What is forestry mulching?" on the homepage and the mulching service page, "Do you remove stumps?" on land clearing, "Do you haul debris away?" on property cleanup. Those link to the page that owns the answer; the rest link to `faq/index.html#anchor`. That keeps the mega menu genuinely useful without restating answers that already exist, which `seoPlan.md` forbids.
+
+Mobile is deliberately two plain links. A mega menu inside a full-screen drawer is worse than a short list, and the brief asked for it to stay simple. A check fails if mega-menu markup ever leaks into the drawer.
+
+### FAQ Page
+
+Six categories — Estimates & Getting Started, Choosing the Right Service, On Your Property, Equipment & Conditions, After the Job, Payment & Paperwork — with a jump-link card grid at the top and the existing accordion component for the answers. Every question anchors individually so the mega menu can deep-link to it. It carries the `FAQPage` schema and links out to all seven service pages.
+
+**All 28 questions are new.** The site already had 75 FAQs across the homepage, service pages, and location pages, and `seoPlan.md` bans duplicate questions across pages. Rather than build a hub that restates and competes with the service pages, the hub took the territory nobody had covered: insurance, deposits, 811 locates, property lines, livestock and gates, ground pressure, weather delays, what the ground looks like afterward, whether the mulch attracts pests. A validator now cross-references all 74 questions elsewhere on the site and fails on any collision.
+
+### Insights
+
+Seven articles, 550–900 body words each, worst pairwise 5-word-phrase overlap **0.3%**. Each has an `Article` schema, a breadcrumb, related-reading cards, a link to its parent service page, and a link back to the FAQ.
+
+**No dates anywhere**, as instructed — no visible date, no `datePublished`, no `dateModified`, no `<time>` element. The schema comment explains why rather than leaving a future reader guessing. A check enforces it.
+
+**Hero and card images are real BlueGrid job photos standing in for topic-specific photography**, each marked with a `TODO: PLACEHOLDER IMAGE` comment in the markup. No new external hotlinks were introduced — `technicalDebt.md` item 6 already complains about the Unsplash ones on the homepage and adding more would have made that worse.
+
+### Validation Performed
+
+- **23 pages, 2,407 internal links and assets, zero broken.** Every same-page and cross-page anchor resolves.
+- Nav order verified on all 23 pages by parsing the rendered markup, not by trusting the generator. Reviews confirmed absent from every primary nav.
+- Mega menu: 9 questions and 9 previews on every page, CTA present, `aria-expanded` / `aria-controls` / panel id wiring intact, every preview ≤3 sentences.
+- Mobile drawer: exactly two items, no mega markup, on all 23 pages.
+- FAQ page: all 6 category sections and jump links present, all 28 question anchors present, 28 accordions rendered, every mega-menu deep link resolves, all 7 service cross-links present.
+- **Zero duplicate questions** against the 74 elsewhere on the site.
+- Insights: every article linked from the landing page, word counts above the thin-content floor, no dates, placeholder images marked, service and FAQ links present.
+- Regression suite unchanged: hero seam exact on five viewports, hero loop 92/92 alternating, lead flow contract clean on all 23 pages, header sweep 900–1600 with zero wrapping, `node --check` clean, Apps Script 64/64.
+
+### A Consequence Worth Recording
+
+The new nav is **127px narrower** than the old one (450px vs 577px) — FAQ and Insights are shorter labels than Before & After plus Reviews plus FAQ. The header now needs **1080px** of viewport rather than 1207px, so at 1151px there is **163px of slack** instead of 45px.
+
+The 1150px mobile breakpoint was therefore left alone but is now more conservative than it needs to be: the desktop nav would survive comfortably to roughly 1105px. Moving it was not part of this request and the previous session chose 1150 partly for webfont-fallback margin, so the headroom is recorded in `technicalDebt.md` rather than spent unilaterally.
+
+### Bugs Found
+
+**Mine, caught by the guards**
+
+1. The chrome was spliced from `services/forestryMulching.html`, where the seven mega-menu service links are relative to that folder — so every new page linked to `insights/forestryMulching.html`. The location-page builder had a `repointServiceLinks()` step for exactly this; I forgot it. The link validator caught all 63 instances.
+2. Two genuinely unescaped ampersands: the category labels ("Payment & Paperwork") and one `og:title`. The ampersand guard caught both.
+3. `when-to-clear-overgrown-property` came in at 537 body words, under the thin-content floor. Added a section on what waiting actually costs.
+
+**In the validator, not the product**
+
+4. The mega-panel check sliced to the first `</li>`, which closes the first question rather than the panel — it reported 1 question on every page.
+5. The article uniqueness check measured `<main>`, which includes the shared hero, breadcrumb, related cards, and estimate form. That reported 26.1% overlap for what is almost entirely template. Measuring the prose only gives 0.3%.
+6. The "no dates" check matched the schema comment explaining why dates are absent.
+
+### Lessons Learned
+
+- **The same splice bug twice means the splice needs a home.** `repointServiceLinks()` has now been written twice in two different one-shot generators. Phase 13's real generator should own it rather than each script rediscovering it.
+- **A duplicate-content rule is only real if something checks it.** `seoPlan.md` has banned duplicate questions since the start; writing the cross-reference check is what turned that from an intention into a constraint, and it shaped the whole FAQ page — the 28 questions are the ones that were left after subtracting 75.
+- **Validators fail in both directions.** Three of this session's six "bugs" were in the checking code. A failing check is a hypothesis, not a verdict; each one needed reading before acting.
+
+---
+
 ## 2026-08-03 — Header navigation polish
 
 ### Summary

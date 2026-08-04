@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-04
 
 Known debt, deferred work, and intentional trade-offs. Items are listed by launch impact, not by effort.
 
@@ -18,7 +18,7 @@ Two follow-ups remain, neither blocking:
 ### 2. Production domain undecided
 **This is now the only outright launch blocker.**
 Canonical tags say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. They disagree.
-Affects canonical URLs and OG `og:url` on **all 14 existing pages** (19 once the second location wave ships), plus `sitemap.xml` and `robots.txt` (neither exists yet). Settle this *before* writing SEO files, or the work is done twice. Every page carries a `TODO:` comment above both tags so the eventual sweep catches all of them.
+Affects canonical URLs and OG `og:url` on **all 23 existing pages** (28 once the second location wave ships), plus `sitemap.xml` and `robots.txt` (neither exists yet). Settle this *before* writing SEO files, or the work is done twice. Every page carries a `TODO:` comment above both tags so the eventual sweep catches all of them.
 
 ### 3. Badge artwork typo — "FORESTRV"
 The official badge (`graphics/logos/web/bluegridBadge400.png`, `bluegridBadge192.png`) reads **"FORESTRV MULCHING & LAND CLEARING"** on the bottom arc — a V where the Y should be. Verified 2026-08-02 against the actual PNG.
@@ -47,14 +47,14 @@ Trail Cutting, Property Cleanup, and Hunting Property Prep cards load from `imag
 Deferred because replacing imagery needs client approval. Real unused photos exist (`cleanCut`, `freshMulching`, `overGrowth`, `whatTheyDo2`, `BeforeandAfter`).
 
 ### 7. Thin photo library
-13 images total for **14 pages**. Several are reused across service pages, location page heroes, and galleries. Two service pages (`stormCleanup`, `huntingPropertyPrep`) and **all 6 location pages** ship with no gallery section, because no apt photos exist — and no existing photo can be honestly captioned to a named town. Verified 2026-08-02.
+13 images total for **23 pages**. Several are reused across service pages, location page heroes, and galleries. Two service pages (`stormCleanup`, `huntingPropertyPrep`) and **all 6 location pages** ship with no gallery section, because no apt photos exist — and no existing photo can be honestly captioned to a named town. Verified 2026-08-02.
 Needs a real photo drop from the client — ideally before/after pairs per service, and ideally tagged by where they were taken, which would unlock a gallery on every location page.
 
 ### 8. `robots.txt` and `sitemap.xml` do not exist
-Deferred by instruction. Both depend on item 2 (domain). The sitemap now needs 14 URLs rather than 8.
+Deferred by instruction. Both depend on item 2 (domain). The sitemap now needs 23 URLs rather than 8.
 
 ### 9. Open Graph not finalized
-`og:image` and `og:url` use relative or placeholder-domain paths across all **14 pages**. OG images must be absolute URLs to render in Facebook/iMessage previews. TODO-marked in every page head.
+`og:image` and `og:url` use relative or placeholder-domain paths across all **23 pages**. OG images must be absolute URLs to render in Facebook/iMessage previews. TODO-marked in every page head.
 
 ### 9a. Location pages quote no prices
 `seoPlan.md` content rule 5 asks location pages to answer cost questions directly with real ranges, and calls it the biggest opening in this trade because most competitors dodge it. None of the 6 pages names a dollar figure — no pricing has been approved by the client, and inventing one would be a commitment the site cannot honor.
@@ -75,9 +75,9 @@ No code debt; purely awaiting the asset.
 
 ## Low Priority
 
-### 13. Shared chrome is duplicated across 14 pages
-Header (364 lines), estimate modal (296), footer (154), and floating actions (25) are copied into every page — roughly 840 lines × 14. Inherent to a no-build static site.
-Mitigated: interior pages were generated from a guarded assembler, not hand-copied, and `applyBusinessConfig()` drives phone/email/social from one place at runtime. **Nav link changes now require editing 14 files** — this session's service-area rewiring touched 18 links per page across 8 files and needed a scripted, guarded pass to be safe. The cost of this item is now measurable; see *Consider a build step* under Future Improvements.
+### 13. Shared chrome is duplicated across 23 pages
+Header (364 lines), estimate modal (296), footer (154), and floating actions (25) are copied into every page — roughly 900 lines × 23. Inherent to a no-build static site.
+Mitigated: interior pages were generated from a guarded assembler, not hand-copied, and `applyBusinessConfig()` drives phone/email/social from one place at runtime. **Nav link changes now require editing 23 files** — this session's service-area rewiring touched 18 links per page across 8 files and needed a scripted, guarded pass to be safe. The cost of this item is now measurable; see *Consider a build step* under Future Improvements.
 
 ### 14. `dashboardMetrics` tab is created empty
 `setupSpreadsheet()` creates the tab but writes no formulas. The formula set is specified in `docs/googleSheetArchitecture.md` but must be entered by hand. The dashboard SPA (Phase 2) computes its own numbers and does not read this tab, so nothing is blocked.
@@ -107,10 +107,20 @@ Cosmetic and low risk, but it is a documented requirement the build does not mee
 No session on this project has had Playwright or Chrome DevTools available, so every validation to date is static analysis or simulation. That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything actually *looks*.
 Before launch someone should open the homepage on a real phone and confirm: the hero photo ends at the fold, the seam into the estimate band is invisible, the estimate card's overlap reads as intentional, and the before/after transition alternates smoothly. Same pass on a tablet and a desktop.
 
-### 18b. Header spacing is tuned to the current nav labels
-The desktop bar fits with 45px of slack at its tightest width (1151px). That margin was measured against today's five nav items — Services, Service Areas, Before & After, Reviews, FAQ.
-**Adding a sixth nav item, or lengthening a label, will consume it.** "Portfolio" would cost roughly 90px and push the wrap point back above 1150px, reintroducing a broken band. If the nav grows, re-run the width sweep and expect the switch to move up again.
-Not a defect — just a constraint that is invisible in the CSS and easy to trip over.
+### 18b. The 1150px breakpoint now has spare headroom
+The nav restructure (Aug 4) replaced *Before & After · Reviews · FAQ* with *FAQ · Insights*, cutting the primary nav from 577px to **450px**. The header now needs **1080px** of viewport rather than 1207px, so at 1151px there is **163px of slack** where the breakpoint was tuned for 45px.
+
+The switch was left at 1150px because moving it was outside the request and 1150 was partly chosen for `'Segoe UI'` fallback margin. But the desktop nav would now survive comfortably to roughly **1105px**, so the hamburger appears earlier than it needs to on 1100–1150px tablets. Worth reclaiming if anyone cares about that band.
+
+**The constraint still holds in the other direction:** adding a nav item or a long label consumes this headroom. Re-run the width sweep after any nav change.
+
+### 18c. Insights hero images are placeholders
+All eight Insights pages (landing plus seven articles) use existing BlueGrid job photos as stand-ins, each marked `TODO: PLACEHOLDER IMAGE` in the markup. They are real work photos, so nothing is dishonest — but none was shot for its article, and several repeat across pages.
+Replacing them is the single biggest visual upgrade available to the section. Feeds directly off item 7 (thin photo library).
+
+### 18d. Insights articles have no publication dates
+By instruction: no visible date, no `datePublished`, no `dateModified`, no `<time>` element. The `Article` schema on each page carries a comment explaining the omission.
+Google does not require dates, but they help for evergreen-vs-current signals and readers use them to judge freshness. When a publishing workflow exists, add them in one place — the article data — and drop the schema comments. A check currently fails if a date appears, so that check needs relaxing at the same time.
 
 ### 19. Rowan County coverage is asserted, not confirmed
 Morehead has been advertised in the mega menu and mobile menu since Phase 1, but Rowan County appeared in none of the four places the site lists counties (`serviceRegions` in `js/indexJS.js`, `LocalBusiness` `areaServed`, the static map panel list, and both copies of the "Do you travel to my county?" FAQ answer).
