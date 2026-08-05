@@ -4,6 +4,161 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-04 — SESSION SUMMARY (2026-08-02 → 2026-08-04)
+
+> Session-level compaction. Each phase below has a detailed entry further down this file — this is the fast path for a session resuming cold.
+
+### Summary
+
+One continuous session covering six pieces of work: **Phase 2B** (first-wave service area pages), **Phase 2C** (hero mobile refinement), **Phase 2D** (connecting the live Apps Script backend), a **header navigation polish** and its **tokenization follow-up**, and a **navigation restructure with two new content sections**.
+
+The site went from **8 pages with a form that silently discarded every submission** to **23 pages with live lead capture**, a location tier, an FAQ hub, and a resource centre.
+
+### Files Created
+
+**Location pages (6)** — `locations/forestry-mulching-{ashland-ky, portsmouth-oh, ironton-oh, chillicothe-oh, grayson-ky, morehead-ky}.html`
+
+**FAQ hub (1)** — `faq/index.html`
+
+**Insights (8)** — `insights/index.html` plus `benefits-of-forestry-mulching`, `brush-hogging-vs-forestry-mulching`, `when-to-clear-overgrown-property`, `preparing-land-for-building`, `storm-cleanup-best-practices`, `fence-line-clearing-tips`, `signs-your-property-needs-land-management`
+
+### Files Modified
+
+- `index.html` — service-area link wiring, town-by-town block, Rowan County in schema/map/FAQ, nav restructure, `hero_after` casing
+- `services/*.html` (7) — service-area link wiring, nav restructure; `forestryMulching.html` additionally gained the "Where We Work" block
+- `locations/*.html` (6) — nav restructure (after being created earlier in the session)
+- `js/indexJS.js` — `rowan` service region; hero dissolve made awaitable + forward-sweep `error` fallback; production `/exec` endpoint; double-submit guard and stable `leadId`
+- `css/styleIndex.css` — hero media decoupling, estimate band, overlay fade; header anti-wrap guards, compact band, 1150px switch, twelve `:root` tokens, unified `--headerTransition`; `.megaPanelFaq` and contents; `.serviceAreaTowns*`
+- `css/stylePages.css` — location-page components (`.localSection`, `.localProse`, `.localProblemGrid`, `.nearbyList`), FAQ page components, Insights components
+- `graphics/images/hero_after.JPG` → `hero_after.jpg` (git rename)
+- All three `docs/` files
+
+### Architecture Decisions
+
+1. **Six location pages, not thirteen.** `seoPlan.md` rows 1–6 with genuinely local content over 13 doorway pages. The 7 cities without pages still point at the `#serviceAreas` anchor.
+2. **Location pages link up, never sideways** — parent service page, homepage, all 7 services. Nearby towns are plain text, which is why `.nearbyList` styles `li` not `a`. Sitewide chrome *does* link to them; `seoPlan.md` rule 4 blesses that explicitly.
+3. **Hero media decoupled from section height** rather than shrunk. An `inset: 0` layer is coupled to its container's content; every fix that is not decoupling is a workaround.
+4. **The hero fade lives on `.heroOverlay`, not `.heroPlate`** — a bottom `mask-image` on the plates would overwrite `.heroPlateAfter`'s mask, which *is* the sweep animation.
+5. **One endpoint, one call site.** Already true; this session verified it rather than assuming, and added checks so it stays true.
+6. **`leadId` is stable for the page load** so the server's dedupe can collapse a retry into the original row.
+7. **Header compact band starts at 1280px, above the 1207px wrap point**, so crossing it makes the bar roomier rather than snapping tighter.
+8. **The mobile-nav switch is a header-only media query** — the existing 1080px query also drives the hero and services grid, and retargeting it would have been a redesign of sections nobody asked about.
+9. **Header dimensions are `:root` tokens** with a single `--headerTransition`; reduced motion zeroes the whole morph in one declaration.
+10. **New pages live one level deep** (`faq/index.html`, `insights/*`) so they reuse the proven one-level chrome instead of needing a third path variant.
+11. **The FAQ hub carries only new questions.** The site had 75; `seoPlan.md` bans duplicates; the hub took the 28 that were left.
+12. **The FAQ mega menu links to whoever owns the answer** — several items point at service pages rather than the FAQ page.
+13. **Generators stay in the scratchpad.** Phase 13 owns the real one; shipping a half-generator would create two competing sources of truth.
+
+### Validation Performed
+
+- **23 pages, 2,407 internal links and assets, zero broken.** Every same-page and cross-page anchor resolves.
+- Location-page uniqueness: worst pairwise 5-word-phrase overlap **14.7%** (gate 25%), 1,133–1,283 body words.
+- Insights uniqueness: worst pairwise overlap **0.3%**, 550–900 body words.
+- **Zero duplicate FAQ questions introduced** — the hub's 28 cross-referenced against every question elsewhere on the site. The check also surfaced one *pre-existing* duplicate between `index.html` and `services/landClearing.html` (technicalDebt item 10a).
+- Nav order parsed from rendered markup on all 23 pages; mega-menu structure, `aria-expanded`/`aria-controls` wiring, and preview length checked per page; mobile drawer confirmed to carry exactly two items and no mega markup.
+- Header: **every integer width 900–1600px** re-measured against the real Inter/Rokkitt metrics — zero wrapping, tightest desktop 1151px.
+- Hero seam geometry exact (0px error) with 24px card overlap at 360×640, 390×844, 430×932, 768×1024, 1024×1366.
+- Titles and meta descriptions unique sitewide; every JSON-LD block parses; every schema FAQ question verified to render.
+
+### Tests Executed
+
+| Harness | Result |
+|---|---|
+| `appsScript/localTestRunner.js` | **64/64**, `runSelfTest` 6/6 |
+| Hero duet loop simulation (10 min page time) | **92/92 alternating**, 6.13–6.94s cadence — *and fails on the pre-fix code, 90 of 108 reveals clipped* |
+| Sitewide link/structure validator | 23 pages, 2,407 references, 0 broken |
+| Navigation & new-page validator | PASS |
+| Header width sweep 900–1600px | PASS |
+| Hero layout validator (5 viewports) | PASS |
+| Lead-flow contract validator | PASS |
+| Live endpoint probes (`ping`, unknown action, unauthorized, honeypot POST) | All correct, zero side effects |
+| `node --check js/indexJS.js` | clean |
+
+### Bugs Found
+
+**Pre-existing, fixed**
+1. Hero before/after loop desynced — stale cleanup timer stripped the next cycle's `isRevealed`.
+2. `fireHeroForwardSweepAndWait()` could hang forever if the AFTER plate failed to load.
+3. `hero_after` filename casing mismatch between disk and git — a 404 waiting on case-sensitive hosting.
+4. Desktop header wrapped across a 126px band (1081–1207px).
+5. **No double-submit guard on the estimate form** — harmless while the endpoint was empty, a data-integrity defect the moment it went live.
+6. Rowan County absent from all four places the site lists counties, while Morehead was advertised in the nav.
+
+**Pre-existing, found and logged (not fixed)**
+7. Current service is not highlighted in the mega menu, contrary to `servicePageArchitecture.md`.
+8. Orphan asset `graphics/images/after.JPG`, referenced nowhere.
+
+**Mine, caught by guards before shipping**
+9. Generated location pages had mixed line endings (CRLF from template literals, LF from spliced chrome).
+10. Chrome splice left seven mega-menu service links resolving inside `insights/` — the location builder had a repointing step the new builder initially lacked.
+11. Two unescaped ampersands (category labels, one `og:title`).
+12. One Insights article under the thin-content word floor.
+13. `.nearbyList` top margin stacked with the lede's bottom margin.
+
+**In validators, not the product** — a harness that started two concurrent hero loops; a mega-panel slice that stopped at the first `</li>`; an article-uniqueness check measuring shared boilerplate; a "no dates" check matching its own explanatory comment; an enum comparison tripping on line endings.
+
+### Bugs Fixed
+
+All of 1–6 and 9–13. Items 7 and 8 are logged in `technicalDebt.md` (18 and 15b).
+
+### Performance Improvements
+
+- Header spacing tightened by **101px**, and the nav restructure removed a further **127px** — the header now needs 1080px of viewport where it once needed 1207px.
+- No regressions introduced: no new external hotlinks, no new render-blocking resources, no new fonts. Insights images reuse existing repo assets.
+- **Not done:** the Lighthouse pass. Hero images remain `2048×1536` with no `srcset`, and Google Fonts still loads render-blocking.
+
+### UX Improvements
+
+- Mobile hero no longer runs hundreds of pixels past the fold; the estimate card sits on its own band with a deliberate 24px overlap.
+- The before/after transition now alternates indefinitely at a consistent 6.1–6.9s cadence instead of stalling every few cycles.
+- Desktop nav no longer wraps at any width; transitions between desktop, compact desktop, and mobile are animated on one shared curve, and respect `prefers-reduced-motion`.
+- A double-tap on the estimate submit button can no longer produce duplicate leads or a permanently locked form.
+- The FAQ mega menu answers common questions in the nav itself; mobile deliberately stays a short list.
+
+### SEO Improvements
+
+- **15 new indexable pages**: 6 location, 1 FAQ hub, 8 Insights.
+- Location pages target the money keyword per city with genuinely local content that fails the city-swap test by design.
+- New structured data: `Service` ×6 and `FAQPage` ×6 on location pages, `FAQPage` on the hub, `Article` ×7, `ItemList`, and `BreadcrumbList` on every new page.
+- `LocalBusiness` `areaServed` extended with Rowan County so schema matches the advertised coverage.
+- Internal linking materially strengthened: mega menu → FAQ hub and service pages; "Where We Work" → location tier; every Insights article → its parent service page and the FAQ; the FAQ hub → all seven service pages.
+- Titles and meta descriptions verified unique across all 23 pages.
+- **No duplicate FAQ questions introduced**, enforced by a check rather than by memory. The same check surfaced one pre-existing duplicate from Phase 1 (technicalDebt item 10a).
+
+### Lessons Learned
+
+- **A passing test proves nothing until it has failed.** The hero-loop harness only earned trust once it reproduced the reported symptom against the pre-fix code.
+- **Wiring an endpoint changes which bugs are real.** The double-submit hole existed all along and cost nothing until the URL was set.
+- **Measure instead of estimating when the answer is a number.** Parsing the real font files turned the breakpoint from a judgement call into arithmetic.
+- **A rule is only real if something checks it.** `seoPlan.md` had banned duplicate questions since day one; writing the cross-reference check is what turned that into a constraint that shaped the FAQ page.
+- **Validators fail in both directions.** Roughly a third of this session's "bugs" were in the checking code; every failure needed reading before acting.
+- **The same splice bug twice means the splice needs a home.** `repointServiceLinks()` has now been written twice in two one-shot generators.
+
+### Important Decisions
+
+- **Committed to `phase2a-lead-capture`, never pushed**, so all of this can be reviewed before it reaches `main`.
+- **No dollar figures anywhere.** No pricing has been approved; inventing ranges would be a commitment the site cannot honour. Logged as the highest-value client ask.
+- **No fabricated publication dates** on Insights — none visible, none in schema, with a comment explaining the omission.
+- **Placeholder imagery is marked, not disguised** — real BlueGrid photos standing in, each `TODO:`-commented, and no new external hotlinks added.
+- **Before & After was removed from the primary nav** on a literal reading of the brief's four-item order. Flagged for confirmation; it remains reachable from the hero CTA and the footer.
+- **The 1150px header breakpoint was left alone** even though the nav restructure gave it 163px of slack, because moving it was outside that request.
+
+---
+
+## Next Session Should Continue Here
+
+**Everything through Phase 2D is complete and committed at `863842c`. The working tree is clean and all eight validation suites pass.**
+
+1. **Read `docs/projectState.md` first.** It carries the repository status, the ordered task list, and who owes what.
+2. **The only outright launch blocker is the production domain.** Canonicals say `www.bluegridlandsolutions.com`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. It gates `robots.txt`, `sitemap.xml`, canonical finalization, and Open Graph across **23 pages** — all already `TODO:`-marked so one sweep closes them.
+3. **Two zero-engineering checks are outstanding:** one real lead submission from the live site (it emails the owner and the customer, so it was not triggered unilaterally), and **a real browser pass — no session on this project has ever had one.**
+4. **Before editing any page programmatically:** line endings are mixed per file (see *Current Repository Status*), and chrome spliced from `services/` needs its seven service links repointed to `../services/…`.
+5. **Before adding a nav item:** re-run the header width sweep. There is 163px of slack at 1151px today, and a new label consumes it.
+6. **After any `.gs` change:** `node appsScript/localTestRunner.js`, expect `passed: 64  failed: 0`.
+7. **New content must clear the uniqueness gate** — under 25% pairwise 5-word-phrase overlap, and no FAQ question may duplicate one already on the site. Current totals: **103 rendered FAQ questions, 102 unique** — the gap is one pre-existing duplicate between `index.html` and `services/landClearing.html`, logged as `technicalDebt.md` item 10a.
+
+---
+
 ## 2026-08-04 — Navigation restructure, FAQ hub, and Insights
 
 ### Summary
@@ -532,14 +687,10 @@ All fifteen above, except **#8 (FORESTRV typo)**, which requires corrected artwo
 
 ---
 
-## Next Session Should Continue Here
+## Superseded Handoff (2026-08-02)
 
-**Phase 2A is code-complete. Phase 2B's first wave is complete.** Nothing is half-finished.
-
-1. **Read `docs/projectState.md` first** — it is the source of truth for status, blockers, and who owes what.
-2. **The single launch blocker is still deployment.** `businessConfig.estimateEndpoint` in `js/indexJS.js` is empty, so the form simulates success. Follow the 10-step sequence in `appsScript/README.md`. No code changes needed beyond pasting the `/exec` URL. Every lead the new location pages generate is currently discarded.
-3. **Before writing any more SEO work, settle the production domain.** Canonical says `www.bluegridlandsolutions.com`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. Sitemap, canonicals, and OG absolute URLs all depend on it — **14 pages today**, 19 once the second location wave ships. Writing them twice is avoidable.
-4. **Phase 2B remainder:** location pages rows 7–11 (Jackson, Gallipolis, Waverly, Greenup, Louisa), the West Union / Flatwoods decision, `robots.txt`, `sitemap.xml`, canonical finalization, Open Graph, Lighthouse.
-5. **Build new location pages to the shipped six, not to a template.** The bar is the uniqueness gate: worst pairwise 5-word-phrase overlap under 25%, 1,100+ body words, and content that breaks if the city name is swapped. Grayson (karst), Chillicothe (glacial line), and Morehead (cliff bands) are the clearest examples of what that means.
-6. **Re-run `node appsScript/localTestRunner.js` after any `.gs` change.** Expect `passed: 64  failed: 0`.
-7. Open decisions are listed under *Waiting on Client* and *Waiting on Aron* in `projectState.md`. The three that change engineering work: the deploying Google account, the domain, and whether Chase will supply price ranges for the location pages.
+The handoff block that stood here described Phase 2A as the frontier and the
+endpoint as unwired. Both are long since done. **The current handoff is the
+"Next Session Should Continue Here" block at the top of this file**, under the
+2026-08-04 session summary. Kept as a marker so a reader who scrolls to the
+bottom is not misled by stale instructions.

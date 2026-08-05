@@ -2,153 +2,181 @@
 
 **Last updated:** 2026-08-04
 
-Known debt, deferred work, and intentional trade-offs. Items are listed by launch impact, not by effort.
+Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
 ---
 
 ## High Priority
 
-### 1. ~~Lead capture is not live~~ — RESOLVED 2026-08-03
-The production `/exec` URL is set in `businessConfig.estimateEndpoint` and the endpoint answers. Verified live: `ping` returns the matching `forestryModule` / `bluegrid` / `1.0.0` identity, and a honeypot-tripped `POST leads.create` returns a correct success envelope, proving the whole transport chain works.
-
-Two follow-ups remain, neither blocking:
-- **A real lead has never been created from the live site by this project.** That path writes a row and emails the owner and the customer, so it was not triggered unilaterally. Run one real submission as the final pre-launch check and confirm all five outcomes in `appsScript/README.md` step 10.
-- **`MODULE_API_KEY` cannot be verified from outside** — `leads.list` returns `UNAUTHORIZED` identically whether the key is unset or simply not supplied. Only the Phase 2 dashboard depends on it; the public form does not.
-
-### 2. Production domain undecided
-**This is now the only outright launch blocker.**
+### 1. Production domain undecided
+**The only outright launch blocker.**
 Canonical tags say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. They disagree.
-Affects canonical URLs and OG `og:url` on **all 23 existing pages** (28 once the second location wave ships), plus `sitemap.xml` and `robots.txt` (neither exists yet). Settle this *before* writing SEO files, or the work is done twice. Every page carries a `TODO:` comment above both tags so the eventual sweep catches all of them.
+Gates canonical URLs and `og:url` on **all 23 pages** (28 once the second location wave ships), plus `sitemap.xml` and `robots.txt` — neither exists. Settle it *before* writing the SEO files or the work is done twice. Every affected tag carries a `TODO:` comment so one sweep catches all of them.
 
-### 3. Badge artwork typo — "FORESTRV"
+### 2. Badge artwork typo — "FORESTRV"
 The official badge (`graphics/logos/web/bluegridBadge400.png`, `bluegridBadge192.png`) reads **"FORESTRV MULCHING & LAND CLEARING"** on the bottom arc — a V where the Y should be. Verified 2026-08-02 against the actual PNG.
 Appears in the header, mobile menu, footer, and Facebook fallback on **every page**. Needs corrected source artwork from the client. Would be embarrassing in print or on a truck wrap.
 
-### 4. Placeholder contact details still shipping
+### 3. Placeholder contact details still shipping
 - Phone `(740) 464-2526` — TODO-marked, sourced from the flyer, never confirmed
-- Email `estimates@bluegridlandsolutions.com` — a placeholder address that may not exist
+- Email `estimates@bluegridlandsolutions.com` — a placeholder that may not exist
 
 Both are wired through `businessConfig`, so each is a one-line fix — but shipping an unrouted email address loses leads silently.
 
-### 5. Service area pages: 6 of 13 cities have one
-The `seoPlan.md` first wave shipped — Ashland, Portsmouth, Ironton, Chillicothe, Grayson, and Morehead have real pages, linked from the mega menu, mobile menu, footer, homepage, and the Forestry Mulching service page.
+### 4. Nothing has ever been checked in a real browser
+No session on this project has had Playwright or Chrome DevTools available, so **every validation to date is static analysis or simulation.** That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything *looks*.
+Before launch: open the homepage on a real phone and confirm the hero photo ends at the fold, the seam into the estimate band is invisible, and the card overlap reads as intentional. Then a tablet and desktop pass covering the FAQ mega panel, the header morph across 1280px and 1150px, and the FAQ/Insights layouts.
 
-Still outstanding:
-- **Rows 7–11** (Jackson OH, Gallipolis OH, Waverly OH, Greenup KY, Louisa KY) — staged in `seoPlan.md` for after the first six index. Their nav links still point at `#serviceAreas`, which resolves.
-- **West Union, OH and Flatwoods, KY are advertised in the nav but appear nowhere in `seoPlan.md`'s 11-city table.** Either they get pages or they come out of the nav. Left as-is pending a decision.
-- **Location × service pages beyond forestry mulching** — only where search volume justifies genuinely distinct content.
+### 5. No real lead has been created from the live site
+The endpoint is wired and verified with read-only probes plus a honeypot POST that writes nothing. **A genuine submission has never been run by this project** — that path writes a row and emails both the owner and the customer, so it was not triggered unilaterally.
+Run one and confirm the five outcomes in `appsScript/README.md` step 10, then check `errorLog` is still empty.
+
+### 6. Service area pages: 6 of 13 cities have one
+The `seoPlan.md` first wave shipped — Ashland, Portsmouth, Ironton, Chillicothe, Grayson, and Morehead.
+Outstanding:
+- **Rows 7–11** (Jackson OH, Gallipolis OH, Waverly OH, Greenup KY, Louisa KY) — staged for after the first six index. Their nav links still point at `#serviceAreas`, which resolves.
+- **West Union, OH and Flatwoods, KY are advertised in the nav but appear nowhere in `seoPlan.md`'s 11-city table.** Either they get pages or they come out of the nav.
 
 ---
 
 ## Medium Priority
 
-### 6. Three homepage service cards hotlink Unsplash stock photos
-Trail Cutting, Property Cleanup, and Hunting Property Prep cards load from `images.unsplash.com`. Two problems: an external runtime dependency on a third party, and stock imagery on a site whose entire credibility rests on real work photos.
+### 7. Location pages quote no prices
+`seoPlan.md` content rule 5 asks location pages to answer cost directly with real ranges, and calls it the biggest opening in this trade because most competitors dodge it. **No page names a dollar figure** — no pricing has been approved, and inventing one would be a commitment the site cannot honour.
+Each cost FAQ instead answers with the factors that move the price on that county's ground. Honest and locally unique, but the weaker answer.
+**Fix: get rough per-acre or per-day ranges from Chase.** The single highest-value upgrade available, and it costs one conversation.
+
+### 8. Thin photo library
+13 images total for **23 pages**. Several are reused across service pages, location heroes, Insights heroes, and galleries.
+Consequences already visible: two service pages (`stormCleanup`, `huntingPropertyPrep`) and **all 6 location pages** ship with no gallery, because no photo can be honestly captioned to a named town; and all 8 Insights pages use stand-in imagery (item 9).
+Needs a real photo drop — ideally before/after pairs per service, **tagged by where they were taken**.
+
+### 9. Insights imagery is placeholder
+All eight Insights pages (landing + 7 articles) use existing BlueGrid job photos as stand-ins, each marked `TODO: PLACEHOLDER IMAGE` in the markup. They are real work photos so nothing is dishonest — but none was shot for its article and several repeat across pages.
+The single biggest visual upgrade available to the section. Feeds directly off item 8.
+
+### 10. Three homepage service cards hotlink Unsplash stock photos
+Trail Cutting, Property Cleanup, and Hunting Property Prep load from `images.unsplash.com`. Two problems: a runtime dependency on a third party, and stock imagery on a site whose credibility rests on real work photos.
 Deferred because replacing imagery needs client approval. Real unused photos exist (`cleanCut`, `freshMulching`, `overGrowth`, `whatTheyDo2`, `BeforeandAfter`).
+**No new external hotlinks have been added since** — the Insights build deliberately used repo assets rather than making this worse.
 
-### 7. Thin photo library
-13 images total for **23 pages**. Several are reused across service pages, location page heroes, and galleries. Two service pages (`stormCleanup`, `huntingPropertyPrep`) and **all 6 location pages** ship with no gallery section, because no apt photos exist — and no existing photo can be honestly captioned to a named town. Verified 2026-08-02.
-Needs a real photo drop from the client — ideally before/after pairs per service, and ideally tagged by where they were taken, which would unlock a gallery on every location page.
+### 10a. One duplicate FAQ question predates this session
+**"Do I need a permit to clear land in Ohio or Kentucky?"** is rendered on **both `index.html` and `services/landClearing.html`**, with near-identical answers, and appears in both pages' `FAQPage` schema.
+That violates `seoPlan.md`'s own rule ("No cross-page duplicate questions") and means two pages compete for the same query. Both were built in Phase 1, so it predates this session — it was found by the duplicate check written for the FAQ hub, which is the first thing that ever looked.
+**Fix: decide which page owns it.** The permitting answer is service-agnostic, so the homepage or the new FAQ hub is the better home; `landClearing.html` would then drop the question and link across. Not done at closeout because it changes rendered content and schema on two pages and deserves a deliberate call rather than a rushed one.
+Sitewide totals for reference: **103 rendered FAQ questions, 102 unique.**
 
-### 8. `robots.txt` and `sitemap.xml` do not exist
-Deferred by instruction. Both depend on item 2 (domain). The sitemap now needs 23 URLs rather than 8.
+### 11. `robots.txt` and `sitemap.xml` do not exist
+Deferred by instruction. Both depend on item 1. The sitemap needs **23 URLs**.
 
-### 9. Open Graph not finalized
-`og:image` and `og:url` use relative or placeholder-domain paths across all **23 pages**. OG images must be absolute URLs to render in Facebook/iMessage previews. TODO-marked in every page head.
+### 12. Open Graph not finalized
+`og:image` and `og:url` use relative or placeholder-domain paths across all **23 pages**. OG images must be absolute to render in Facebook/iMessage previews. TODO-marked in every page head.
 
-### 9a. Location pages quote no prices
-`seoPlan.md` content rule 5 asks location pages to answer cost questions directly with real ranges, and calls it the biggest opening in this trade because most competitors dodge it. None of the 6 pages names a dollar figure — no pricing has been approved by the client, and inventing one would be a commitment the site cannot honor.
-Each cost FAQ instead answers with the factors that move the price on that county's specific ground (slope, stem size, access, material). That is honest and locally unique, but it is the weaker answer.
-**Fix: get rough per-acre or per-day ranges from Chase.** This is the single highest-value upgrade available to all 6 pages, and it costs one conversation.
+### 13. Chase owner introduction video missing
+The section is built, video-ready, and ships a polished placeholder. Supplying it is a two-field config change — `introVideoUrl` + `introVideoConfigured` — with YouTube, Vimeo, and self-hosted all supported. No code debt; purely awaiting the asset.
 
-### 10. Chase owner introduction video missing
-The section is built, video-ready, and ships a polished placeholder ("Introduction video coming soon"). Supplying it is a two-field config change — `introVideoUrl` + `introVideoConfigured` — with YouTube, Vimeo, and self-hosted all supported.
-No code debt; purely awaiting the asset.
-
-### 11. Facebook embed disabled
+### 14. Facebook embed disabled
 `facebookPageConfigured: false`, so a designed fallback panel shows instead of the live Page Plugin. The real page URL is already in config. Needs someone to confirm the page renders in the plugin, then flip the flag.
 
-### 12. Google Business Profile does not exist
+### 15. Google Business Profile does not exist
 `googleBusinessUrl` is empty; the footer icon is hidden at runtime rather than shipping a dead `#` link. Local SEO is meaningfully weaker without a GBP.
+
+### 16. Insights articles have no publication dates
+By instruction: no visible date, no `datePublished`, no `dateModified`, no `<time>`. Each `Article` schema carries a comment explaining the omission.
+Google does not require dates, but they help freshness signals and readers use them to judge relevance. When a publishing workflow exists, add them in the article data and drop the schema comments — **and relax the validator check, which currently fails if a date appears.**
 
 ---
 
 ## Low Priority
 
-### 13. Shared chrome is duplicated across 23 pages
-Header (364 lines), estimate modal (296), footer (154), and floating actions (25) are copied into every page — roughly 900 lines × 23. Inherent to a no-build static site.
-Mitigated: interior pages were generated from a guarded assembler, not hand-copied, and `applyBusinessConfig()` drives phone/email/social from one place at runtime. **Nav link changes now require editing 23 files** — this session's service-area rewiring touched 18 links per page across 8 files and needed a scripted, guarded pass to be safe. The cost of this item is now measurable; see *Consider a build step* under Future Improvements.
+### 17. Shared chrome is duplicated across 23 pages
+Header, mobile drawer, estimate modal, footer, and floating actions are copied into every page — roughly 900 lines × 23. Inherent to a no-build static site.
+Mitigated: interior pages are generated by guarded assemblers, not hand-copied, and `applyBusinessConfig()` drives phone/email/social from one place at runtime. **A nav change now requires editing 23 files** — this session's two chrome passes each needed a scripted, guarded run to be safe. See *Consider a build step*.
 
-### 14. `dashboardMetrics` tab is created empty
-`setupSpreadsheet()` creates the tab but writes no formulas. The formula set is specified in `docs/googleSheetArchitecture.md` but must be entered by hand. The dashboard SPA (Phase 2) computes its own numbers and does not read this tab, so nothing is blocked.
+### 18. `repointServiceLinks()` has been written twice
+Chrome spliced out of `services/*.html` carries seven service links relative to that folder, which must be repointed to `../services/…` for any page in another directory. Two separate one-shot generators have now independently rediscovered this, the second only after the link validator caught 63 broken references.
+It belongs in the Phase 13 generator rather than in each script's memory.
 
-### 15. Photo upload not implemented
-Phase 1 records `photoCount` and `photoNames` only; no bytes are uploaded and `photoUrls` stays `[]`. The owner email says so explicitly and tells the owner to request photos directly. `leads.addPhotos` is specced in `phase11PhotoUploadService.md`; `routes.gs` is the extension point.
+### 19. Current service is not highlighted in the mega menu
+`servicePageArchitecture.md` (Shared Template Anatomy, row 1) specifies it. Not implemented — the header block is byte-identical across all 7 service pages, 6 location pages, and 8 Insights pages.
+Cosmetic, but a documented requirement the build does not meet. Best fix is a small `js/indexJS.js` routine marking the nav item matching `window.location.pathname` — one place, no duplication, covers every page type.
 
-### 15a. Hero animation durations are duplicated between CSS and JS
-`heroDuetConfig.forwardSweepMs` (1400) and `reverseDissolveMs` (1800) in `js/indexJS.js` must stay in lockstep with `transition: --heroSweepPos 1400ms` and `transition: opacity 1800ms` in `css/styleIndex.css`. Nothing enforces the pairing.
-They agree today, and Phase 2C made the loop await the dissolve, so a drift would now show up as a visible gap rather than a desync — but it would still be wrong. The clean fix is to read the durations from CSS custom properties via `getComputedStyle` so the stylesheet is the single source.
-
-### 15b. Orphan hero asset
-`graphics/images/after.JPG` (427KB) was committed in `fb15070` alongside the hero refresh and is referenced nowhere in the site. It appears to be the previous `hero_after` image kept as a backup.
-Harmless but it ships to visitors' hosting. Delete it or move it out of the deployed tree — left in place because it is the client's asset, not one this project created.
-
-### 16. No Lighthouse / performance pass yet
-Deferred by instruction until Priorities 1–4 complete. Known candidates: hero images are full-resolution (`2048×1536`) with no responsive `srcset`; Google Fonts loads render-blocking.
-
-### 17. Owner is not named on the site
-Copy says "the owner" throughout because naming Chase publicly was never approved. For an owner-operated brand, naming him is likely stronger. One-line copy change once decided.
-
-### 18. Current service is not highlighted in the mega menu
-`servicePageArchitecture.md` (Shared Template Anatomy, row 1) specifies "current service highlighted in the Services menu". It is not implemented — the header block is byte-identical across all 7 service pages and all 6 location pages. Pre-existing; found while splicing chrome for the location tier.
-Cosmetic and low risk, but it is a documented requirement the build does not meet. Two ways to fix it: a per-page class on one `<li>` in 13 files, or a small `js/indexJS.js` routine that marks the nav item matching `window.location.pathname`. The JS route is better — one place, no duplication, and it covers location pages for free.
-
-### 18a. Nothing has been checked in a real browser
-No session on this project has had Playwright or Chrome DevTools available, so every validation to date is static analysis or simulation. That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything actually *looks*.
-Before launch someone should open the homepage on a real phone and confirm: the hero photo ends at the fold, the seam into the estimate band is invisible, the estimate card's overlap reads as intentional, and the before/after transition alternates smoothly. Same pass on a tablet and a desktop.
-
-### 18b. The 1150px breakpoint now has spare headroom
-The nav restructure (Aug 4) replaced *Before & After · Reviews · FAQ* with *FAQ · Insights*, cutting the primary nav from 577px to **450px**. The header now needs **1080px** of viewport rather than 1207px, so at 1151px there is **163px of slack** where the breakpoint was tuned for 45px.
-
-The switch was left at 1150px because moving it was outside the request and 1150 was partly chosen for `'Segoe UI'` fallback margin. But the desktop nav would now survive comfortably to roughly **1105px**, so the hamburger appears earlier than it needs to on 1100–1150px tablets. Worth reclaiming if anyone cares about that band.
-
+### 20. The 1150px header breakpoint now has spare headroom
+The nav restructure replaced *Before & After · Reviews · FAQ* with *FAQ · Insights*, cutting the primary nav from 577px to **450px**. The header now needs **1080px** rather than 1207px, so at 1151px there is **163px of slack** where the breakpoint was tuned for 45px.
+The switch was left at 1150px because moving it was outside the request, and 1150 was partly chosen for `'Segoe UI'` fallback margin. But the desktop nav would now survive comfortably to roughly **1105px**, so the hamburger appears earlier than necessary on 1100–1150px tablets.
 **The constraint still holds in the other direction:** adding a nav item or a long label consumes this headroom. Re-run the width sweep after any nav change.
 
-### 18c. Insights hero images are placeholders
-All eight Insights pages (landing plus seven articles) use existing BlueGrid job photos as stand-ins, each marked `TODO: PLACEHOLDER IMAGE` in the markup. They are real work photos, so nothing is dishonest — but none was shot for its article, and several repeat across pages.
-Replacing them is the single biggest visual upgrade available to the section. Feeds directly off item 7 (thin photo library).
+### 21. Hero animation durations are duplicated between CSS and JS
+`heroDuetConfig.forwardSweepMs` (1400) and `reverseDissolveMs` (1800) in `js/indexJS.js` must stay in lockstep with `transition: --heroSweepPos 1400ms` and `transition: opacity 1800ms` in `css/styleIndex.css`. Nothing enforces the pairing.
+They agree today, and the loop now awaits the dissolve so a drift would show as a visible gap rather than a desync — but it would still be wrong. Cleanest fix: read the durations from CSS custom properties via `getComputedStyle`.
 
-### 18d. Insights articles have no publication dates
-By instruction: no visible date, no `datePublished`, no `dateModified`, no `<time>` element. The `Article` schema on each page carries a comment explaining the omission.
-Google does not require dates, but they help for evergreen-vs-current signals and readers use them to judge freshness. When a publishing workflow exists, add them in one place — the article data — and drop the schema comments. A check currently fails if a date appears, so that check needs relaxing at the same time.
+### 22. Orphan hero asset
+`graphics/images/after.JPG` (427KB) was committed in `fb15070` alongside the hero refresh and is referenced nowhere. It appears to be the previous `hero_after` image kept as a backup.
+Harmless but it ships to visitors' hosting. Left in place because it is the client's asset, not one this project created.
 
-### 19. Rowan County coverage is asserted, not confirmed
-Morehead has been advertised in the mega menu and mobile menu since Phase 1, but Rowan County appeared in none of the four places the site lists counties (`serviceRegions` in `js/indexJS.js`, `LocalBusiness` `areaServed`, the static map panel list, and both copies of the "Do you travel to my county?" FAQ answer).
-Phase 2B shipped a Morehead location page, so all four were updated to agree. The `serviceRegions` entry carries a `TODO:` explaining why.
-**If Chase does not actually work Rowan County, the Morehead page and all four Rowan entries come back out.** Everything else in the coverage data traces to the original county map.
+### 23. `dashboardMetrics` tab is created empty
+`setupSpreadsheet()` creates the tab but writes no formulas. The formula set is specified in `docs/googleSheetArchitecture.md` but must be entered by hand. The dashboard SPA (Phase 2) computes its own numbers and does not read this tab, so nothing is blocked.
 
-- **Dashboard SPA (Phase 2)** — `leads.list` / `leads.update` and `MODULE_API_KEY` already exist and are tested; nothing has been built against them
-- **Weekly summary email** — `weeklySummaryDay` config key is seeded but unused; specced in `phase5Zapier.md`
-- **SMS alerts** — the one notification Apps Script cannot do natively; needs an email-to-SMS gateway or a webhook
-- **`leads.addPhotos`** (Phase 11) — client-side downscale, Drive upload, write URLs back
-- **Location × service pages** — beyond forestry mulching, only where search volume justifies genuinely distinct content
-- **`locations/` hub page** — the six pages have no index of their own; the homepage `#serviceAreas` block and the Forestry Mulching "Where We Work" section stand in for one. Specced as part of Phase 13
-- **Structured data expansion** — `LocalBusiness` currently omits a street address (service-area business); revisit if the client wants a public address
-- **Consider a build step** — the site is at 14 pages and item 13's duplication is already costing scripted, guarded edit passes for any nav change. Phase 13 (`phasePrompts/phase13ServiceAreaExpansion.md`) specifies the generator; its trigger is "hand-maintenance of location pages exceeds ~12 files", and the shared chrome has arguably hit that first
+### 24. Photo upload not implemented
+Phase 1 records `photoCount` and `photoNames` only; no bytes are uploaded and `photoUrls` stays `[]`. The owner email says so explicitly. `leads.addPhotos` is specced in `phase11PhotoUploadService.md`; `routes.gs` is the extension point.
+
+### 25. No Lighthouse / performance pass yet
+Deferred until the higher-priority items clear. Known candidates: hero images are full-resolution `2048×1536` with no responsive `srcset`; Google Fonts loads render-blocking.
+
+### 26. Owner is not named on the site
+Copy says "the owner" throughout because naming Chase publicly was never approved. For an owner-operated brand, naming him is likely stronger. One-line copy change once decided.
+
+### 27. `MODULE_API_KEY` state cannot be verified from outside
+`leads.list` returns `UNAUTHORIZED` identically whether the key is unset or merely not supplied. Only the Phase 2 dashboard depends on it; the public form does not.
+
+---
+
+## Future Improvements
+
+- **Dashboard SPA (Phase 2)** — `leads.list` / `leads.update` and `MODULE_API_KEY` already exist and are tested; nothing has been built against them.
+- **Weekly summary email** — `weeklySummaryDay` config key is seeded but unused; specced in `phase5Zapier.md`.
+- **SMS alerts** — the one notification Apps Script cannot do natively; needs an email-to-SMS gateway or a webhook.
+- **`leads.addPhotos`** (Phase 11) — client-side downscale, Drive upload, write URLs back.
+- **Location × service pages** — beyond forestry mulching, only where search volume justifies genuinely distinct content.
+- **`locations/` hub page** — the six location pages have no index of their own; the homepage `#serviceAreas` block and the Forestry Mulching "Where We Work" section stand in. Specced as part of Phase 13.
+- **Insights growth** — the section is built to scale. A new article needs only a record in the content data; the uniqueness gate and the no-dates check already apply.
+- **Structured data expansion** — `LocalBusiness` omits a street address (service-area business); revisit if the client wants one public.
+- **Consider a build step** — the site is at 23 pages and item 17's duplication already costs scripted, guarded passes for any nav change. Phase 13 (`phasePrompts/phase13ServiceAreaExpansion.md`) specifies the generator; its stated trigger is "hand-maintenance of location pages exceeds ~12 files", and the shared chrome has arguably hit that first.
 
 ---
 
 ## Explicitly Not Debt
 
-Recorded so future sessions don't "fix" them:
+Recorded so future sessions do not "fix" them:
 
 - **No ActivityLog sheet.** Deliberate. The `leads` sheet is the success record; `errorLog` captures failures only. A second log of successful traffic adds noise and quota cost.
 - **Nulo Studio is not copied on lead emails.** Deliberate client decision — the studio must not sit in the customer's email thread. Operational problems surface in `errorLog`.
 - **`leads.create` is a public endpoint.** Deliberate — a browser cannot hold a secret. The honeypot, validation, and dedupe are its gate.
 - **`Content-Type: text/plain` on form POSTs.** Deliberate — Apps Script web apps cannot answer a CORS preflight, so `application/json` would fail from the browser.
-- **The form's file input never uploads.** Deliberate Phase 1 scope; see item 15.
-- **`leadId` is held for the whole page load, not per attempt.** Deliberate. The API dedupes on `leadId`, so a stable id lets a retry after a network failure collapse into the original row instead of creating a second one. The flow allows one submission per page load, so there is nothing to reset.
-- **The unconfigured-endpoint branch in `submitEstimateRequest()` is now unreachable.** Kept on purpose: it is the safety net that makes a blanked or mistyped endpoint obvious in the console instead of silently failing, and it costs four lines.
-- **Location pages do not link to each other.** Deliberate, per the Internal Linking Map in `seoPlan.md` — they pass authority up to the parent service page, not sideways. Nearby towns render as plain text pills for this reason, which is why `.nearbyList` styles `li` rather than `a`. The sitewide mega menu, mobile menu, and footer *do* link to them; `seoPlan.md` rule 4 explicitly allows that, and page-type-dependent chrome across 14 files would be a maintenance trap.
-- **Location pages have no gallery.** Same reason as items 7 and the Phase 1 decision on `stormCleanup` — no photo in the library can be honestly captioned to a named town. Adding one would mean captioning a Greenup County photo as Chillicothe work.
-- **The location page assembler is not in the repo.** The six pages were generated once from a guarded splice plus a content data file, then committed as plain static HTML. Phase 13 builds the real generator; shipping a half-generator now would leave two competing sources of truth.
+- **The form's file input never uploads.** Deliberate Phase 1 scope; see item 24.
+- **`leadId` is held for the whole page load, not per attempt.** Deliberate. The API dedupes on `leadId`, so a stable id lets a retry after a network failure collapse into the original row. The flow allows one submission per page load, so there is nothing to reset.
+- **The unconfigured-endpoint branch in `submitEstimateRequest()` is unreachable.** Kept on purpose: it makes a blanked or mistyped endpoint obvious in the console instead of silently failing, and costs four lines.
+- **Location pages do not link to each other.** Deliberate, per the Internal Linking Map in `seoPlan.md` — they pass authority up to the parent service page, not sideways. Nearby towns render as plain text pills, which is why `.nearbyList` styles `li` rather than `a`. Sitewide chrome *does* link to them; rule 4 allows that explicitly.
+- **Location pages have no gallery.** No photo in the library can be honestly captioned to a named town. Adding one would mean labelling a Greenup County photo as Chillicothe work.
+- **The FAQ mega menu links to service pages, not only the FAQ page.** Deliberate — several of the most common questions were already answered on a service page, and `seoPlan.md` bans restating them. The menu points at whoever owns the answer.
+- **The FAQ hub shares no questions with the rest of the site.** Deliberate and enforced by a check. The site had 75 FAQs; the hub took the 28 that were left rather than competing with the service pages.
+- **Mobile navigation does not render the mega menu.** Deliberate and instructed — a mega menu inside a full-screen drawer is worse than a short list.
+- **The page assemblers are not in the repo.** New pages were generated once from guarded splices plus content data, then committed as plain static HTML. Phase 13 builds the real generator; shipping a half-generator now would leave two competing sources of truth.
+- **Mixed line endings across files.** Not worth a normalising commit that would touch every file and destroy `git blame`. Scripted edits detect and preserve per file.
+
+---
+
+## Resolved — moved out of debt
+
+| Item | Resolved | Notes |
+|---|---|---|
+| Lead capture not live | 2026-08-03 | Production `/exec` wired; `ping` returns the matching `forestryModule` / `bluegrid` / `1.0.0` identity and a honeypot POST returns a correct envelope. |
+| `BlueGrid Leads` spreadsheet did not exist | 2026-08-03 | Created; `setupSpreadsheet()` and `runSelfTest()` both passed. |
+| Service area pages: 0 of 13 | 2026-08-02 | First wave of 6 shipped. Remainder tracked as item 6. |
+| Hero background ran past the fold on mobile | 2026-08-03 | Media layer decoupled from section height. |
+| Before/after transition stopped alternating | 2026-08-03 | Dissolve made awaitable; 92/92 cycles verified. |
+| `hero_after` filename casing mismatch | 2026-08-03 | Normalized in git; all 3 references updated. |
+| Desktop header wrapped between ~1100–1200px | 2026-08-03 | 101px of tightening plus the switch moved to 1150px. |
+| Header compact values scattered as literals | 2026-08-03 | Twelve `:root` tokens; queries reduced to overrides. |
+| Estimate form had no double-submit guard | 2026-08-03 | In-flight lock, disabled button, stable `leadId`. |
+| Rowan County missing from coverage data | 2026-08-02 | Added to all four places; TODO-marked for client confirmation. |
