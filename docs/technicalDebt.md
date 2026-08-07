@@ -27,6 +27,8 @@ Both are wired through `businessConfig`, so each is a one-line fix — but shipp
 No session on this project has had Playwright or Chrome DevTools available, so **every validation to date is static analysis or simulation.** That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything *looks*.
 Before launch: open the homepage on a real phone and confirm the hero photo ends at the fold, the seam into the estimate band is invisible, and the card overlap reads as intentional. Then a tablet and desktop pass covering the FAQ mega panel, the header morph across 1280px and 1150px, and the FAQ/Insights layouts.
 **Added 2026-08-06:** the redesigned **services mega panel** has been measured but never seen — open it at 1440px and again at 1151px, where the calculation leaves only 62px between the panel and the left edge. And confirm the **hero typing** reads as intended now that it commits on the frame boundary; the profiler proves the cadence is regular, not that it looks right.
+**Added 2026-08-07 (mega menus):** the two new featured icons — a map pin and a question mark — were drawn blind as SVG path data and have never been rendered. Check they read cleanly at 26px. Also confirm the muted region headings in Service Areas look deliberate rather than washed out, and that the hover bridge removed the flicker rather than making the panel sticky.
+
 **Added 2026-08-07:** the **process sequence** is the largest untested-by-eye item on the site. The simulation proves the order, the loop, and the viewport behaviour exactly; it says nothing about whether the dark board sits well on the white section, whether the arrow flash is bright enough to read as a flash without being gaudy, whether 10.18s per cycle feels deliberate or slow, or whether the vertical layout below 1080px is worth its height. Expect the timing constants in `processSequenceConfig` to need one tuning pass against a real screen.
 
 ### 5. No real lead has been created from the live site
@@ -68,10 +70,9 @@ That violates `seoPlan.md`'s own rule ("No cross-page duplicate questions") and 
 **Fix: decide which page owns it.** The permitting answer is service-agnostic, so the homepage or the new FAQ hub is the better home; `landClearing.html` would then drop the question and link across. Not done at closeout because it changes rendered content and schema on two pages and deserves a deliberate call rather than a rushed one.
 Sitewide totals for reference: **103 rendered FAQ questions, 102 unique.**
 
-### 10b. The FAQ and Service Areas mega panels have not had the same treatment
-The 2026-08-06 brief covered the **services** panel only, and explicitly said not to redesign the navigation — so the other two panels kept their existing look. They now share the `--mega*` tokens, so nothing has drifted and nothing renders differently, but the services panel has a featured band and labelled groups while the other two are still flat lists.
-Whether that reads as *hierarchy* (services is the primary menu, so it earns more structure) or as *inconsistency* is a judgement that needs eyes on it — see item 4.
-**If it needs fixing**, the pattern is already tokenized: the Service Areas panel would take a featured band for the flagship county and the FAQ panel one for the most-asked question. Roughly an hour, no new CSS vocabulary.
+### 10b. ~~The FAQ and Service Areas mega panels have not had the same treatment~~ — RESOLVED 2026-08-07
+Raised on 2026-08-06, when the brief covered the services panel only: the other two kept flat lists while services had a featured band and labelled groups, and whether that read as hierarchy or as inconsistency needed a decision.
+The decision was inconsistency. Both were rebuilt on the shared shell — same panel, same featured card, same row primitive, same group heading — with internals suited to their own content. Reasoning in `engineeringJournal.md`, 2026-08-07. See also the Resolved table.
 
 ### 10c. The hero typed line's `text-shadow` is the remaining per-character paint cost
 `text-shadow: 0 3px 24px rgba(0, 0, 0, 0.55)` on `.heroTypedText` means every keystroke re-rasters the whole string with a 24px blur: a **926×125px** rect at 1440px, ~115k pixels, roughly twelve times a second while a phrase types.
@@ -215,3 +216,8 @@ Recorded so future sessions do not "fix" them:
 | Process section was a static scroll-reveal | 2026-08-07 | Sequenced reveal with arrow flash/dim, viewport-triggered, looping. Order verified beat by beat in simulation. |
 | Both chrome assemblers double-indented their output | 2026-08-07 | They sliced from the opening tag, leaving the line's own indentation in place. Fixed in both; the services mega panel was regenerated. |
 | `drawLine` animation primitive orphaned | 2026-08-07 | Existed only to animate `.processTrack`; removed with it. |
+| Three mega panels, three heading treatments, two CTA patterns | 2026-08-07 | One shell, one featured card, one row primitive, one group heading. Shared rules asserted to be declared exactly once. |
+| Service Areas panel ran at half the width of its siblings | 2026-08-07 | `min-width: 420px` replaced by the shared 760px shell. |
+| Mega panels jumped horizontally between nav items | 2026-08-07 | Positioning moved from `.navItem` to `.primaryNav`; all three land on one rectangle. Left clearance at 1151px went 62px → 214px. |
+| Mega menu flickered when the pointer crossed the 14px gap | 2026-08-07 | Transparent bridge on `.megaPanel::before`. Pre-existing since the panels were built. |
+| Services panel was the one exception to the path rule | 2026-08-07 | Bare siblings inside `services/` retired; two variants again sitewide. |

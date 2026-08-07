@@ -4,6 +4,111 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-07 — MEGA MENU DESIGN SYSTEM: SERVICE AREAS + FAQ
+
+### Brief
+
+The redesigned Services panel is the benchmark. Bring Service Areas and FAQ onto the same shell and design language without making the three identical — each keeps an internal architecture suited to its content.
+
+### What was actually shared before, and what wasn't
+
+Studying the three panels first was the point of the brief, and it paid: the shell was **almost** shared already, and the exceptions were the whole problem.
+
+| | Services | Service Areas | FAQ |
+|---|---|---|---|
+| Width | 760px | `min-width: 420px` only | 760px |
+| Top-edge highlight | yes | no | no |
+| Featured panel | yes | none | none |
+| Row treatment | `.megaServiceLink` + accent rule | bare `a` in a list | `.megaFaqLink`, no accent |
+| CTA | inside the feature | none | separate footer |
+| Heading | `.megaGroupHeading`, muted | `.megaAreasHeading`, sky display face | `.megaPanelHeading`, sky |
+
+Three panels, three heading treatments, three row treatments, two CTA patterns, and Service Areas at roughly half the width of its siblings. That is what "separate/older components" was describing.
+
+### The system
+
+Extracted, each declared once and asserted to be declared once:
+
+- **`.megaPanel`** now carries the width, padding, radius, surface, border, shadow **and** the top-edge highlight. The per-panel `.megaPanelServices` / `.megaPanelFaq` / `.megaPanelAreas` modifiers are retired — the panels are `class="megaPanel"` with unique `id`s, which is what `aria-controls` already used.
+- **`.megaFeature`** — the featured card, unchanged from Services, now opening all three panels. Icon, eyebrow, display-face title, supporting line, cue with a sliding arrow. Zero new CSS; the Areas and FAQ cards are the same component with different content.
+- **`.megaBody`** — the region under the feature: the divider and the rhythm, once.
+- **`.megaRow`** — the row primitive. Padding, radius, hover tint, and the sky rule that grows down the leading edge. A service row adds an icon column; a town row adds a colour; an FAQ row adds question/answer type. The accent rule was previously Services-only, so hovering a town or a question now behaves like hovering a service.
+- **`.megaGroup`** / **`.megaGroupHeading`** / **`.megaGroupIcon`** — one labelled-group treatment. Areas headings dropped the sky display face for the shared muted label.
+
+Nine `--mega*` tokens from the previous session already carried surface, shadow, edge, rule, radius, tint, label and copy colours; nothing new was needed.
+
+### Positioning: the panels stopped moving
+
+The brief listed "inconsistent horizontal positioning" and "menus jumping around unnecessarily" as things to avoid. Panels were absolutely positioned against `.navItem`, so each opened centred on its own toggle and moving along the nav slid a different rectangle into place each time.
+
+`position: relative` moved from `.navItem` to `.primaryNav`. All three panels now resolve against the nav and land on **exactly the same rectangle** — moving between Services, Service Areas and FAQ swaps the contents of one panel rather than shuffling three.
+
+It also bought a lot of clearance. Centred per item, the Services panel sat **62px** from the left edge at 1151px; centred on the nav it sits at **214px**, and the worst margin at any tested width is 177px.
+
+`.navItem` keeps its hover/open behaviour and stays the panel's DOM parent, which is all `indexJS.js` needs — it only ever queries `.navItem.hasMegaMenu`.
+
+### A hover defect found on the way
+
+The 14px gap between toggle and panel is not over the nav item, so crossing it fired `mouseleave` and closed the menu before the pointer arrived — the panel then reopened on `mouseenter`, a flicker on every single use. Pre-existing, and invisible in the source. Fixed with a transparent `::before` band on `.megaPanel` that bridges the gap and belongs to the item; it inherits `visibility: hidden` so it only exists while the panel is open.
+
+### Service Areas
+
+Featured card: *Where We Work* / **Southern Ohio & Eastern Kentucky**, with copy adapted from the site's own answer to "What areas do you serve?" rather than the generic line in the brief, and a **View All Service Areas** cue pointing at the existing `#serviceAreas` block.
+
+Below it, two regions side by side. Each region's towns flow down a **two-column multi-column list** rather than a single-column stack: seven and six towns become four rows instead of seven, which is what keeps this panel the same height as Services. Multi-column rather than grid on purpose — columns balance an odd count themselves while still reading top-to-bottom, which a row-flowed grid does not.
+
+A pin sits on each **region heading**, not on all thirteen towns. All 13 links preserved exactly.
+
+### FAQ
+
+Featured card: *Common Questions* / **Questions We Get Every Week** — the panel's own former heading, promoted, rather than the brief's suggested line — and **View All FAQs**. The separate footer CTA is gone, which is where a chunk of the height went.
+
+Nine previews became **six**, the highest purchase-intent questions, exactly as listed in the brief. The three dropped ("Do you haul the debris away?", "What do you need from me first?", "What areas do you serve?") are informational rather than decision-making and all remain on the FAQ page.
+
+Answers were cut to **one sentence** — the real opening sentence of the real answer, not a rewrite. With two-sentence previews the panel measured **34% taller** than the other two; the brief asked that FAQ not be dramatically taller than everything else, and this is where that height was.
+
+### Measured balance
+
+Heights are estimated from the real font metrics and the shipped CSS values:
+
+```
+  services   392px
+  areas      392px
+  faq        486px      spread 24%   (gate 45%)
+```
+
+Services and Areas land on the same height by construction. FAQ carries more words per row and stays 24% taller, which the brief allows explicitly — "they do not need mathematically identical dimensions if their content requires otherwise".
+
+### Path handling simplified
+
+The Services panel had been the site's one exception to the two-variant path rule, linking to bare siblings from inside `services/` while the FAQ panel on the same pages used `../services/…`. Both resolve to the same file; only one is worth remembering. The exception is retired — every panel now uses root-canonical hrefs rewritten with `../` for one-level pages, and `projectState.md`'s architecture note is back to two variants.
+
+The rebuild's guard compares **resolved targets** rather than href strings, so re-spelling a path is allowed while inventing a destination is not. That is stricter than the string comparison it replaced: it would catch a typo that still looked plausible.
+
+### Three defects in my own tooling
+
+- **`validateNav` located the FAQ panel by the retired modifier class** and asserted 8–10 questions. Model and assertions updated to six; the genuinely useful check it feeds — that every `faq/index.html#anchor` the menu points at exists — was kept.
+- **The class-coverage check matched by substring**, so `.megaGroup` passed on the strength of `.megaGroups` — exactly the typo the check exists to catch. Now word-boundary matched.
+- **The "declared once" check was line-ending blind.** It matched a selector followed by `\n` against a CRLF stylesheet and found zero of everything, reporting all four shared rules as missing.
+
+### Files touched
+
+- `css/styleIndex.css` — shared shell, `.megaBody`, `.megaRow`, `.megaGroup`, `.megaGroupIcon`, Areas rebuilt, FAQ trimmed, positioning moved, reduced-motion coverage for the whole mega system
+- **23 HTML pages** — all three panels, rebuilt by one guarded assembler
+- `docs/` — all three
+
+### Validation
+
+New `validateMegaMenus` replaces `validateServicesMega` and covers the family: shared shell on all three, featured architecture complete, every row built on `.megaRow`, links resolving to real files with the right relative form for each page depth, no duplicate ids, toggles still wired via `aria-controls` and shipping collapsed, decorative SVGs out of the accessibility tree, retired classes gone from both stylesheet and markup, on-screen fit 1151–1600px, and the height spread gated at 45%.
+
+All seven other suites pass, plus `node --check` and CSS brace balance.
+
+### Left for a browser
+
+The look. Panel proportions against each other, the two new featured icons (a pin and a question mark, both filled and both drawn blind), whether the muted region headings read as deliberate rather than washed out, and the hover-bridge fix.
+
+---
+
 ## 2026-08-07 — PROCESS SECTION: SEQUENTIAL STEP REVEAL
 
 ### Brief

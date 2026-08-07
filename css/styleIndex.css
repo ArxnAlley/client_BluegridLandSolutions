@@ -929,6 +929,14 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     flex-shrink: 0;
 
+    /* The mega panels resolve against the nav, not against the item
+       that opened them. All three are the same width and land on the
+       same rectangle, so moving between Services, Service Areas and
+       FAQ swaps the contents of one panel rather than sliding a
+       different panel into place each time. */
+
+    position: relative;
+
 }
 
 .navList
@@ -952,10 +960,14 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* Deliberately not a positioning context — see .primaryNav. It stays
+   the hover/open target and the panel's DOM parent, which is all the
+   behaviour in indexJS.js needs. */
+
 .navItem
 {
 
-    position: relative;
+    position: static;
 
 }
 
@@ -1038,7 +1050,13 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     z-index: 320;
 
-    min-width: 420px;
+    /* One shell for all three panels: same width, same padding, same
+       radius, same surface, same edge. Anything a panel needs beyond
+       this belongs to its contents, not to its container. */
+
+    min-width: 0;
+
+    width: min(760px, calc(100vw - 3rem));
 
     padding: var(--megaPanelPad);
 
@@ -1048,7 +1066,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     border-radius: var(--radiusCard);
 
-    box-shadow: var(--megaPanelShadow);
+    box-shadow: var(--megaPanelShadow), var(--megaTopEdge);
 
     opacity: 0;
 
@@ -1086,21 +1104,35 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
    panel clears both screen edges at 1151px, the narrowest viewport
    the desktop nav survives to. */
 
-.megaPanelServices
+/* The 14px gap between the toggle and the panel is not over the nav
+   item, so crossing it used to fire mouseleave and close the menu the
+   instant the pointer left the link. This bridges it: a transparent
+   band that belongs to the panel, and therefore to the item. It is
+   hidden with the panel, since visibility inherits. */
+
+.megaPanel::before
 {
 
-    min-width: 0;
+    content: "";
 
-    width: min(760px, calc(100vw - 3rem));
+    position: absolute;
 
-    box-shadow: var(--megaPanelShadow), var(--megaTopEdge);
+    right: 0;
+
+    bottom: 100%;
+
+    left: 0;
+
+    height: 14px;
 
 }
 
 /* ── The featured entry point ──
    Icon, then the name and the promise, then the cue, on one baseline.
    The sky wash is the only filled surface in any panel, which is what
-   makes the eye land here first. */
+   makes the eye land here first — and it is the one element every
+   panel opens with, so the three read as the same component before a
+   visitor has processed a single word. */
 
 .megaFeature
 {
@@ -1278,10 +1310,32 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
-/* ── The grouped remainder ──
-   Three columns, two services each: even, and honest about what the
-   groups actually are. The rule above them separates the featured
-   service from the rest without a second filled surface. */
+/* ── The region under the feature ──
+   Shared by all three panels: one rule, one rhythm. What sits inside
+   it is each panel's own business — services group in thirds, areas in
+   halves by region, FAQ in halves by question. */
+
+.megaBody
+{
+
+    margin-top: 1.4rem;
+
+    padding-top: 1.4rem;
+
+    border-top: 1px solid var(--megaRule);
+
+}
+
+/* A labelled group inside a panel body — services groups by kind,
+   areas by region. min-width: 0 keeps a long label from blowing out
+   its grid column. */
+
+.megaGroup
+{
+
+    min-width: 0;
+
+}
 
 .megaServicesGroups
 {
@@ -1292,16 +1346,16 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     gap: 1.5rem;
 
-    margin-top: 1.4rem;
-
-    padding-top: 1.4rem;
-
-    border-top: 1px solid var(--megaRule);
-
 }
 
 .megaGroupHeading
 {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.4rem;
 
     margin: 0 0 0.55rem;
 
@@ -1323,42 +1377,97 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* Optional mark on a group label — used by Service Areas to carry the
+   geography without putting a pin on all thirteen towns. */
+
+.megaGroupIcon
+{
+
+    flex-shrink: 0;
+
+    width: 11px;
+
+    height: 11px;
+
+    fill: var(--colorSky);
+
+    opacity: 0.85;
+
+}
+
+/* ── The row primitive ──
+   Every clickable line in every panel: a service, a town, a question.
+   Padding, radius, hover tint and the sky rule that grows down the
+   leading edge all live here once. Panels add only what their own
+   content needs on top. */
+
+.megaRow
+{
+
+    position: relative;
+
+    display: block;
+
+    padding: 0.6rem 0.7rem;
+
+    border-radius: var(--megaRowRadius);
+
+    transition: background-color 0.25s var(--easePremium);
+
+}
+
+.megaRow::before
+{
+
+    content: "";
+
+    position: absolute;
+
+    top: 0.5rem;
+
+    bottom: 0.5rem;
+
+    left: 0;
+
+    width: 2px;
+
+    border-radius: 2px;
+
+    background-color: var(--colorSky);
+
+    opacity: 0;
+
+    transform: scaleY(0.35);
+
+    transition:
+        opacity 0.25s var(--easePremium),
+        transform 0.25s var(--easePremium);
+
+}
+
+.megaRow:hover,
+.megaRow:focus-visible
+{
+
+    background-color: var(--megaRowTint);
+
+}
+
+.megaRow:hover::before,
+.megaRow:focus-visible::before
+{
+
+    opacity: 1;
+
+    transform: scaleY(1);
+
+}
+
 /* ── FAQ mega panel ──
-   Two columns of question + preview. The width is capped against the
-   viewport as well as the design size, so the panel can never push
-   past the screen edge on the narrowest desktop the nav survives to
-   (1151px). Desktop only — the mobile drawer links straight to the
-   FAQ page instead. */
-
-.megaPanelFaq
-{
-
-    min-width: 0;
-
-    width: min(760px, calc(100vw - 3rem));
-
-}
-
-.megaPanelHeading
-{
-
-    margin: 0 0 0.9rem;
-
-    padding: 0 0.85rem;
-
-    font-family: var(--fontBody);
-
-    font-size: 0.72rem;
-
-    font-weight: 600;
-
-    letter-spacing: 0.2em;
-
-    text-transform: uppercase;
-
-    color: var(--colorSky);
-
-}
+   Six of the highest-intent questions in two columns. The full library
+   stays on the FAQ page; the menu is a sample, not an index, which is
+   what keeps this panel the same height as the other two. Desktop only
+   — the mobile drawer links straight to the FAQ page instead. */
 
 .megaFaqList
 {
@@ -1380,23 +1489,9 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 .megaFaqLink
 {
 
-    display: block;
-
     height: 100%;
 
     padding: 0.7rem 0.85rem;
-
-    border-radius: var(--megaRowRadius);
-
-    transition: background-color 0.25s var(--easePremium);
-
-}
-
-.megaFaqLink:hover,
-.megaFaqLink:focus-visible
-{
-
-    background-color: var(--megaRowTint);
 
 }
 
@@ -1430,46 +1525,6 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
-.megaFaqFooter
-{
-
-    margin-top: 1rem;
-
-    padding-top: 1rem;
-
-    border-top: 1px solid var(--megaRule);
-
-    text-align: center;
-
-}
-
-.megaFaqCta
-{
-
-    display: inline-flex;
-
-    align-items: center;
-
-    gap: 0.5rem;
-
-    font-size: 0.94rem;
-
-    font-weight: 700;
-
-    color: var(--colorSky);
-
-    transition: color 0.25s var(--easePremium);
-
-}
-
-.megaFaqCta:hover,
-.megaFaqCta:focus-visible
-{
-
-    color: var(--colorSkyLight);
-
-}
-
 .megaServicesList
 {
 
@@ -1487,72 +1542,17 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* Everything a row does — padding, radius, hover tint, leading rule —
+   comes from .megaRow. A service row adds only its icon column. */
+
 .megaServiceLink
 {
-
-    position: relative;
 
     display: flex;
 
     align-items: flex-start;
 
     gap: 0.65rem;
-
-    padding: 0.6rem 0.7rem;
-
-    border-radius: var(--megaRowRadius);
-
-    transition: background-color 0.25s var(--easePremium);
-
-}
-
-/* A sky rule grows down the leading edge on hover. Opacity and
-   transform only, so it costs the compositor nothing. */
-
-.megaServiceLink::before
-{
-
-    content: "";
-
-    position: absolute;
-
-    top: 0.5rem;
-
-    bottom: 0.5rem;
-
-    left: 0;
-
-    width: 2px;
-
-    border-radius: 2px;
-
-    background-color: var(--colorSky);
-
-    opacity: 0;
-
-    transform: scaleY(0.35);
-
-    transition:
-        opacity 0.25s var(--easePremium),
-        transform 0.25s var(--easePremium);
-
-}
-
-.megaServiceLink:hover,
-.megaServiceLink:focus-visible
-{
-
-    background-color: var(--megaRowTint);
-
-}
-
-.megaServiceLink:hover::before,
-.megaServiceLink:focus-visible::before
-{
-
-    opacity: 1;
-
-    transform: scaleY(1);
 
 }
 
@@ -1618,37 +1618,25 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
-.megaAreasColumns
+/* ── Service Areas mega panel ──
+   Two regions side by side, each town list flowing down its own pair
+   of columns. Multi-column rather than grid on purpose: the regions
+   hold seven and six towns, and columns balance an odd count by
+   themselves while still reading top-to-bottom, which a row-flowed
+   grid does not. */
+
+.megaAreasGroups
 {
 
     display: grid;
 
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 
-    gap: 1.6rem;
-
-}
-
-.megaAreasHeading
-{
-
-    margin: 0 0 0.6rem;
-
-    font-family: var(--fontDisplay);
-
-    font-size: 1.02rem;
-
-    font-weight: 600;
-
-    letter-spacing: 0.14em;
-
-    text-transform: uppercase;
-
-    color: var(--colorSky);
+    gap: 1.5rem;
 
 }
 
-.megaAreasList
+.megaAreaList
 {
 
     margin: 0;
@@ -1657,32 +1645,39 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     list-style: none;
 
+    columns: 2;
+
+    column-gap: 0.6rem;
+
 }
 
-.megaAreasList a
+.megaAreaList li
 {
 
-    display: block;
+    break-inside: avoid;
 
-    padding: 0.34rem 0.5rem;
+}
 
-    font-size: 0.92rem;
+.megaAreaLink
+{
+
+    font-size: 0.9rem;
+
+    line-height: 1.3;
 
     color: rgba(247, 249, 251, 0.82);
 
-    border-radius: 6px;
-
-    transition: background-color 0.2s var(--easePremium), color 0.2s var(--easePremium);
+    transition:
+        background-color 0.25s var(--easePremium),
+        color 0.25s var(--easePremium);
 
 }
 
-.megaAreasList a:hover,
-.megaAreasList a:focus-visible
+.megaAreaLink:hover,
+.megaAreaLink:focus-visible
 {
 
     color: var(--colorWhite);
-
-    background-color: rgba(91, 155, 213, 0.14);
 
 }
 
@@ -7563,6 +7558,49 @@ html.jsEnabled .processArrow.isResting
     {
 
         will-change: auto;
+
+    }
+
+    /* The mega menus still open and close — that is function, not
+       decoration — but they do it without the rise, the arrow slide,
+       or the leading rule growing. Opacity alone carries the change.
+       One block covers all three panels because all three are built
+       from the same parts. */
+
+    .megaPanel,
+    .megaFeature,
+    .megaFeatureCue,
+    .megaFeatureArrow,
+    .megaRow,
+    .megaRow::before,
+    .megaServiceIcon,
+    .megaAreaLink,
+    .navChevron
+    {
+
+        transition: none;
+
+    }
+
+    .navItem.isOpen .megaPanel
+    {
+
+        transform: none;
+
+    }
+
+    .megaPanel
+    {
+
+        transform: translateX(-50%);
+
+    }
+
+    .megaFeature:hover .megaFeatureArrow,
+    .megaFeature:focus-visible .megaFeatureArrow
+    {
+
+        transform: none;
 
     }
 

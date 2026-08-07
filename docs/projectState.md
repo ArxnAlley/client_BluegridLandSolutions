@@ -3,7 +3,7 @@
 **Last updated:** 2026-08-07
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `phase2a-lead-capture` — branched from `main`, **not merged, nothing pushed**
-**Latest commit:** `33358be` — Process section: sequential step reveal
+**Latest commit:** `PENDING` — Mega menu design system: Service Areas and FAQ
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
 > Read this file first. `engineeringJournal.md` has the reasoning; `technicalDebt.md` has what is knowingly deferred.
@@ -25,6 +25,7 @@
 | Navigation & content expansion (FAQ hub, Insights) | Complete |
 | Launch polish — services mega menu, hero typing performance | Complete |
 | Process section — sequential step reveal | Complete |
+| Mega menu design system (all three panels) | Complete |
 
 **The production domain is the only outright launch blocker left.**
 
@@ -70,7 +71,7 @@ docs/                       this file, engineeringJournal.md, technicalDebt.md,
 - Static site, **no build step**, pure HTML/CSS/JS per `codeStyle.md`.
 - Shared chrome (header, mobile drawer, estimate modal, footer, floating actions) is **duplicated into every page** and kept in sync by guarded one-shot Node scripts run from a scratchpad. **Those scripts are deliberately not checked in** — Phase 13 (`docs/phasePrompts/phase13ServiceAreaExpansion.md`) owns the real generator, and shipping a half-generator would create two competing sources of truth.
 - **Two path variants only:** root (`index.html`) and one level deep (`services/`, `locations/`, `insights/`, `faq/`). **Put any new page one level deep** so it reuses the proven one-level chrome — that is why the FAQ page is `faq/index.html` rather than `faq.html`.
-- **Service links have three path forms, not two.** Root pages use `services/x.html`, pages *inside* `services/` use the bare sibling `x.html`, and every other one-level folder uses `../services/x.html`. When splicing chrome out of a `services/*.html` page the links come across in the sibling form and must be repointed. This has now bitten three separate builders; the 2026-08-06 rebuild only avoided it because its guard refused to write until the link sets matched.
+- **Two path variants, again.** Root pages take the canonical href; every one-level folder takes `../` + href. The Services mega panel used to be the one exception — bare siblings from inside `services/` — and that exception was retired on 2026-08-07, so all three mega panels now spell paths the same way. Chrome spliced out of a `services/*.html` page still needs checking, but there is only one rule to check against.
 - **Line endings are mixed and deliberate.** `index.html`, `js/indexJS.js`, `css/styleIndex.css` and most `services/*.html` are CRLF; `css/stylePages.css`, `services/forestryMulching.html`, `locations/*`, `insights/*`, `faq/*` are LF. **Any scripted edit must detect and preserve per file.**
 - The Apps Script endpoint lives in **exactly one place** — `businessConfig.estimateEndpoint` in `js/indexJS.js` — with exactly one `fetch()` call site.
 
@@ -80,7 +81,7 @@ docs/                       this file, engineeringJournal.md, technicalDebt.md,
 |---|---|
 | Internal links & assets | **23 pages, zero broken** |
 | Navigation / mega menu / mobile drawer | PASS on all 23 pages |
-| **Services mega panel** | PASS — 23 pages: structure, 7 links resolving to real files, styling coverage both ways, decorative SVGs out of the a11y tree, on-screen fit 1151–1600px |
+| **Mega menu system** | PASS — 23 pages × 3 panels: one shell, every row on `.megaRow`, links resolving with the right relative form per depth, no duplicate ids, `aria-controls` intact, retired classes gone from CSS *and* markup, fit 1151–1600px, height spread **24%** against a 45% gate |
 | Header width sweep 900–1600px | PASS — zero wrapping; tightest desktop 1151px at **+163px** slack |
 | Hero seam geometry (5 viewports) | PASS — copy ends exactly on the seam, 24px card overlap |
 | Hero before/after loop (10 min simulated) | PASS — **91 cycles alternating**, 6.16–7.01s cadence |
@@ -90,6 +91,22 @@ docs/                       this file, engineeringJournal.md, technicalDebt.md,
 | Apps Script harness | **64/64**, `runSelfTest` 6/6 |
 | `node --check js/indexJS.js` | clean |
 | CSS brace balance | balanced in both stylesheets |
+
+---
+
+## Completed — Session of 2026-08-07 (mega menu design system)
+
+### Service Areas and FAQ brought onto the Services shell
+The three panels shared a container and almost nothing else: Service Areas ran at `min-width: 420px` against its siblings' 760px, there were three different heading treatments, two CTA patterns, and only Services had a featured card or a row hover accent.
+
+- **One shell.** `.megaPanel` now carries width, padding, radius, surface, border, shadow and the top-edge highlight. The per-panel modifier classes are retired — panels are `class="megaPanel"` with unique ids, which is what `aria-controls` already used.
+- **One featured card.** `.megaFeature` opens all three panels, unchanged from Services. Zero new CSS.
+- **One row primitive.** `.megaRow` carries padding, radius, hover tint and the leading sky rule; services add an icon, towns add a colour, questions add their type scale. The accent rule was Services-only before.
+- **The panels stopped moving.** `position: relative` moved from `.navItem` to `.primaryNav`, so all three resolve against the nav and land on the same rectangle. Clearance at 1151px went from **62px** to **214px**.
+- **A hover flicker fixed.** The 14px gap between toggle and panel is not over the nav item, so crossing it fired `mouseleave` and closed the menu before the pointer arrived. A transparent bridge on the panel now spans it.
+- **Service Areas** gained a featured card (*Where We Work* / Southern Ohio & Eastern Kentucky / View All Service Areas) and two regions whose towns flow down two sub-columns each — seven towns in four rows rather than seven. All 13 links preserved. A pin sits on each region heading, not on every town.
+- **FAQ** gained a featured card, lost its separate footer CTA, and went from nine previews to the **six** highest-intent questions with one-sentence answers. At two sentences it measured 34% taller than its siblings; it is now 24%.
+- **Measured balance:** services 392px, areas 392px, faq 486px — spread 24% against a 45% gate.
 
 ---
 
@@ -230,7 +247,7 @@ Confirmed the previous session's claim rather than trusting it. All 7 `.gs` modu
 - **Domain decision** — blocker 1.
 - **Confirm the nav decision.** The nav brief spelled the resulting order out as four items (Services · Service Areas · FAQ · Insights), which excluded *Before & After*, so it was removed from the primary nav. It stays reachable from the homepage hero CTA ("See Transformations") and the footer Quick Links. **If a five-item nav was intended, restoring it is a one-line change.**
 - **One real end-to-end lead submission** from the live site.
-- **A browser pass** on phone / tablet / desktop. Three things have only ever been reasoned about, never seen: the **redesigned services mega panel** (open it at 1440px and at 1151px); the **hero typing** now that it commits on the frame boundary and holds its own compositing layer; and the **process sequence** — the dark board on the white section, the arrow flash brightness, whether the 10.18s cycle reads as deliberate or slow, and the vertical layout below 1080px.
+- **A browser pass** on phone / tablet / desktop. Four things have only ever been reasoned about, never seen: the **three mega panels side by side** (open each in turn at 1440px and confirm they read as one component and no longer jump); the **redesigned services mega panel** (open it at 1440px and at 1151px); the **hero typing** now that it commits on the frame boundary and holds its own compositing layer; and the **process sequence** — the dark board on the white section, the arrow flash brightness, whether the 10.18s cycle reads as deliberate or slow, and the vertical layout below 1080px.
 - **Confirm the process section's new visual.** The 2026-08-07 brief described a dark rectangle with arrowheads as already established; it was not in the repository, so it was built to that description. It has never been compared against whatever you were picturing.
 - **Merge `phase2a-lead-capture` into `main`** when satisfied. Nothing has been pushed.
 - **Redeploy discipline:** always *Deploy → Manage deployments → edit → New version*. A **new deployment** mints a different URL and silently breaks all 23 forms.
