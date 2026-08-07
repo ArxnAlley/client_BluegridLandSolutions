@@ -3,7 +3,7 @@
 **Last updated:** 2026-08-06
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `phase2a-lead-capture` — branched from `main`, **not merged, nothing pushed**
-**Latest commit:** `424da14` — Launch polish: services mega menu redesign and hero typing performance
+**Latest commit:** `e0dad33` — Launch polish: services mega menu redesign and hero typing performance
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
 > Read this file first. `engineeringJournal.md` has the reasoning; `technicalDebt.md` has what is knowingly deferred.
