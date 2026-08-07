@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-07
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -27,6 +27,7 @@ Both are wired through `businessConfig`, so each is a one-line fix — but shipp
 No session on this project has had Playwright or Chrome DevTools available, so **every validation to date is static analysis or simulation.** That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything *looks*.
 Before launch: open the homepage on a real phone and confirm the hero photo ends at the fold, the seam into the estimate band is invisible, and the card overlap reads as intentional. Then a tablet and desktop pass covering the FAQ mega panel, the header morph across 1280px and 1150px, and the FAQ/Insights layouts.
 **Added 2026-08-06:** the redesigned **services mega panel** has been measured but never seen — open it at 1440px and again at 1151px, where the calculation leaves only 62px between the panel and the left edge. And confirm the **hero typing** reads as intended now that it commits on the frame boundary; the profiler proves the cadence is regular, not that it looks right.
+**Added 2026-08-07:** the **process sequence** is the largest untested-by-eye item on the site. The simulation proves the order, the loop, and the viewport behaviour exactly; it says nothing about whether the dark board sits well on the white section, whether the arrow flash is bright enough to read as a flash without being gaudy, whether 10.18s per cycle feels deliberate or slow, or whether the vertical layout below 1080px is worth its height. Expect the timing constants in `processSequenceConfig` to need one tuning pass against a real screen.
 
 ### 5. No real lead has been created from the live site
 The endpoint is wired and verified with read-only probes plus a honeypot POST that writes nothing. **A genuine submission has never been run by this project** — that path writes a row and emails both the owner and the customer, so it was not triggered unilaterally.
@@ -80,6 +81,15 @@ The 2026-08-06 pass removed everything around it — the write now lands on a fr
 ### 10d. `.heroTypedLine` holds a compositing layer for the life of the page
 `will-change: transform` is set permanently, not toggled, because the typing loop never ends. Costs one layer of roughly 926×125px — well under a megabyte, and zeroed under `prefers-reduced-motion` where nothing types.
 One consequence worth knowing before someone "fixes" it: text in a promoted layer gets grayscale rather than subpixel antialiasing. **The line was already promoted for the first 2.2 seconds** via the `[data-heroanimate]` entrance, so this makes the rendering consistent rather than introducing something new — and at 41–74px display type the difference is not expected to be visible. Unverified, like everything else in item 4.
+
+### 10e. The process section's visual was built from a description, not from an existing design
+The 2026-08-07 brief framed the work as animation-only on top of an established visual — a centred free-floating dark rectangle, arrowheads between steps, no connecting line, CTA below. **That visual did not exist in this repository.** What shipped was a white section with a horizontal gradient rule and no arrowheads, and no branch, stash, commit, or other client site under `ClientSites/` had the described version.
+It was therefore built to the description rather than matched to a reference. Everything the brief specified is present, but proportions, board darkness, and arrow weight are this build's interpretation.
+**Fix: one look in a browser.** If it does not match what was pictured, the visual lives entirely in `.processBoard` / `.processArrow` and can be retuned without touching the sequencer.
+
+### 10f. Process CTA duplicates a destination already on the page
+`.processCta` adds `Get My Free Estimate` → `#estimateForm` below the board on all 8 pages. The service pages already carry that same anchor in the page hero, so those pages now offer it twice.
+That is normal for a long page — a CTA at the top and another after the explainer is standard — but it was added because the brief called for a CTA below the container, not because a gap was measured. Worth a glance when the section is reviewed; removing it is one line in the markup on 8 pages.
 
 ### 11. `robots.txt` and `sitemap.xml` do not exist
 Deferred by instruction. Both depend on item 1. The sitemap needs **23 URLs**.
@@ -201,3 +211,7 @@ Recorded so future sessions do not "fix" them:
 | Hero typing cadence irregular; character writes off the frame boundary | 2026-08-06 | Profiled first. Rendered cadence now equals the scheduled cadence exactly; write-to-paint 8.5ms → 0ms. |
 | Typed line re-rastered the hero photograph on every keystroke | 2026-08-06 | `.heroTypedLine` promoted; 8.0 megapixels/second of photo resampling removed. Residual blur cost is item 10c. |
 | Mega panel styling scattered as literals | 2026-08-06 | Nine `--mega*` tokens; the FAQ panel repointed at identical values, so nothing renders differently. |
+| Process grid hardcoded to 5 columns while 7 of 8 pages had 4 steps | 2026-08-07 | Those pages had been rendering with an empty fifth column. Replaced with flex; nothing assumes a step count. |
+| Process section was a static scroll-reveal | 2026-08-07 | Sequenced reveal with arrow flash/dim, viewport-triggered, looping. Order verified beat by beat in simulation. |
+| Both chrome assemblers double-indented their output | 2026-08-07 | They sliced from the opening tag, leaving the line's own indentation in place. Fixed in both; the services mega panel was regenerated. |
+| `drawLine` animation primitive orphaned | 2026-08-07 | Existed only to animate `.processTrack`; removed with it. |

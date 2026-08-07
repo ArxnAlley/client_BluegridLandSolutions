@@ -556,19 +556,6 @@ html.jsEnabled [data-animate="clipReveal"]
 
 }
 
-html.jsEnabled [data-animate="drawLine"]
-{
-
-    opacity: 1;
-
-    transform: scaleX(0);
-
-    transform-origin: left center;
-
-    transition: transform 1.15s var(--easePremium);
-
-}
-
 html.jsEnabled .sectionKicker[data-animate="fadeUp"],
 html.jsEnabled .sectionHeading[data-animate="fadeUp"],
 html.jsEnabled .sectionLede[data-animate="fadeUp"]
@@ -4703,16 +4690,44 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* ── The board ──
+   A dark rectangle floating on the white section, holding the whole
+   progression. Centred and capped so it reads as one object rather
+   than a full-bleed band; the heading stays outside it on the white,
+   and the CTA sits below it. */
+
+.processBoard
+{
+
+    max-width: 1120px;
+
+    margin: 0 auto;
+
+    padding: 2.6rem 2.2rem;
+
+    background-image: linear-gradient(158deg, var(--colorCharcoal) 0%, var(--colorNearBlack) 100%);
+
+    border: 1px solid var(--colorLineDark);
+
+    border-radius: var(--radiusCard);
+
+    box-shadow: 0 28px 70px rgba(16, 18, 20, 0.3);
+
+}
+
+/* Flex rather than a fixed grid template on purpose: the homepage runs
+   five steps and the service pages four, and arrows are interleaved
+   between them, so the column count is not knowable from CSS. Steps
+   share the row evenly; arrows take only what they need. */
+
 .processSteps
 {
 
-    position: relative;
+    display: flex;
 
-    display: grid;
+    align-items: flex-start;
 
-    grid-template-columns: repeat(5, 1fr);
-
-    gap: 1.4rem;
+    gap: 0.9rem;
 
     margin: 0;
 
@@ -4720,37 +4735,18 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     list-style: none;
 
-    counter-reset: processStep;
-
-}
-
-.processTrack
-{
-
-    position: absolute;
-
-    top: 24px;
-
-    left: 4%;
-
-    right: 4%;
-
-    height: 2px;
-
-    background: linear-gradient(90deg, var(--colorSky), rgba(91, 155, 213, 0.25));
-
 }
 
 .processStep
 {
 
-    position: relative;
+    flex: 1 1 0;
 
-    z-index: 1;
+    min-width: 0;
 
     text-align: center;
 
-    padding: 0 0.4rem;
+    padding: 0 0.3rem;
 
 }
 
@@ -4769,7 +4765,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     margin: 0 auto 1rem;
 
-    background-color: var(--colorWhite);
+    background-color: rgba(91, 155, 213, 0.1);
 
     border: 2px solid var(--colorSky);
 
@@ -4781,7 +4777,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     font-weight: 700;
 
-    color: var(--colorSkyDeep);
+    color: var(--colorSky);
 
 }
 
@@ -4794,7 +4790,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     margin: 0 auto 0.6rem;
 
-    color: var(--colorSkyDeep);
+    color: var(--colorSky);
 
 }
 
@@ -4813,7 +4809,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     text-transform: uppercase;
 
-    color: var(--colorCharcoal);
+    color: var(--colorWhite);
 
 }
 
@@ -4824,7 +4820,139 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     font-size: 0.88rem;
 
-    color: var(--colorSteel);
+    color: rgba(247, 249, 251, 0.62);
+
+}
+
+/* ── Arrowheads ──
+   Chevrons only, no connecting rule. Nudged down so they sit on the
+   centre line of the numbered discs, which is what makes them read as
+   movement between the nodes rather than decoration floating above
+   the copy. */
+
+.processArrow
+{
+
+    /* The arrow's direction is a token, not a repeated declaration.
+       Every state below composes rotate(var(--processArrowTurn)) with
+       its own scale, so the vertical layout sets this once and nothing
+       else — including the reduced-motion reset — can accidentally
+       straighten an arrow that should be pointing down. */
+
+    --processArrowTurn: 0deg;
+
+    flex: 0 0 auto;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    margin-top: 1.05rem;
+
+    color: var(--colorSky);
+
+    /* Resting is also the no-JS and reduced-motion state, so the
+       progression is legible even if the sequencer never runs. */
+
+    opacity: 0.26;
+
+    transform: rotate(var(--processArrowTurn));
+
+    transition:
+        opacity 260ms var(--easePremium),
+        transform 260ms var(--easePremium),
+        filter 260ms var(--easePremium);
+
+}
+
+.processArrowIcon
+{
+
+    width: 16px;
+
+    height: 16px;
+
+}
+
+.processCta
+{
+
+    margin-top: 2.2rem;
+
+    text-align: center;
+
+}
+
+/* ============================================================
+   PROCESS SEQUENCE  (reusable Nulo Studio system)
+
+   The step-by-step reveal. Everything here is opacity, transform and
+   filter — nothing in this block can trigger layout, and every element
+   holds its space from the first paint, so the board never resizes and
+   no column collapses as the story plays.
+
+   Gated on html.jsEnabled: with no JavaScript the steps are simply
+   visible and the arrows sit at their resting opacity, which is the
+   whole progression, just without the telling.
+============================================================ */
+
+html.jsEnabled .processStep
+{
+
+    opacity: 0;
+
+    transform: translate3d(0, 12px, 0) scale(0.985);
+
+    transition:
+        opacity 480ms var(--easePremium),
+        transform 480ms var(--easePremium);
+
+}
+
+html.jsEnabled .processStep.isRevealed
+{
+
+    opacity: 1;
+
+    transform: none;
+
+}
+
+html.jsEnabled .processArrow
+{
+
+    opacity: 0;
+
+    transform: rotate(var(--processArrowTurn)) scale(0.86);
+
+}
+
+/* Active: the flash. Brighter than resting, a restrained glow, and a
+   small scale — no bounce, no travel. */
+
+html.jsEnabled .processArrow.isActive
+{
+
+    opacity: 1;
+
+    transform: rotate(var(--processArrowTurn)) scale(1.12);
+
+    filter: drop-shadow(0 0 7px rgba(91, 155, 213, 0.7));
+
+    transition-duration: 380ms;
+
+}
+
+html.jsEnabled .processArrow.isResting
+{
+
+    opacity: 0.26;
+
+    transform: rotate(var(--processArrowTurn));
+
+    filter: none;
 
 }
 
@@ -6742,19 +6870,50 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     }
 
-    .processSteps
+    /* ── Process goes vertical here ──
+       The old two-up grid broke the story: the arrow at the end of a
+       row pointed right, into the edge of the board, rather than at the
+       step that actually follows. Stacked, the arrows rotate to point
+       down and the progression stays true at any step count.
+
+       1080px is where this design already gave up on the horizontal
+       row, so the switch is not moving — only what it switches to. */
+
+    .processBoard
     {
 
-        grid-template-columns: repeat(2, 1fr);
-
-        gap: 2rem 1.4rem;
+        padding: 2rem 1.4rem;
 
     }
 
-    .processTrack
+    .processSteps
     {
 
-        display: none;
+        flex-direction: column;
+
+        align-items: stretch;
+
+        gap: 1.1rem;
+
+    }
+
+    .processStep
+    {
+
+        flex: 0 0 auto;
+
+        max-width: 30rem;
+
+        margin: 0 auto;
+
+    }
+
+    .processArrow
+    {
+
+        --processArrowTurn: 90deg;
+
+        margin-top: 0;
 
     }
 
@@ -6964,10 +7123,12 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     }
 
-    .processSteps
+    /* Already vertical from 1080px down; this width only tightens it. */
+
+    .processBoard
     {
 
-        grid-template-columns: 1fr;
+        padding: 1.6rem 1.1rem;
 
     }
 
@@ -7402,6 +7563,38 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
     {
 
         will-change: auto;
+
+    }
+
+    /* The process sequence does not run at all under reduced motion —
+       initializeProcessSequences() returns before it observes anything.
+       These two rules are what the visitor gets instead: the finished
+       state, immediately, with every step and every arrow present. No
+       information is withheld, only the telling of it. */
+
+    html.jsEnabled .processStep
+    {
+
+        opacity: 1;
+
+        transform: none;
+
+        transition: none;
+
+    }
+
+    html.jsEnabled .processArrow,
+    html.jsEnabled .processArrow.isActive,
+    html.jsEnabled .processArrow.isResting
+    {
+
+        opacity: 0.26;
+
+        transform: rotate(var(--processArrowTurn));
+
+        filter: none;
+
+        transition: none;
 
     }
 

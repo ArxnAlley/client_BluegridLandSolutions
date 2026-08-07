@@ -4,6 +4,93 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-07 — PROCESS SECTION: SEQUENTIAL STEP REVEAL
+
+### Brief
+
+Turn the "how it works" process block into a sequence that walks the visitor through it — step reveals, arrow flashes, arrow dims, next step — looping while on screen. One reusable architecture across every page that has a process block, not seven copies.
+
+### The brief described a section that did not exist
+
+The request described the change as animation-only, on top of an established visual: a centred free-floating dark rectangle, arrowheads between steps, no connecting lines, CTA below. **None of that was in the repository.** What shipped was a white section with a horizontal gradient rule (`.processTrack`), numbered discs, and no arrowheads or container. Nothing in git had the described version — no branch, no stash, no commit — and no other client site under `ClientSites/` matched either.
+
+So this entry covers both: the visual the brief assumed, and the sequencing it asked for.
+
+### Two facts that shaped the architecture
+
+**Step counts differ.** The homepage runs five steps; all seven service pages run four. The brief was written for five. Nothing in the CSS or the JS assumes a count — arrows are simply however many sit between the steps, and the validator exercises both a five-step and a four-step board.
+
+**The old grid was hardcoded to five columns** (`repeat(5, 1fr)`) while seven of the eight pages had four steps, so those pages had been rendering with an empty fifth column. Replaced with flex, which also removes the need for a template that would have had to change per page.
+
+### Layout
+
+A `.processBoard` — dark gradient rectangle, `max-width: 1120px`, centred, floating on the white section, with the heading above it and the CTA below. Step type inverted for the dark surface. `.processSteps` became flex: steps `flex: 1 1 0`, arrows `flex: 0 0 auto`, interleaved in DOM order so reading order and animation order are the same list.
+
+Arrows are chevrons only — no shaft, no connecting rule — nudged down `1.05rem` so they sit on the centre line of the numbered discs rather than floating above the copy.
+
+### Responsive
+
+Vertical from 1080px down, with the arrows rotated to point at the next step.
+
+The old design switched to a **two-up grid** at that width, which cannot work with directional arrows: the arrow ending a row points right, into the edge of the board, rather than at the step that follows. The breakpoint itself did not move — 1080px is where this design already gave up on the horizontal row — only what it switches to.
+
+The rotation is a custom property, `--processArrowTurn`, composed into every state's transform rather than restated per state. That was not tidiness: the reduced-motion block sits *later* in the stylesheet than the 1080px block, so a bare `transform: none` there would have straightened every arrow in the vertical layout. One token, and the reset cannot reach it.
+
+### Sequencing
+
+`initializeProcessSequences()` drives any element carrying `data-processsequence`. Per board: read the steps and arrows once, then a small state machine with a single pending timer.
+
+The arrow is movement *into* the next step, so the next step is revealed from **inside** the arrow's dim callback rather than alongside it. It is structurally impossible for a step to appear before its preceding arrow has finished.
+
+```
+  step reveal        480ms
+  pause after step   380ms
+  arrow flash        420ms
+  arrow dim          240ms
+  completed hold    2600ms
+  reset fade + gap   640ms
+                          -> 10.18s per cycle at five steps, 8.7s at four
+```
+
+`setTimeout` here, deliberately, where the hero typing needed `requestAnimationFrame`. The distinction is what the timer is for: the hero committed a DOM write that had to land inside a specific frame, twelve times a second. This schedules roughly a dozen class toggles per ten-second cycle and lets CSS animate between them. Sub-frame precision would buy nothing.
+
+### Viewport behaviour
+
+`IntersectionObserver` with **asymmetric** enter and exit conditions. Entering needs a meaningful arrival — 40% ratio, or the board's top past the middle of the screen. Leaving needs the board to go completely off screen.
+
+A single predicate for both would put start and stop on the same boundary, and a visitor parked there would restart the story on every scroll tremor. The positional fallback exists because a board taller than the viewport — the vertical mobile layout — can never reach a 40% ratio at all; the extra thresholds give that check callbacks to run in as a tall board scrolls up.
+
+Leaving resets and clears the timer; returning replays from step one, because half a story is worse than none. A hidden tab pauses the same way — timers would otherwise spend the sequence where nobody is watching.
+
+### Performance
+
+The only DOM work is a class toggle on one element per beat. Nothing is created, removed, measured, or re-written; every property those classes touch is `opacity`, `transform`, or `filter`. Steps and arrows hold their space from the first paint — this is an opacity reveal, never `display`, so the board cannot resize as the story plays.
+
+The hero typing profile was re-run afterwards and is unchanged to three decimal places: 10.015ms cadence jitter, 80.625ms mean, 0 characters swallowed, 0ms write-to-paint.
+
+### Two defects found and fixed mid-implementation
+
+- **Both assemblers were double-indenting.** They sliced from the opening tag, which left that line's existing indentation in the file and then added their own on top, so every generated block opened 16–20 spaces deeper than its own children. Present in the services mega panel committed the day before, too. Fixed in both by consuming the line's indentation as part of the replaced range, and the mega panel was regenerated.
+- **The validator's own CSS block bound was wrong.** It sliced from the section banner to `indexOf('PARALLAX')` — a marker that exists in the JavaScript, not the stylesheet. `indexOf` returned −1, `slice(start, -1)` ran to end of file, and the check reported a `display:none` and a `height` transition it had no business looking at. Now bounded by the next banner, with an assertion on the block's own length.
+
+### Files touched
+
+- `js/indexJS.js` — `processSequenceConfig`, `initializeProcessSequences()`, `setupProcessBoard()`
+- `css/styleIndex.css` — `.processBoard`, flex `.processSteps`, `.processArrow` and its three states, `.processCta`, inverted step type, the vertical layout, reduced-motion finished state; removed `.processTrack` and the orphaned `drawLine` primitive that existed only to animate it
+- **8 HTML pages** — `index.html` and all 7 service pages, rebuilt by a guarded assembler that carries step content across untouched
+
+### Validation
+
+New `validateProcessSequence` runs the real `indexJS.js` in a VM with a virtual clock, drives the observer by hand, and asserts against a recording of every class change: 13 beats in exact order, never more than one arrow bright, no step hidden mid-cycle, reset clearing the board in one tick, the loop restarting, zero class changes while off screen or with the tab hidden, and reduced motion registering no observer and no timers at all. The four-step board is checked separately.
+
+All eight prior suites still pass.
+
+### Left for a browser
+
+Everything about how it *looks*: the dark board on the white section, the flash brightness, whether 10.18s reads as deliberate or slow, and the vertical layout below 1080px.
+
+---
+
 ## 2026-08-06 — LAUNCH POLISH: SERVICES MEGA MENU, HERO TYPING PERFORMANCE
 
 ### Brief

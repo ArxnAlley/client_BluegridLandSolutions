@@ -1546,6 +1546,405 @@ function initializeHeroDuet()
 }
 
 /* ============================================================
+   PROCESS SEQUENCE  (reusable Nulo Studio system)
+
+   Walks a visitor through a process board one step at a time:
+
+       step reveals -> arrow flashes -> arrow dims -> next step
+
+   and once the last step is up, holds the finished picture, resets,
+   and tells it again.
+
+   Drives any element carrying data-processsequence. Step count is
+   read from the DOM rather than configured — the homepage board runs
+   five steps and the service pages four, and the arrows are simply
+   however many sit between them.
+
+   Cost is deliberately tiny: the only DOM work is a class toggle on a
+   single element per beat, roughly a dozen per ten-second cycle, and
+   every property those classes touch is opacity, transform or filter.
+   No element is ever created, removed, measured or re-written, so the
+   board cannot trigger layout while it plays. setTimeout is the right
+   tool here for the same reason requestAnimationFrame was the right
+   one for the hero: this schedules a handful of state changes that CSS
+   then animates, rather than committing a frame of its own.
+============================================================ */
+
+const processSequenceConfig = {
+
+    /* Matches the 480ms reveal transition in styleIndex.css, then a
+       beat to let the step land before the arrow moves on. */
+
+    stepRevealMs: 480,
+
+    pauseAfterStepMs: 380,
+
+    arrowActiveMs: 420,
+
+    arrowFadeMs: 240,
+
+    completedHoldMs: 2600,
+
+    /* Long enough for everything to fade out together before step one
+       comes back, so the reset reads as a breath rather than a cut. */
+
+    resetFadeMs: 380,
+
+    restartGapMs: 260,
+
+    /* Deliberately wide hysteresis: the sequence begins once the board
+       is meaningfully on screen, and only stops once it has left
+       completely. Scroll jitter around a single boundary therefore
+       cannot restart the story. */
+
+    enterRatio: 0.4
+
+};
+
+const processSequenceBoards = [];
+
+function initializeProcessSequences()
+{
+
+    const boards = document.querySelectorAll('[data-processsequence]');
+
+    if (boards.length === 0)
+    {
+
+        return;
+
+    }
+
+    /* Reduced motion never runs the sequence at all — the stylesheet
+       shows every step and every arrow in their finished state, so
+       there is nothing to drive and no observer worth registering. */
+
+    if (prefersReducedMotion || !('IntersectionObserver' in window))
+    {
+
+        return;
+
+    }
+
+    boards.forEach(function (board)
+    {
+
+        setupProcessBoard(board);
+
+    });
+
+    /* A backgrounded tab paints nothing, so letting the timers run on
+       would spend the story where nobody is watching and return the
+       visitor to the middle of it. */
+
+    document.addEventListener(
+        'visibilitychange',
+        function ()
+        {
+
+            processSequenceBoards.forEach(function (syncBoard)
+            {
+
+                syncBoard();
+
+            });
+
+        }
+    );
+
+}
+
+function setupProcessBoard(board)
+{
+
+    const steps = Array.prototype.slice.call(board.querySelectorAll('.processStep'));
+
+    const arrows = Array.prototype.slice.call(board.querySelectorAll('.processArrow'));
+
+    if (steps.length === 0)
+    {
+
+        return;
+
+    }
+
+    let pendingTimerId = null;
+
+    let running = false;
+
+    let inView = false;
+
+    function after(delayMs, nextBeat)
+    {
+
+        pendingTimerId = window.setTimeout(
+            function ()
+            {
+
+                pendingTimerId = null;
+
+                nextBeat();
+
+            },
+            delayMs
+        );
+
+    }
+
+    function clearPending()
+    {
+
+        if (pendingTimerId !== null)
+        {
+
+            window.clearTimeout(pendingTimerId);
+
+            pendingTimerId = null;
+
+        }
+
+    }
+
+    function resetBoard()
+    {
+
+        steps.forEach(function (step)
+        {
+
+            step.classList.remove('isRevealed');
+
+        });
+
+        arrows.forEach(function (arrow)
+        {
+
+            arrow.classList.remove('isActive');
+
+            arrow.classList.remove('isResting');
+
+        });
+
+    }
+
+    /* ── The beats ── */
+
+    function revealStep(index)
+    {
+
+        steps[index].classList.add('isRevealed');
+
+        after(
+            processSequenceConfig.stepRevealMs + processSequenceConfig.pauseAfterStepMs,
+            function ()
+            {
+
+                if (index >= steps.length - 1)
+                {
+
+                    holdThenRestart();
+
+                    return;
+
+                }
+
+                flashArrow(index);
+
+            }
+        );
+
+    }
+
+    /* The arrow is movement into the next step, so the next step is
+       revealed from inside this beat rather than alongside it — it
+       cannot appear until its arrow has finished flashing and dimmed. */
+
+    function flashArrow(index)
+    {
+
+        const arrow = arrows[index];
+
+        if (!arrow)
+        {
+
+            revealStep(index + 1);
+
+            return;
+
+        }
+
+        arrow.classList.add('isActive');
+
+        after(
+            processSequenceConfig.arrowActiveMs,
+            function ()
+            {
+
+                arrow.classList.remove('isActive');
+
+                arrow.classList.add('isResting');
+
+                after(
+                    processSequenceConfig.arrowFadeMs,
+                    function ()
+                    {
+
+                        revealStep(index + 1);
+
+                    }
+                );
+
+            }
+        );
+
+    }
+
+    function holdThenRestart()
+    {
+
+        after(
+            processSequenceConfig.completedHoldMs,
+            function ()
+            {
+
+                resetBoard();
+
+                after(
+                    processSequenceConfig.resetFadeMs + processSequenceConfig.restartGapMs,
+                    function ()
+                    {
+
+                        revealStep(0);
+
+                    }
+                );
+
+            }
+        );
+
+    }
+
+    /* ── Run state ── */
+
+    function start()
+    {
+
+        running = true;
+
+        resetBoard();
+
+        after(processSequenceConfig.restartGapMs, function ()
+        {
+
+            revealStep(0);
+
+        });
+
+    }
+
+    function stop()
+    {
+
+        running = false;
+
+        clearPending();
+
+        resetBoard();
+
+    }
+
+    function syncBoard()
+    {
+
+        const shouldRun = inView && !document.hidden;
+
+        if (shouldRun === running)
+        {
+
+            return;
+
+        }
+
+        if (shouldRun)
+        {
+
+            start();
+
+            return;
+
+        }
+
+        stop();
+
+    }
+
+    processSequenceBoards.push(syncBoard);
+
+    /* A board taller than the viewport can never reach enterRatio, so
+       position is the fallback: once its top has passed the middle of
+       the screen it is meaningfully in view whatever the ratio says.
+       The extra thresholds exist to give that check a callback to run
+       in as a tall board scrolls up. */
+
+    function hasMeaningfullyEntered(entry)
+    {
+
+        if (entry.intersectionRatio >= processSequenceConfig.enterRatio)
+        {
+
+            return true;
+
+        }
+
+        const rootHeight = entry.rootBounds ? entry.rootBounds.height : window.innerHeight;
+
+        return entry.boundingClientRect.top <= rootHeight * 0.5;
+
+    }
+
+    const observer = new IntersectionObserver(
+        function (entries)
+        {
+
+            entries.forEach(function (entry)
+            {
+
+                /* Asymmetric on purpose. Entering takes a meaningful
+                   arrival; leaving takes the board going completely off
+                   screen. One predicate for both would put start and
+                   stop on the same boundary, and a visitor parked there
+                   would restart the story on every scroll tremor. */
+
+                if (!entry.isIntersecting)
+                {
+
+                    inView = false;
+
+                    syncBoard();
+
+                    return;
+
+                }
+
+                if (!inView && hasMeaningfullyEntered(entry))
+                {
+
+                    inView = true;
+
+                    syncBoard();
+
+                }
+
+            });
+
+        },
+        { threshold: [0, 0.12, 0.25, processSequenceConfig.enterRatio] }
+    );
+
+    observer.observe(board);
+
+}
+
+/* ============================================================
    PARALLAX SECTIONS  (reusable Nulo Studio system)
 
    Drives any element carrying data-parallaxlayer. The layer is
@@ -3545,6 +3944,8 @@ initializeAnimationEngine();
 initializeHeroEntrance();
 
 initializeHeroDuet();
+
+initializeProcessSequences();
 
 initializeParallaxSections();
 

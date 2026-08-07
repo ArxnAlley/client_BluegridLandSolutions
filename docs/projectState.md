@@ -1,9 +1,9 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-07
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `phase2a-lead-capture` — branched from `main`, **not merged, nothing pushed**
-**Latest commit:** `e0dad33` — Launch polish: services mega menu redesign and hero typing performance
+**Latest commit:** `5072562` — Process section: sequential step reveal
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
 > Read this file first. `engineeringJournal.md` has the reasoning; `technicalDebt.md` has what is knowingly deferred.
@@ -24,6 +24,7 @@
 | Header navigation polish + tokenization | Complete |
 | Navigation & content expansion (FAQ hub, Insights) | Complete |
 | Launch polish — services mega menu, hero typing performance | Complete |
+| Process section — sequential step reveal | Complete |
 
 **The production domain is the only outright launch blocker left.**
 
@@ -84,10 +85,27 @@ docs/                       this file, engineeringJournal.md, technicalDebt.md,
 | Hero seam geometry (5 viewports) | PASS — copy ends exactly on the seam, 24px card overlap |
 | Hero before/after loop (10 min simulated) | PASS — **91 cycles alternating**, 6.16–7.01s cadence |
 | **Hero typing profile (5 min simulated)** | PASS — rendered cadence equals the scheduled cadence exactly; **0 characters swallowed**, **0ms** write-to-paint |
+| **Process sequence (simulated)** | PASS — 8 pages: 13 beats in exact order, max 1 arrow bright, reset in one tick, loop restarts, 0 changes off-screen or tab-hidden, reduced motion registers nothing |
 | Lead submission contract | PASS — one endpoint, one call site, payload matches schema on all 23 pages |
 | Apps Script harness | **64/64**, `runSelfTest` 6/6 |
 | `node --check js/indexJS.js` | clean |
 | CSS brace balance | balanced in both stylesheets |
+
+---
+
+## Completed — Session of 2026-08-07 (process section)
+
+### Sequential step reveal across the homepage and all 7 service pages
+The brief described this as animation-only on top of an established visual — a centred dark rectangle with arrowheads and no connecting line. **That visual was not in the repository**, and nothing in git or the other client sites had it, so this session built both.
+
+- **`.processBoard`** — a dark gradient rectangle, capped at 1120px and centred, floating on the white section, with the heading above and a new CTA below. Step type inverted for the dark surface.
+- **Arrowheads replaced the connecting rule.** Chevrons only, interleaved between steps in DOM order so reading order and animation order are one list, sat on the centre line of the numbered discs.
+- **Two pre-existing facts drove the architecture:** the homepage runs 5 steps and every service page runs 4, and the old grid was hardcoded to `repeat(5, 1fr)` — so seven of eight pages had been rendering with an empty fifth column. Flex replaced it, and nothing assumes a step count.
+- **Sequence:** step reveals → arrow flashes → arrow dims → next step, then a 2.6s hold on the finished picture, a clean reset, and a replay. **10.18s per cycle** at five steps. The next step is revealed from inside the arrow's dim callback, so it cannot appear before its arrow has finished.
+- **Viewport trigger with asymmetric hysteresis** — enters on a meaningful arrival (40% ratio, or the top past mid-screen for boards taller than the viewport), exits only when completely off screen. One predicate for both would have restarted the story on every scroll tremor at the boundary. A hidden tab pauses; returning replays from step one.
+- **Vertical from 1080px down**, arrows rotated to point at the next step. The old two-up grid could not work with directional arrows — the arrow ending a row pointed into the edge of the board. The breakpoint did not move, only what it switches to. Rotation is a `--processArrowTurn` token composed into every state, because the reduced-motion block sits later in the stylesheet and a bare `transform: none` would otherwise straighten every arrow on mobile.
+- **Reduced motion** shows every step and arrow in their finished state immediately; the sequencer returns before registering an observer.
+- **Performance:** one class toggle per beat, ~a dozen per cycle, opacity/transform/filter only. Every element holds its space from the first paint, so the board never resizes. The hero typing profile was re-run and is unchanged to three decimals.
 
 ---
 
@@ -212,7 +230,8 @@ Confirmed the previous session's claim rather than trusting it. All 7 `.gs` modu
 - **Domain decision** — blocker 1.
 - **Confirm the nav decision.** The nav brief spelled the resulting order out as four items (Services · Service Areas · FAQ · Insights), which excluded *Before & After*, so it was removed from the primary nav. It stays reachable from the homepage hero CTA ("See Transformations") and the footer Quick Links. **If a five-item nav was intended, restoring it is a one-line change.**
 - **One real end-to-end lead submission** from the live site.
-- **A browser pass** on phone / tablet / desktop. Two things from 2026-08-06 have only ever been reasoned about, never seen: the **redesigned services mega panel** (open it at 1440px and at 1151px), and the **hero typing** now that it commits on the frame boundary and holds its own compositing layer.
+- **A browser pass** on phone / tablet / desktop. Three things have only ever been reasoned about, never seen: the **redesigned services mega panel** (open it at 1440px and at 1151px); the **hero typing** now that it commits on the frame boundary and holds its own compositing layer; and the **process sequence** — the dark board on the white section, the arrow flash brightness, whether the 10.18s cycle reads as deliberate or slow, and the vertical layout below 1080px.
+- **Confirm the process section's new visual.** The 2026-08-07 brief described a dark rectangle with arrowheads as already established; it was not in the repository, so it was built to that description. It has never been compared against whatever you were picturing.
 - **Merge `phase2a-lead-capture` into `main`** when satisfied. Nothing has been pushed.
 - **Redeploy discipline:** always *Deploy → Manage deployments → edit → New version*. A **new deployment** mints a different URL and silently breaks all 23 forms.
 
