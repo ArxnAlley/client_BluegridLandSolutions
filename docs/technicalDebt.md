@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-06
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -26,6 +26,7 @@ Both are wired through `businessConfig`, so each is a one-line fix — but shipp
 ### 4. Nothing has ever been checked in a real browser
 No session on this project has had Playwright or Chrome DevTools available, so **every validation to date is static analysis or simulation.** That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything *looks*.
 Before launch: open the homepage on a real phone and confirm the hero photo ends at the fold, the seam into the estimate band is invisible, and the card overlap reads as intentional. Then a tablet and desktop pass covering the FAQ mega panel, the header morph across 1280px and 1150px, and the FAQ/Insights layouts.
+**Added 2026-08-06:** the redesigned **services mega panel** has been measured but never seen — open it at 1440px and again at 1151px, where the calculation leaves only 62px between the panel and the left edge. And confirm the **hero typing** reads as intended now that it commits on the frame boundary; the profiler proves the cadence is regular, not that it looks right.
 
 ### 5. No real lead has been created from the live site
 The endpoint is wired and verified with read-only probes plus a honeypot POST that writes nothing. **A genuine submission has never been run by this project** — that path writes a row and emails both the owner and the customer, so it was not triggered unilaterally.
@@ -66,6 +67,20 @@ That violates `seoPlan.md`'s own rule ("No cross-page duplicate questions") and 
 **Fix: decide which page owns it.** The permitting answer is service-agnostic, so the homepage or the new FAQ hub is the better home; `landClearing.html` would then drop the question and link across. Not done at closeout because it changes rendered content and schema on two pages and deserves a deliberate call rather than a rushed one.
 Sitewide totals for reference: **103 rendered FAQ questions, 102 unique.**
 
+### 10b. The FAQ and Service Areas mega panels have not had the same treatment
+The 2026-08-06 brief covered the **services** panel only, and explicitly said not to redesign the navigation — so the other two panels kept their existing look. They now share the `--mega*` tokens, so nothing has drifted and nothing renders differently, but the services panel has a featured band and labelled groups while the other two are still flat lists.
+Whether that reads as *hierarchy* (services is the primary menu, so it earns more structure) or as *inconsistency* is a judgement that needs eyes on it — see item 4.
+**If it needs fixing**, the pattern is already tokenized: the Service Areas panel would take a featured band for the flagship county and the FAQ panel one for the most-asked question. Roughly an hour, no new CSS vocabulary.
+
+### 10c. The hero typed line's `text-shadow` is the remaining per-character paint cost
+`text-shadow: 0 3px 24px rgba(0, 0, 0, 0.55)` on `.heroTypedText` means every keystroke re-rasters the whole string with a 24px blur: a **926×125px** rect at 1440px, ~115k pixels, roughly twelve times a second while a phrase types.
+The 2026-08-06 pass removed everything around it — the write now lands on a frame boundary, and `.heroTypedLine` holds its own compositing layer so the hero photograph underneath is no longer resampled (**8.0 megapixels/second** saved). The blur itself is irreducible without changing how the hero looks, and the brief said not to.
+**Only worth revisiting if a real device shows the hero dropping frames.** Softening the blur to ~12px would roughly halve the raster cost, and it is a visible change that needs sign-off, not a quiet optimization.
+
+### 10d. `.heroTypedLine` holds a compositing layer for the life of the page
+`will-change: transform` is set permanently, not toggled, because the typing loop never ends. Costs one layer of roughly 926×125px — well under a megabyte, and zeroed under `prefers-reduced-motion` where nothing types.
+One consequence worth knowing before someone "fixes" it: text in a promoted layer gets grayscale rather than subpixel antialiasing. **The line was already promoted for the first 2.2 seconds** via the `[data-heroanimate]` entrance, so this makes the rendering consistent rather than introducing something new — and at 41–74px display type the difference is not expected to be visible. Unverified, like everything else in item 4.
+
 ### 11. `robots.txt` and `sitemap.xml` do not exist
 Deferred by instruction. Both depend on item 1. The sitemap needs **23 URLs**.
 
@@ -93,8 +108,9 @@ Google does not require dates, but they help freshness signals and readers use t
 Header, mobile drawer, estimate modal, footer, and floating actions are copied into every page — roughly 900 lines × 23. Inherent to a no-build static site.
 Mitigated: interior pages are generated by guarded assemblers, not hand-copied, and `applyBusinessConfig()` drives phone/email/social from one place at runtime. **A nav change now requires editing 23 files** — this session's two chrome passes each needed a scripted, guarded run to be safe. See *Consider a build step*.
 
-### 18. `repointServiceLinks()` has been written twice
-Chrome spliced out of `services/*.html` carries seven service links relative to that folder, which must be repointed to `../services/…` for any page in another directory. Two separate one-shot generators have now independently rediscovered this, the second only after the link validator caught 63 broken references.
+### 18. Service-link path repointing has now been rediscovered three times
+Service links have **three** path forms: root pages use `services/x.html`, pages inside `services/` use the bare sibling `x.html`, and every other one-level folder uses `../services/x.html`. Chrome spliced out of a `services/*.html` page therefore carries the sibling form and must be repointed.
+Three separate one-shot generators have independently hit this — the second only after the link validator caught 63 broken references, the third (2026-08-06) caught before writing because its guard compared link sets first. Note the middle case is the one `projectState.md` used to describe as a two-variant rule; that has been corrected.
 It belongs in the Phase 13 generator rather than in each script's memory.
 
 ### 19. Current service is not highlighted in the mega menu
@@ -122,6 +138,7 @@ Phase 1 records `photoCount` and `photoNames` only; no bytes are uploaded and `p
 
 ### 25. No Lighthouse / performance pass yet
 Deferred until the higher-priority items clear. Known candidates: hero images are full-resolution `2048×1536` with no responsive `srcset`; Google Fonts loads render-blocking.
+**The hero typing animation is no longer on this list** — it was profiled and optimized on 2026-08-06 (see the journal entry and items 10c/10d). The two above are what remain.
 
 ### 26. Owner is not named on the site
 Copy says "the owner" throughout because naming Chase publicly was never approved. For an owner-operated brand, naming him is likely stronger. One-line copy change once decided.
@@ -180,3 +197,7 @@ Recorded so future sessions do not "fix" them:
 | Header compact values scattered as literals | 2026-08-03 | Twelve `:root` tokens; queries reduced to overrides. |
 | Estimate form had no double-submit guard | 2026-08-03 | In-flight lock, disabled button, stable `leadId`. |
 | Rowan County missing from coverage data | 2026-08-02 | Added to all four places; TODO-marked for client confirmation. |
+| Services mega menu had no hierarchy and an odd-numbered hole | 2026-08-06 | Featured band plus three balanced groups of two; fit measured 1151–1600px. |
+| Hero typing cadence irregular; character writes off the frame boundary | 2026-08-06 | Profiled first. Rendered cadence now equals the scheduled cadence exactly; write-to-paint 8.5ms → 0ms. |
+| Typed line re-rastered the hero photograph on every keystroke | 2026-08-06 | `.heroTypedLine` promoted; 8.0 megapixels/second of photo resampling removed. Residual blur cost is item 10c. |
+| Mega panel styling scattered as literals | 2026-08-06 | Nine `--mega*` tokens; the FAQ panel repointed at identical values, so nothing renders differently. |

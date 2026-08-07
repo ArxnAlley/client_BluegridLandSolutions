@@ -4,6 +4,156 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-06 — LAUNCH POLISH: SERVICES MEGA MENU, HERO TYPING PERFORMANCE
+
+### Brief
+
+Two tasks, explicitly not feature work. Redesign the **visual presentation only** of the services mega menu — keeping every link, destination and behaviour — toward something more premium, with better hierarchy, whitespace, alignment, balance, grouping and a stronger visual entry point; consistent with the BlueGrid system, taking the Austin Ervin panel as inspiration rather than a template. Then **profile** the hero typing animation, find the actual bottleneck rather than guessing at one, fix it, re-measure, and stop when further work stops paying.
+
+---
+
+### Part 1 — Services mega menu
+
+#### The problem with the old panel
+
+Seven services in a two-column grid. Seven is odd, so the last row was always a hole — that lopsidedness is what reads as unfinished. There was no heading, no hierarchy between the flagship service and the rest, and no reason for the eye to land anywhere in particular.
+
+#### What was built
+
+A **featured band** across the top carrying Forestry Mulching: a 52px sky-tinted icon tile, a "Start Here" eyebrow, the title in the display face rather than the body face, one line of promise, and a "See how it works" cue whose arrow slides 4px on hover. It is the only *filled* surface in any mega panel on the site, so it wins the eye without needing to be loud.
+
+Below a hairline, the remaining six sit in **three equal labelled groups of two**:
+
+| Group | Services |
+|---|---|
+| Clearing & Site Prep | Land Clearing, Brush Removal |
+| Access & Habitat | Trail Cutting, Hunting Property Prep |
+| Cleanup & Recovery | Property Cleanup, Storm Cleanup |
+
+Three-by-two has no hole, the columns are the same height by construction, and each label is honest about what its pair has in common. An earlier 3/2/1 split (*Clearing & Site Prep* / *Access & Habitat* / *Storm Response*) was discarded: it balanced on paper only because the extra heading in the second column happened to make up the height, and "Storm Response" as a group of one is a label pretending to be a category.
+
+#### Why the panel is 760px and still centred
+
+The instinct was to left-anchor a wide panel to its toggle, on the assumption that the nav sits next to the brand lockup. It does not: `.brandLockup` carries `margin-right: auto`, which pushes the nav and the actions to the **right** of the bar. So the Services toggle is much further right than it looks in the markup, and the existing centred positioning has more room than expected — no override was needed at all, which also keeps this panel positioned exactly like the other two.
+
+760px matches the FAQ panel deliberately, so the site's two large panels are the same object at the same size.
+
+Fit was measured rather than eyeballed, reusing the TrueType parser built for the header audit:
+
+```
+   1600px   panel  329 -> 1089    margins  329 /  511   ok
+   1440px   panel  249 -> 1009    margins  249 /  431   ok
+   1280px   panel  191 ->  951    margins  191 /  329   ok
+   1151px   panel   62 ->  822    margins   62 /  329   ok
+```
+
+1151px is the narrowest viewport the desktop nav survives to, and the panel still clears the left edge by 62px. Inside the panel the tightest group title, *Hunting Property Prep*, needs 155px against 172px of column — 16px of slack, enough to absorb the wider Segoe UI fallback if Inter has not loaded.
+
+#### Tokenized, because the brief said "design language"
+
+Nine `--mega*` properties in `:root` now carry the panel surface, shadow, top edge, rule, row radius, hover tint, label colour and copy colour. **Every value is the one the panels already shipped with**, and the FAQ panel was repointed at them — so it renders identically while sharing the vocabulary, and a panel added for a future section inherits the surface for free. This is the part that makes the pattern portable to the next Nulo Studio site; the featured-band structure is the part that makes it BlueGrid's.
+
+#### The guard earned its keep
+
+The rebuild script refused to write anything on its first run:
+
+```
+services\forestryMulching.html: link set differs —
+  missing [services/forestryMulching.html, ...]
+  extra   [forestryMulching.html, ...]
+```
+
+Pages inside `services/` link to their siblings **bare** — `forestryMulching.html` — not `../services/forestryMulching.html`. So service links have **three** path forms, not the two the rest of the chrome uses. The two-variant rule in `projectState.md` was not wrong, it was just not the whole rule, and it has now been corrected there. Had the script trusted it, seven links on seven pages would have shipped broken.
+
+---
+
+### Part 2 — Hero typing performance
+
+#### Method
+
+No browser is available on this project, so the animation was profiled by running the **real shipped `indexJS.js`** in a VM against a virtual clock that models the browser's rendering lifecycle rather than just its timers: callbacks fire when scheduled, but a DOM change only becomes visible at a vsync tick. Both builds were driven from the same seeded random stream, so the comparison measures the change and not luck. Two scenarios: an idle main thread (assumption-free) and a contended one (a declared model, used only to check that the fix degrades better).
+
+#### Finding 1 — the schedule asked for cadences the screen cannot show
+
+`typeHeroPhrase()` scheduled one `setTimeout` per character, each writing straight into `.textContent`. Measured over three simulated minutes at 60Hz:
+
+```
+                  count     mean    stdev      min      max   spread
+  scheduled         399     82.2      9.5     68.0    111.5     43.5
+  rendered          400     82.1     11.8     66.7    116.7     50.0
+
+  jitter added by the render step   +2.29ms stdev  (24%)
+```
+
+The design asks for restrained variation; the visitor gets a quarter more than that, because a timer fires at an arbitrary point inside a frame and the character waits out the rest of it — **8.5ms on average, 16.7ms at worst**. Under load two timers can land in one frame and the second write erases the first before it is ever painted.
+
+#### Finding 2 — the layer is torn down mid-phrase
+
+`.heroHeadline` gets `will-change: opacity, transform` from `html.jsEnabled [data-heroanimate]`, and `indexJS.js:757-768` **removes that attribute at t=2200ms**. Typing starts around t=900ms, so the de-promotion lands at roughly the **sixteenth character of the first phrase**. From that moment the typed line paints into the same layer as the hero photograph and the overlay gradient:
+
+```
+  invalid rect per character   926 x 125 px   (glyphs + the 24px text-shadow)
+  tiles re-rastered                     10
+  pixels redrawn per character        655k
+  photo pixels resampled              655k    -> 8.0 megapixels/second
+```
+
+Every keystroke was resampling the photograph, for a change that only ever touches the glyphs.
+
+#### What shipped
+
+1. **Commits happen inside `requestAnimationFrame`.** Write-to-paint goes to zero, and one frame can only serve one commit, so a swallowed character is structurally impossible rather than merely unlikely.
+2. **Deadlines chain from the frame that served the previous commit**, so exactly one rounding sits between any two characters and none of it accumulates.
+3. **A cached `Text` node**, mutated via `nodeValue`, replaces re-assigning `.textContent` — 873 node teardowns in three minutes became 18.
+4. **Strings are pre-computed** outside the frame callback, so nothing allocates inside it.
+5. **`.heroTypedLine` holds its own compositing layer** for the life of the loop, zeroed under `prefers-reduced-motion` where nothing types.
+
+```
+                                   before     after
+  jitter added by the render step    +24%        0%
+  write -> paint                    8.5ms       0ms
+  text nodes rebuilt (3 min)          873        18
+  setTimeout allocated (3 min)        939       139
+  characters swallowed                  0         0
+```
+
+Scheduled and rendered cadence are now **identical** — the schedule only asks for things the screen can actually show. Mean interval moved 82.1ms → 80.6ms, i.e. onto the 80ms the config always specified. `heroDuetConfig` was not edited.
+
+#### Two wrong turns, both caught by measuring
+
+- **An off-by-one in the frame counter** ran every interval one frame long: mean 82ms → **97ms**, an 18% slowdown that would have read as sluggish. The profile caught it immediately; no amount of reading the code would have.
+- **A pure deadline chain** — chaining from the abstract deadline rather than from the serving frame — measured **11.95ms stdev against the baseline's 11.78ms**, i.e. no better than the timers it replaced. Two independent roundings, one at each end of every interval. Predicting it would help was wrong, and the measurement said so.
+
+#### Why frames are not counted
+
+Counting frames is the obvious way to express "wait five frames", and it measured very slightly smoother at 60Hz (10.0ms stdev against 10.1ms). It was rejected and the rejection verified:
+
+```
+  120Hz   frame-counted   mean 40.5ms      <- double speed
+  120Hz   shipped         mean 81.8ms
+```
+
+A tenth of a millisecond is not worth an animation that runs at double speed on the panels in most current laptops and phones.
+
+#### What was deliberately left alone
+
+The `text-shadow: 0 3px 24px` on the typed line is the remaining per-character cost — a 24px blur over ~115k pixels of 73.6px display type, every keystroke. It is irreducible without changing how the hero looks, and the brief said not to. Logged as debt rather than quietly softened.
+
+---
+
+### Files touched
+
+- `js/indexJS.js` — `heroTimingIsHeld()`, `writeHeroTypedText()`, `runHeroTypedSequence()`, rewritten `typeHeroPhrase()` / `deleteHeroPhrase()` as step builders
+- `css/styleIndex.css` — nine `--mega*` tokens, the services panel and its featured band, group headings, restyled rows, `will-change` on `.heroTypedLine` and its reduced-motion opt-out
+- All **23 HTML pages** — services mega panel markup, rebuilt by a guarded assembler
+- `docs/projectState.md`, `docs/engineeringJournal.md`, `docs/technicalDebt.md`
+
+### Validation
+
+`validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `heroLoopHarness` (91 cycles alternating, 6.16–7.01s), the Apps Script harness (**64/64**), `node --check`, and a new `validateServicesMega` covering all 23 pages — structure, links resolving to files that exist on disk, styling coverage in **both** directions (no unstyled class, no dead `.mega*` rule), decorative SVGs kept out of the accessibility tree, and on-screen fit from 1151px to 1600px. All pass.
+
+---
+
 ## 2026-08-04 — SESSION SUMMARY (2026-08-02 → 2026-08-04)
 
 > Session-level compaction. Each phase below has a detailed entry further down this file — this is the fast path for a session resuming cold.

@@ -1,9 +1,9 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-06
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `phase2a-lead-capture` — branched from `main`, **not merged, nothing pushed**
-**Latest commit:** `863842c` — Navigation restructure, FAQ mega menu, FAQ hub, and Insights
+**Latest commit:** `424da14` — Launch polish: services mega menu redesign and hero typing performance
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
 > Read this file first. `engineeringJournal.md` has the reasoning; `technicalDebt.md` has what is knowingly deferred.
@@ -23,6 +23,7 @@
 | Phase 2D — Live Apps Script backend | **Complete — lead capture is live** |
 | Header navigation polish + tokenization | Complete |
 | Navigation & content expansion (FAQ hub, Insights) | Complete |
+| Launch polish — services mega menu, hero typing performance | Complete |
 
 **The production domain is the only outright launch blocker left.**
 
@@ -68,19 +69,21 @@ docs/                       this file, engineeringJournal.md, technicalDebt.md,
 - Static site, **no build step**, pure HTML/CSS/JS per `codeStyle.md`.
 - Shared chrome (header, mobile drawer, estimate modal, footer, floating actions) is **duplicated into every page** and kept in sync by guarded one-shot Node scripts run from a scratchpad. **Those scripts are deliberately not checked in** — Phase 13 (`docs/phasePrompts/phase13ServiceAreaExpansion.md`) owns the real generator, and shipping a half-generator would create two competing sources of truth.
 - **Two path variants only:** root (`index.html`) and one level deep (`services/`, `locations/`, `insights/`, `faq/`). **Put any new page one level deep** so it reuses the proven one-level chrome — that is why the FAQ page is `faq/index.html` rather than `faq.html`.
-- When splicing chrome out of `services/*.html`, the seven service links in the mega menu and footer are **relative to `services/`** and must be repointed to `../services/…`. This has bitten two separate builders.
+- **Service links have three path forms, not two.** Root pages use `services/x.html`, pages *inside* `services/` use the bare sibling `x.html`, and every other one-level folder uses `../services/x.html`. When splicing chrome out of a `services/*.html` page the links come across in the sibling form and must be repointed. This has now bitten three separate builders; the 2026-08-06 rebuild only avoided it because its guard refused to write until the link sets matched.
 - **Line endings are mixed and deliberate.** `index.html`, `js/indexJS.js`, `css/styleIndex.css` and most `services/*.html` are CRLF; `css/stylePages.css`, `services/forestryMulching.html`, `locations/*`, `insights/*`, `faq/*` are LF. **Any scripted edit must detect and preserve per file.**
 - The Apps Script endpoint lives in **exactly one place** — `businessConfig.estimateEndpoint` in `js/indexJS.js` — with exactly one `fetch()` call site.
 
-### Verification state (all green at `863842c`)
+### Verification state (all green)
 
 | Check | Result |
 |---|---|
-| Internal links & assets | **23 pages, 2,407 references, zero broken** |
+| Internal links & assets | **23 pages, zero broken** |
 | Navigation / mega menu / mobile drawer | PASS on all 23 pages |
+| **Services mega panel** | PASS — 23 pages: structure, 7 links resolving to real files, styling coverage both ways, decorative SVGs out of the a11y tree, on-screen fit 1151–1600px |
 | Header width sweep 900–1600px | PASS — zero wrapping; tightest desktop 1151px at **+163px** slack |
 | Hero seam geometry (5 viewports) | PASS — copy ends exactly on the seam, 24px card overlap |
-| Hero before/after loop (10 min simulated) | PASS — **92/92 alternating**, 6.13–6.94s cadence |
+| Hero before/after loop (10 min simulated) | PASS — **91 cycles alternating**, 6.16–7.01s cadence |
+| **Hero typing profile (5 min simulated)** | PASS — rendered cadence equals the scheduled cadence exactly; **0 characters swallowed**, **0ms** write-to-paint |
 | Lead submission contract | PASS — one endpoint, one call site, payload matches schema on all 23 pages |
 | Apps Script harness | **64/64**, `runSelfTest` 6/6 |
 | `node --check js/indexJS.js` | clean |
@@ -88,7 +91,40 @@ docs/                       this file, engineeringJournal.md, technicalDebt.md,
 
 ---
 
-## Completed This Session
+## Completed — Session of 2026-08-06 (launch polish)
+
+### Services mega menu — visual redesign
+Presentation only. **Every href, every description, and the toggle behaviour are unchanged**; the grouping, order, and styling are the redesign.
+
+- **A featured band** across the top of the panel carries Forestry Mulching — icon tile, eyebrow, display-face title, one line of promise, and a cue that slides on hover. It is the only filled surface in any panel on the site, which is what makes the eye land there first.
+- **The remaining six sit in three equal, labelled groups** — *Clearing & Site Prep*, *Access & Habitat*, *Cleanup & Recovery* — two services each. The previous panel put seven items in a two-column grid, so the last row was always a hole; three-by-two has no hole and the groups say something true.
+- Panel width **760px, matching the FAQ panel**, so the two large panels read as the same object. Row icons dropped from 22px to 18px at 75% opacity, titles to 0.9rem, and a sky rule grows down the leading edge on hover — opacity and transform only.
+- **Tokenized as a reusable pattern.** Nine `--mega*` custom properties in `:root` now carry the panel surface, shadow, top edge, rule, row radius, hover tint, label and copy colours; the FAQ panel was repointed at the identical values, so it renders byte-identically while sharing the vocabulary.
+- Fit proven with the real font metrics, not estimated: at 1151px — the narrowest viewport the desktop nav survives to — the centred panel clears the left edge by **62px**, and the tightest group title (*Hunting Property Prep*) has **16px** of slack on one line.
+
+### Hero typing — profiled, then optimized
+The animation was profiled before anything was changed, by running the shipped `indexJS.js` in a VM against a virtual clock that models the browser rendering lifecycle: timers fire when scheduled, but a DOM change only becomes visible on a frame boundary.
+
+**What the profile found**
+
+| | Before | After |
+|---|---|---|
+| Jitter the render step added to the cadence | **+24%** (60Hz), +31% under load | **0%** |
+| Wait from writing a character to painting it | **8.5ms** mean, 16.7ms worst | **0ms** |
+| Text nodes destroyed and rebuilt (3 min) | **873** | **18** |
+| `setTimeout` allocated (3 min) | **939** | **139** |
+| Two characters landing in one frame | structurally possible | structurally impossible |
+
+- **Root cause 1 — scheduling.** One `setTimeout` per character wrote straight into `.textContent`. A timer fires at an arbitrary point inside a frame, so each character waited out the rest of that frame, and under load two timers could fire in one frame with the second write erasing the first before it was ever shown. Now every commit happens inside `requestAnimationFrame`.
+- **Root cause 2 — the schedule asked for cadences the display cannot express.** Deadlines chain from *the frame that served the previous commit*, so only one rounding sits between any two characters. Scheduled and rendered cadence are now identical.
+- **Deliberately not frame-counted.** Counting frames measured very slightly smoother at 60Hz but was verified to run the phrase at **exactly double speed on a 120Hz panel** (40.5ms vs 81.8ms mean). The shipped version holds 80.6ms at 60Hz and 81.8ms at 120Hz.
+- **Root cause 3 — paint.** `.heroHeadline` borrows its compositing layer from the `[data-heroanimate]` entrance, and `indexJS.js` strips that attribute at **t=2200ms — roughly the sixteenth character of the first phrase**. From then on the typed line painted into the same layer as the hero photograph: **655k pixels and ten 256px tiles re-rastered per character, 8.0 megapixels/second of photograph resampling**, for a change that only ever touches the glyphs. `.heroTypedLine` now holds its own layer for the life of the loop, which also removes a layer teardown that currently lands mid-phrase.
+
+`heroDuetConfig` was not touched. The visible design, the phrases, and the delay ranges are exactly what they were.
+
+---
+
+## Completed — Sessions of 2026-08-02 → 2026-08-04
 
 ### Phase 2A verification — no code needed
 Confirmed the previous session's claim rather than trusting it. All 7 `.gs` modules present, 27-column `LEADS_HEADERS` intact, harness 64/64, deployment runbook complete.
@@ -143,7 +179,7 @@ Confirmed the previous session's claim rather than trusting it. All 7 `.gs` modu
 7. **Open the site in a real browser.** No session on this project has ever had one; everything to date is static analysis or simulation.
 8. **Location pages rows 7–11** — Jackson OH, Gallipolis OH, Waverly OH, Greenup KY, Louisa KY. Build to the shipped six, not a template: under 25% pairwise overlap, 1,100+ body words, content that breaks if the city name is swapped.
 9. **Decide West Union, OH and Flatwoods, KY** — advertised in the nav but absent from `seoPlan.md`'s 11-city table. Either they get pages or they come out of the nav.
-10. **Lighthouse / performance pass** — hero images are full-resolution `2048×1536` with no `srcset`; Google Fonts loads render-blocking.
+10. **Lighthouse / performance pass** — hero images are full-resolution `2048×1536` with no `srcset`; Google Fonts loads render-blocking. The hero typing animation was profiled and optimized on 2026-08-06 and is no longer a candidate; these two are.
 
 ---
 
@@ -176,7 +212,7 @@ Confirmed the previous session's claim rather than trusting it. All 7 `.gs` modu
 - **Domain decision** — blocker 1.
 - **Confirm the nav decision.** The nav brief spelled the resulting order out as four items (Services · Service Areas · FAQ · Insights), which excluded *Before & After*, so it was removed from the primary nav. It stays reachable from the homepage hero CTA ("See Transformations") and the footer Quick Links. **If a five-item nav was intended, restoring it is a one-line change.**
 - **One real end-to-end lead submission** from the live site.
-- **A browser pass** on phone / tablet / desktop.
+- **A browser pass** on phone / tablet / desktop. Two things from 2026-08-06 have only ever been reasoned about, never seen: the **redesigned services mega panel** (open it at 1440px and at 1151px), and the **hero typing** now that it commits on the frame boundary and holds its own compositing layer.
 - **Merge `phase2a-lead-capture` into `main`** when satisfied. Nothing has been pushed.
 - **Redeploy discipline:** always *Deploy → Manage deployments → edit → New version*. A **new deployment** mints a different URL and silently breaks all 23 forms.
 
