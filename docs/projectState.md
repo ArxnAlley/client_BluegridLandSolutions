@@ -3,7 +3,7 @@
 **Last updated:** 2026-08-07
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `phase2a-lead-capture` — branched from `main`, **not merged, nothing pushed**
-**Latest commit:** `5072562` — Process section: sequential step reveal
+**Latest commit:** `33358be` — Process section: sequential step reveal
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
 > Read this file first. `engineeringJournal.md` has the reasoning; `technicalDebt.md` has what is knowingly deferred.
