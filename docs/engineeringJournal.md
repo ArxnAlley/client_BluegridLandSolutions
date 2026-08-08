@@ -4,6 +4,58 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-07 — MERGE TO MAIN, PUSH, REPOSITORY HOUSEKEEPING, SESSION CLOSEOUT
+
+### Merge
+
+`phase2a-lead-capture` → `main`. Verified before touching anything: `main` was an exact ancestor of the feature branch, so the merge was a **fast-forward** and no conflict was possible. `main` was already identical to `origin/main` (0 ahead / 0 behind), so nothing needed pulling and no history was rewritten. The feature branch was 8 ahead of its own remote and 0 behind — the amends made earlier in the session were all on unpushed commits, so no published history had been rewritten either.
+
+`git merge --ff-only` was used deliberately: it refuses to do anything except a fast-forward, so it cannot silently produce a merge commit or a conflict.
+
+```
+8108f94..bc4021d   17 commits   42 files   52,050 insertions   0 deletions
+```
+
+The only rename is the Phase 2C `hero_after.JPG → after.JPG` casing fix. Confirmed with `--diff-filter=D` that the merge deleted nothing.
+
+Full validation re-run **on `main` after the merge** — 12/12 — before pushing. Then `main → origin/main` only; no feature branches, no force, and `phase2a-lead-capture` was not deleted.
+
+### The remote has moved
+
+The push succeeded but GitHub answered:
+
+```
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/ArxnAlley/client_BluegridLandSolutions.git
+```
+
+`origin` still points at the old URL and pushes work **via redirect only** — which stops working if anyone ever creates a new repository under the old name. Updating it was requested, then superseded by the housekeeping task before it ran. Still outstanding; recorded under *Waiting on Aron*.
+
+### Repository housekeeping — the GBP asset decision
+
+Two related decisions, both the owner's:
+
+**`graphics/images/GBP_ForestryMulchingService.png` deleted.** Verified it had genuinely been tracked (`git ls-files --error-unmatch`), and found it entered the repository in `235a4a3` — swept in by a broad `git add -A` in the mega-menu commit rather than added deliberately. That is worth recording as a lesson: `add -A` put 2.6MB into the repository for a file the site never loaded. Verified zero references to it across the whole working tree and at `HEAD` before staging the deletion.
+
+**`graphics/GBP - Services/` is intentionally local and now ignored.** It holds Google Business Profile marketing collateral, not website assets. Added the repository's **first** `.gitignore` — a no-build static site has no dependency or artifact directories to exclude, so the file carries exactly one rule and a comment explaining why. Deliberately no speculative boilerplate (`node_modules`, `dist`, …): nothing here produces any of it.
+
+Verified after: `git check-ignore` traces the file to `.gitignore:18`, `git ls-files` returns nothing for the folder, and the folder and its contents are untouched on disk.
+
+Commit `9237e53`, pushed.
+
+### Closeout
+
+All three project docs rewritten against the repository rather than carried forward. `projectState.md` in particular had gone stale in a way that would have actively misled a cold session — it still read *"Branch: phase2a-lead-capture — not merged, nothing pushed"* after the merge and push had happened.
+
+Two pieces of next-session work were specified and recorded as **planned, not implemented**: an *Our Company* mega menu, and a two-phase refactor of the process animation. Both were measured or located at closeout so the next session starts with numbers rather than a survey:
+
+- **Header capacity for a fifth nav item.** Measured from the real font metrics: `Our Company` adds **149px** (156px with its gap). The compact header goes 988px → **1131px**. At the current 1150px switch that leaves **+20px** — it fits, but the breakpoint was tuned to hold ~45px so the wider `'Segoe UI'` fallback could not wrap the bar before Inter loads. Recorded the expectation that the switch will need to move to roughly 1200px.
+- **Process clipping report.** Located the suspect band (**1081–1280px**, where the horizontal layout applies) and the mechanism (`html { overflow-x: hidden }` clips rather than scrolls, which matches "disappears offscreen" instead of producing a scrollbar). Measured the pressure point: the longest unbreakable uppercase title word is **"MAINTENANCE" at 143px** against a **147px** text column at 1081px — 4px of clearance, with a wider fallback face behind it.
+
+  **Recorded honestly that the arithmetic does not reproduce the reported defect.** By calculation the board fits at every width in the band, so the model is missing something real. The handoff says to reproduce it in a browser before changing layout, rather than letting the next session act on either my numbers or the report alone.
+
+---
+
 ## 2026-08-07 — MEGA MENU DESIGN SYSTEM: SERVICE AREAS + FAQ
 
 ### Brief

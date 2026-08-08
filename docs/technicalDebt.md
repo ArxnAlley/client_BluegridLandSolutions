@@ -70,10 +70,6 @@ That violates `seoPlan.md`'s own rule ("No cross-page duplicate questions") and 
 **Fix: decide which page owns it.** The permitting answer is service-agnostic, so the homepage or the new FAQ hub is the better home; `landClearing.html` would then drop the question and link across. Not done at closeout because it changes rendered content and schema on two pages and deserves a deliberate call rather than a rushed one.
 Sitewide totals for reference: **103 rendered FAQ questions, 102 unique.**
 
-### 10b. ~~The FAQ and Service Areas mega panels have not had the same treatment~~ — RESOLVED 2026-08-07
-Raised on 2026-08-06, when the brief covered the services panel only: the other two kept flat lists while services had a featured band and labelled groups, and whether that read as hierarchy or as inconsistency needed a decision.
-The decision was inconsistency. Both were rebuilt on the shared shell — same panel, same featured card, same row primitive, same group heading — with internals suited to their own content. Reasoning in `engineeringJournal.md`, 2026-08-07. See also the Resolved table.
-
 ### 10c. The hero typed line's `text-shadow` is the remaining per-character paint cost
 `text-shadow: 0 3px 24px rgba(0, 0, 0, 0.55)` on `.heroTypedText` means every keystroke re-rasters the whole string with a 24px blur: a **926×125px** rect at 1440px, ~115k pixels, roughly twelve times a second while a phrase types.
 The 2026-08-06 pass removed everything around it — the write now lands on a frame boundary, and `.heroTypedLine` holds its own compositing layer so the hero photograph underneath is no longer resampled (**8.0 megapixels/second** saved). The blur itself is irreducible without changing how the hero looks, and the brief said not to.
@@ -83,7 +79,10 @@ The 2026-08-06 pass removed everything around it — the write now lands on a fr
 `will-change: transform` is set permanently, not toggled, because the typing loop never ends. Costs one layer of roughly 926×125px — well under a megabyte, and zeroed under `prefers-reduced-motion` where nothing types.
 One consequence worth knowing before someone "fixes" it: text in a promoted layer gets grayscale rather than subpixel antialiasing. **The line was already promoted for the first 2.2 seconds** via the `[data-heroanimate]` entrance, so this makes the rendering consistent rather than introducing something new — and at 41–74px display type the difference is not expected to be visible. Unverified, like everything else in item 4.
 
-### 10e. The process section's visual was built from a description, not from an existing design
+### 10e. ~~The process section's visual was built from a description~~ — the design is now APPROVED
+Kept as a pointer, not as debt: the floating dark rectangle, five steps, four arrowheads and CTA-below were confirmed by Aron on 2026-08-07 and **must not be redesigned.** What changes next session is the *animation behaviour only* — see the planned work in `projectState.md`. Original note follows.
+
+### 10e-context. How that visual came to exist
 The 2026-08-07 brief framed the work as animation-only on top of an established visual — a centred free-floating dark rectangle, arrowheads between steps, no connecting line, CTA below. **That visual did not exist in this repository.** What shipped was a white section with a horizontal gradient rule and no arrowheads, and no branch, stash, commit, or other client site under `ClientSites/` had the described version.
 It was therefore built to the description rather than matched to a reference. Everything the brief specified is present, but proportions, board darkness, and arrow weight are this build's interpretation.
 **Fix: one look in a browser.** If it does not match what was pictured, the visual lives entirely in `.processBoard` / `.processArrow` and can be retuned without touching the sequencer.
@@ -91,6 +90,17 @@ It was therefore built to the description rather than matched to a reference. Ev
 ### 10f. Process CTA duplicates a destination already on the page
 `.processCta` adds `Get My Free Estimate` → `#estimateForm` below the board on all 8 pages. The service pages already carry that same anchor in the page hero, so those pages now offer it twice.
 That is normal for a long page — a CTA at the top and another after the explainer is standard — but it was added because the brief called for a CTA below the container, not because a gap was measured. Worth a glance when the section is reviewed; removing it is one line in the markup on 8 pages.
+
+### 10g. Process board clipping at narrower desktop widths — REPORTED, NOT REPRODUCED
+Aron reports that at narrower desktop/tablet widths the process rectangle extends or clamps past the viewport and **steps 4–5 disappear offscreen.**
+Established: the horizontal 5-across layout applies from **1081px up** (≤1080px the board goes vertical), so the suspect band is **1081–1280px**. `html { overflow-x: hidden }` is set sitewide, so overflow is **clipped rather than scrolled** — which matches "disappears offscreen" instead of producing a scrollbar. Measured pressure point: the longest unbreakable uppercase title word is **"MAINTENANCE" at 143px** against a **147px** text column at a 1081px viewport, and the Rokkitt fallback is Georgia, which is wider.
+**The arithmetic does not reproduce the defect** — by calculation the board fits at every width in the band, so the model is missing something real. **Reproduce it in a browser first**, at several widths between 1081 and 1280 and on both a 5-step page (homepage) and a 4-step page (any service page).
+**Fix the layout.** Do not hide the overflow and do not shrink everything into unreadability.
+
+### 10h. The Git remote URL is stale
+GitHub reports the repository has moved to `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, but `origin` still points at `https://github.com/ArxnAlley/BluegridLandSolutions.git`.
+Pushes currently succeed **via GitHub's redirect only.** That redirect stops working the moment anyone creates a new repository under the old name, at which point pushes would fail or — worse — land somewhere unintended.
+**Fix:** `git remote set-url origin https://github.com/ArxnAlley/client_BluegridLandSolutions.git`. Requested on 2026-08-07 and then superseded by other work before it ran.
 
 ### 11. `robots.txt` and `sitemap.xml` do not exist
 Deferred by instruction. Both depend on item 1. The sitemap needs **23 URLs**.
@@ -106,6 +116,7 @@ The section is built, video-ready, and ships a polished placeholder. Supplying i
 
 ### 15. Google Business Profile does not exist
 `googleBusinessUrl` is empty; the footer icon is hidden at runtime rather than shipping a dead `#` link. Local SEO is meaningfully weaker without a GBP.
+**Work has started outside the repository:** GBP service artwork is being staged locally in `graphics/GBP - Services/`, which is git-ignored by design (marketing collateral, not website assets). The playbook is `docs/phasePrompts/phase6GoogleBusinessProfile.md`.
 
 ### 16. Insights articles have no publication dates
 By instruction: no visible date, no `datePublished`, no `dateModified`, no `<time>`. Each `Article` schema carries a comment explaining the omission.
@@ -124,22 +135,22 @@ Service links have **three** path forms: root pages use `services/x.html`, pages
 Three separate one-shot generators have independently hit this — the second only after the link validator caught 63 broken references, the third (2026-08-06) caught before writing because its guard compared link sets first. Note the middle case is the one `projectState.md` used to describe as a two-variant rule; that has been corrected.
 It belongs in the Phase 13 generator rather than in each script's memory.
 
-### 19. Current service is not highlighted in the mega menu
-`servicePageArchitecture.md` (Shared Template Anatomy, row 1) specifies it. Not implemented — the header block is byte-identical across all 7 service pages, 6 location pages, and 8 Insights pages.
-Cosmetic, but a documented requirement the build does not meet. Best fix is a small `js/indexJS.js` routine marking the nav item matching `window.location.pathname` — one place, no duplication, covers every page type.
+### 19. Current page is not highlighted in the mega menus
+`servicePageArchitecture.md` (Shared Template Anatomy, row 1) specifies it. Not implemented — the header block is byte-identical across all 23 pages. Confirmed at closeout: no `aria-current` or current-state class exists in either `js/indexJS.js` or `css/styleIndex.css`.
+Now that all three panels share `.megaRow`, this is **one rule and one small routine for the whole system** rather than three implementations: mark the row whose `href` resolves to `window.location.pathname` and style `.megaRow[aria-current]`. Worth doing alongside the "Our Company" work, while the panels are already open.
 
-### 20. The 1150px header breakpoint now has spare headroom
-The nav restructure replaced *Before & After · Reviews · FAQ* with *FAQ · Insights*, cutting the primary nav from 577px to **450px**. The header now needs **1080px** rather than 1207px, so at 1151px there is **163px of slack** where the breakpoint was tuned for 45px.
-The switch was left at 1150px because moving it was outside the request, and 1150 was partly chosen for `'Segoe UI'` fallback margin. But the desktop nav would now survive comfortably to roughly **1105px**, so the hamburger appears earlier than necessary on 1100–1150px tablets.
-**The constraint still holds in the other direction:** adding a nav item or a long label consumes this headroom. Re-run the width sweep after any nav change.
+### 20. The 1150px header headroom is about to be spent
+The nav restructure cut the primary nav from 577px to **450px**, leaving **163px of slack** at 1151px where the breakpoint had been tuned for 45px.
+**That surplus is committed.** The planned "Our Company" nav item measures **+149px** (156px with its gap), taking the compact header from 988px to **1131px** and the slack at 1151px from 163px down to **+20px** — below the ~45px margin the breakpoint holds so the wider `'Segoe UI'` fallback cannot wrap the bar before Inter loads.
+**Expect the mobile switch to move to roughly 1200px** when that item ships. The header must never wrap: move the breakpoint rather than crushing the nav, and re-run `validateHeader` after any nav change.
 
 ### 21. Hero animation durations are duplicated between CSS and JS
 `heroDuetConfig.forwardSweepMs` (1400) and `reverseDissolveMs` (1800) in `js/indexJS.js` must stay in lockstep with `transition: --heroSweepPos 1400ms` and `transition: opacity 1800ms` in `css/styleIndex.css`. Nothing enforces the pairing.
 They agree today, and the loop now awaits the dissolve so a drift would show as a visible gap rather than a desync — but it would still be wrong. Cleanest fix: read the durations from CSS custom properties via `getComputedStyle`.
 
 ### 22. Orphan hero asset
-`graphics/images/after.JPG` (427KB) was committed in `fb15070` alongside the hero refresh and is referenced nowhere. It appears to be the previous `hero_after` image kept as a backup.
-Harmless but it ships to visitors' hosting. Left in place because it is the client's asset, not one this project created.
+`graphics/images/after.JPG` (427KB) was committed in `fb15070` alongside the hero refresh. **Re-verified at closeout: still referenced nowhere** in any HTML, CSS, or JS. It appears to be the previous `hero_after` image kept as a backup.
+Harmless but it ships to visitors' hosting. Left in place because it is the client's asset, not one this project created — the 2026-08-07 GBP cleanup deliberately removed only the asset Aron named.
 
 ### 23. `dashboardMetrics` tab is created empty
 `setupSpreadsheet()` creates the tab but writes no formulas. The formula set is specified in `docs/googleSheetArchitecture.md` but must be entered by hand. The dashboard SPA (Phase 2) computes its own numbers and does not read this tab, so nothing is blocked.
@@ -221,3 +232,7 @@ Recorded so future sessions do not "fix" them:
 | Mega panels jumped horizontally between nav items | 2026-08-07 | Positioning moved from `.navItem` to `.primaryNav`; all three land on one rectangle. Left clearance at 1151px went 62px → 214px. |
 | Mega menu flickered when the pointer crossed the 14px gap | 2026-08-07 | Transparent bridge on `.megaPanel::before`. Pre-existing since the panels were built. |
 | Services panel was the one exception to the path rule | 2026-08-07 | Bare siblings inside `services/` retired; two variants again sitewide. |
+| Feature branch not merged | 2026-08-07 | `phase2a-lead-capture` fast-forwarded into `main` (`8108f94..bc4021d`), 17 commits, 0 deletions, validated on `main` before pushing. Branch kept. |
+| Nothing pushed to origin | 2026-08-07 | `main` pushed; local and `origin/main` synchronized at `9237e53`. |
+| GBP service graphic committed by accident | 2026-08-07 | 2.6MB asset the site never loaded, swept in by a broad `git add -A` in `235a4a3`. Removed in `9237e53` after verifying zero references. |
+| GBP marketing assets appearing as untracked noise | 2026-08-07 | Repository's first `.gitignore`, one rule: `graphics/GBP - Services/`. Folder stays local and intact. |
