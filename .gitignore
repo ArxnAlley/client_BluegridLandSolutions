@@ -1,0 +1,18 @@
+# ============================================================
+# BLUEGRID LAND SOLUTIONS
+#
+# This is a no-build static site, so there are no dependency or
+# artifact directories to exclude. Everything below is deliberate.
+# ============================================================
+
+# ── Google Business Profile marketing assets ──
+#
+# Graphics produced for the GBP listing — service tiles, post
+# images, cover art. They are marketing collateral, not website
+# assets: nothing in index.html, the service pages, the location
+# pages, or the stylesheets references them, and they are often
+# large exports that would bloat the repository for no benefit.
+#
+# Kept locally so the owner has them to hand; not uploaded.
+
+graphics/GBP - Services/
