@@ -1,12 +1,12 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-07
+**Last updated:** 2026-08-09
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
-**Last content commit:** `9237e53` — chore: drop the GBP service graphic, ignore local GBP marketing assets
-**HEAD:** this session's docs-only compaction commit, sitting one above `9237e53`
+**Last content commit:** `e4579e6` — Our Company mega menu, company page, two-phase process animation
+**HEAD:** this session's docs commit, sitting one above `e4579e6`
 **Remote:** `origin` → `https://github.com/ArxnAlley/BluegridLandSolutions.git` — **stale, see Waiting on Aron**
-**Sync:** `main` is **1 ahead of** `origin/main` — the compaction commit was deliberately not pushed. Everything before it is pushed.
+**Sync:** `main` is **3 ahead of** `origin/main` — nothing from 2026-08-07's closeout or this session has been pushed.
 **Working tree:** clean
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
@@ -31,10 +31,14 @@
 | Header navigation polish + tokenization | Complete |
 | Navigation & content expansion (FAQ hub, Insights) | Complete |
 | Launch polish — services mega menu, hero typing performance | Complete |
-| Process section — dark board, arrowheads, sequenced reveal | Complete (animation behaviour changes next session) |
-| Mega menu design system — all three panels | Complete |
+| Process section — dark board, arrowheads, sequenced reveal | Complete |
+| Mega menu design system — all four panels | Complete |
 | Merge to `main` + push | Complete |
 | Repository / GBP asset housekeeping | Complete |
+| **Our Company nav item + mega panel** | **Complete** |
+| **Company page (`company/index.html`)** | **Complete** |
+| **Process animation — two-phase (reveal once, arrows loop)** | **Complete** |
+| **Process responsive handover + header breakpoints** | **Complete** |
 
 **The production domain is the only outright launch blocker.**
 
@@ -53,10 +57,11 @@ Take the BlueGrid Land Solutions website from "built but not launchable" to prod
 
 ## Current Repository Status
 
-**97 tracked files. 23 HTML pages.**
+**98 tracked files. 24 HTML pages.**
 
 ```
 index.html                  homepage
+company/index.html          company page — who/what/why/how/where + proof
 faq/index.html              FAQ hub — 28 questions, 6 categories
 services/          (7)      forestryMulching, landClearing, brushRemoval,
                             trailCutting, stormCleanup, propertyCleanup,
@@ -68,7 +73,7 @@ appsScript/        (7 .gs)  Code, routes, leads, validation, notifications,
                             utilities, config  (+ README.md, localTestRunner.js)
 css/                        styleIndex.css (homepage + shared systems),
                             stylePages.css (interior pages)
-js/indexJS.js               single shared script for all 23 pages
+js/indexJS.js               single shared script for all 24 pages
 .gitignore                  one rule — see GBP assets below
 docs/                       this file, engineeringJournal.md, technicalDebt.md,
                             seoPlan.md, servicePageArchitecture.md,
@@ -81,18 +86,21 @@ docs/                       this file, engineeringJournal.md, technicalDebt.md,
 - Static site, **no build step**, pure HTML/CSS/JS per `codeStyle.md`.
 - Shared chrome (header, mega panels, mobile drawer, estimate modal, footer, floating actions) is **duplicated into every page** and kept in sync by guarded one-shot Node scripts run from a scratchpad. **Those scripts are deliberately not checked in** — Phase 13 (`docs/phasePrompts/phase13ServiceAreaExpansion.md`) owns the real generator. Every one of them refuses to write unless its guards pass; that habit has caught three separate classes of defect and should be kept.
 - **Two path variants.** Root pages take the canonical href; every one-level folder takes `../` + href. The Services mega panel used to be the one exception (bare siblings inside `services/`) and that exception was retired on 2026-08-07, so all three panels spell paths the same way.
-- **Put any new page one level deep** so it reuses the proven one-level chrome — that is why the FAQ page is `faq/index.html` rather than `faq.html`.
-- **Line endings are mixed and deliberate.** `index.html`, `js/indexJS.js`, `css/styleIndex.css` and most `services/*.html` are CRLF; `css/stylePages.css`, `services/forestryMulching.html`, `locations/*`, `insights/*`, `faq/*` are LF. **Any scripted edit must detect and preserve per file.** Validators that match on `\n` must normalise first — that bug has bitten twice.
+- **Put any new page one level deep** so it reuses the proven one-level chrome — that is why the FAQ page is `faq/index.html` and the company page is `company/index.html`.
+- **Line endings are uniform, and the old note here was wrong.** Audited 2026-08-09: **all 26 source files are CRLF in the working tree and LF in the index.** `core.autocrlf` is `true`, so Git normalises on commit and converts on checkout — there is no mixture to preserve. The previous entry claimed `faq/*`, `locations/*`, `insights/*` and `css/stylePages.css` were LF on disk; they are not. Scripted edits should still detect and restore per file (every script here does — it is free and correct), and **validators that match on `\n` must still normalise first**, which remains a real bug that has bitten twice.
 - The Apps Script endpoint lives in **exactly one place** — `businessConfig.estimateEndpoint` in `js/indexJS.js` — with exactly one `fetch()` call site.
 
 ### Responsive breakpoints (current)
 
 | Width | What changes |
 |---|---|
-| **≤1280px** | Header compact band — token overrides only (`--headerPadX`, `--headerGap`, `--headerNavGap`, `--headerNavLinkPadX`, …). `--headerCtaPadX` is pointedly absent: the primary CTA keeps its padding at every width. |
-| **≤1150px** | **Mobile nav switch.** `.primaryNav`, `.phoneChip` and `.headerCta` hide; hamburger appears. Header-only on purpose. |
-| **≤1080px** | Section layouts — hero media band, services grid, **process board goes vertical**. |
+| **≤1360px** | Header compact band — token overrides only (`--headerPadX`, `--headerGap`, `--headerNavGap`, `--headerNavLinkPadX`, …). `--headerCtaPadX` is pointedly absent: the primary CTA keeps its padding at every width. **1360px is `.headerInner`'s own `max-width`** — above it the inner is capped so available width never changes; below it every pixel of viewport is a pixel of header. |
+| **≤1200px** | **Mobile nav switch.** `.primaryNav`, `.phoneChip` and `.headerCta` hide; hamburger appears. Header-only on purpose. |
+| **≤1167px** | **Process board goes vertical.** Derived, not chosen: the board is `max-width: 1120px` inside `.sectionInner`'s 1.5rem padding, so 1168px is the narrowest viewport at which it can render at its design width. Its own query — nothing else lives here. |
+| **≤1080px** | Section layouts — hero media band, services grid, intro, service-area and Facebook layouts. **No longer carries the process board.** |
 | ≤640px, ≤360px | Progressive tightening. |
+
+Header fit with the five-item nav, measured from the real font files: full spacing needs **1236px**, compact needs **1131px**. Tightest desktop width is **1201px** with **+70px** on Inter and **+11px** on a 6%-wider fallback face. Above 1360px the bar always clears by 124px.
 
 Every header dimension is a `:root` custom property overridden in the two header queries, and all of them animate on a shared `--headerTransition` (`0.35s var(--easePremium)`), zeroed under `prefers-reduced-motion`.
 
@@ -104,19 +112,19 @@ Every header dimension is a `:root` custom property overridden in the two header
 
 ---
 
-## Verification State — all green at `9237e53` (unchanged by the docs commit above it)
+## Verification State — all green at `e4579e6`
 
 | Check | Result |
 |---|---|
-| Internal links & assets | **23 pages, zero broken** |
-| Navigation / mobile drawer / FAQ hub / Insights | PASS on all 23 pages |
-| **Mega menu system** | PASS — 23 pages × 3 panels: one shell, every row on `.megaRow`, links resolving with the right relative form per depth, no duplicate ids, `aria-controls` intact, retired classes gone from CSS *and* markup, fit 1151–1600px, height spread **24%** against a 45% gate |
-| **Process sequence** | PASS — 8 pages: 13 beats in exact order, max 1 arrow bright, reset in one tick, loop restarts, 0 changes off-screen or tab-hidden, reduced motion registers nothing |
-| Header width sweep 900–1600px | PASS — zero wrapping; tightest desktop 1151px at **+163px** slack |
+| Internal links & assets | **24 pages, 2,696 links, zero broken** |
+| Navigation / mobile drawer / FAQ hub / Insights | PASS on all 24 pages |
+| **Mega menu system** | PASS — 24 pages × 4 panels: one shell, every row on `.megaRow`, links resolving with the right relative form per depth, no duplicate ids, `aria-controls` intact, fit 1201–1600px, height spread **24%** against a 45% gate |
+| **Process sequence** | PASS — 8 pages, two-phase: Phase A exact 13-beat order and **5 reveals in 120s with none repeated**, **0 un-reveals ever**, 0 step events after the reveal, 23 arrow passes in order, max 1 arrow bright, arrows-only on pause and resume, reduced motion registers nothing |
+| Header width sweep 900–1600px | PASS — zero wrapping; tightest desktop **1201px at +70px** slack, **+11px on the fallback face** |
 | Hero seam geometry (5 viewports) | PASS — copy ends exactly on the seam, 24px card overlap |
 | Hero before/after loop (10 min simulated) | PASS — **91 cycles alternating**, 6.16–7.01s cadence |
 | Hero typing profile (5 min simulated) | PASS — rendered cadence equals scheduled cadence exactly; **0 characters swallowed**, **0ms** write-to-paint |
-| Lead submission contract | PASS — one endpoint, one call site, payload matches schema on all 23 pages |
+| Lead submission contract | PASS — one endpoint, one call site, payload matches schema on all 24 pages |
 | Apps Script harness | **64/64**, `runSelfTest` 6/6 |
 | `node --check` (indexJS, localTestRunner) | clean |
 | CSS brace balance | balanced in both stylesheets |
@@ -154,7 +162,7 @@ Landing page + 7 articles, 550–900 body words each, worst pairwise overlap **0
 
 ### Mega menu design system — **reuse this, do not build another**
 
-All three panels — **Services**, **Service Areas**, **FAQ** — are built from one shared architecture. Each of these is declared **once**, and `validateMegaMenus` asserts it:
+All four panels — **Services**, **Service Areas**, **FAQ**, **Our Company** — are built from one shared architecture. Each of these is declared **once**, and `validateMegaMenus` asserts it:
 
 | Part | Role |
 |---|---|
@@ -171,15 +179,29 @@ Internals differ by content, and should:
 - **Services** — featured Forestry Mulching, then six services in three labelled groups of two (Clearing & Site Prep / Access & Habitat / Cleanup & Recovery).
 - **Service Areas** — featured *Where We Work*, then two regions whose 13 towns flow down two sub-columns each; a pin sits on each region heading, not on every town.
 - **FAQ** — featured *Questions We Get Every Week*, then the six highest-intent questions with one-sentence previews. The full library stays on the FAQ page.
+- **Our Company** — featured *Built for the Land. Run by the Owner.*, then six rows in two labelled groups (*The Company* / *How We Work*). 414px tall against its siblings' 392/392/486.
 
-**Any future mega menu — including "Our Company" — must be built on these parts.** Adding a fourth independent system is the specific thing this architecture exists to prevent.
+**Any future mega menu must be built on these parts.** Adding an independent system is the specific thing this architecture exists to prevent — and Our Company is the proof it works: it needed **zero JavaScript** (`indexJS.js` drives `.navItem.hasMegaMenu` generically) and **zero new CSS rules**. The company row classes joined the existing services selector groups — `.megaServicesList, .megaCompanyList` and so on — so there is one declaration under two names and the two panels cannot drift apart.
 
 ### Process section — current state
 A centred dark board (`.processBoard`, max-width 1120px) floating on the white section, steps inside it, **arrowheads only** between steps (no connecting rule), CTA below. Homepage runs 5 steps; the 7 service pages run 4. Nothing assumes a count — arrows are always steps − 1. Flex layout replaced a grid hardcoded to `repeat(5, 1fr)`, under which seven of the eight pages had been rendering with an empty fifth column.
 
-**Current animation behaviour:** step reveals → arrow flashes → arrow dims → next step; after the last step a 2.6s hold, then **the whole board resets and replays**, looping while on screen. 10.18s per cycle at five steps. Viewport-triggered by `IntersectionObserver` with asymmetric hysteresis (enters on meaningful arrival, exits only when fully off screen); a hidden tab pauses; returning replays from step one. Reduced motion shows everything immediately and registers no observer or timers.
+**Animation — two phases, and the states only move forward:**
 
-**This looping behaviour changes next session — see the planned work below.**
+```
+'idle'  ->  'revealing'  ->  'looping'
+```
+
+- **Phase A** runs **once per page view**, 6.08s at five steps: step reveals → arrow flashes → arrow dims → next step. The next step is revealed from *inside* its arrow's dim callback, so a step cannot appear before its arrow has finished. When it ends, every step is revealed and **stays revealed for the rest of the page view**.
+- **Phase B** is arrows only, forever: arrow 1 → 2 → 3 → 4 → pause → repeat, 4.04s per pass. It cannot touch a step because it never references one.
+
+There is no transition back to `'idle'`, which is what makes "Phase A runs once" a property of the machine rather than of its timing. `resetBoard()` is gone.
+
+Phase A is deliberately **uninterruptible** once started — seven seconds, once, and stopping it half way would either lose the steps already up or replay them. Only Phase B answers to visibility: it pauses off screen and on a hidden tab, and resumes without disturbing a step. Reduced motion shows everything immediately and registers no observer and no timers.
+
+**One trap worth knowing.** `.processArrow.isActive` and `.isResting` carry equal specificity, so an arrow holding both renders as whichever is declared later — `isResting`. Phase B re-flashes arrows that are already resting, so `flashArrow()` **must** remove `isResting` before adding `isActive`; it is the single owner of that exclusivity. Both files say so in comments.
+
+**Responsive:** horizontal five-across down to **1168px**, vertical below. That number is `1120px` (board `max-width`) + `2 × 1.5rem` (section padding) — the narrowest viewport at which the board can be the size it was designed at. See the note in `technicalDebt.md` on why the reported clipping never reproduced.
 
 ### Merge, push, and housekeeping
 `phase2a-lead-capture` merged into `main` as a clean **fast-forward** (`8108f94..bc4021d`), 17 commits, 42 files, 52,050 insertions, **zero deletions**; the single rename is the Phase 2C `hero_after.JPG → after.JPG` casing fix. Full validation re-run on `main` after the merge — 12/12. Pushed `main → origin/main`. The feature branch was **not deleted** and still exists at `bc4021d`, 8 ahead of `origin/phase2a-lead-capture`. Then the GBP housekeeping commit `9237e53`.
@@ -188,7 +210,7 @@ A centred dark board (`.processBoard`, max-width 1120px) floating on the white s
 
 ## Currently In Progress
 
-**Nothing.** Working tree clean, `main` synchronized with `origin/main`, all validators pass.
+**Nothing.** Working tree clean, all validators pass. `main` is 3 ahead of `origin/main` and nothing has been pushed.
 
 ---
 
@@ -196,9 +218,9 @@ A centred dark board (`.processBoard`, max-width 1120px) floating on the white s
 
 1. **Settle the production domain** — blocks 2–5. Canonicals say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`.
 2. **`robots.txt`** — does not exist.
-3. **`sitemap.xml`** — does not exist. Needs **23 URLs** today, 28 once location rows 7–11 ship.
-4. **Canonical URL finalization** — 23 pages, every one `TODO:`-marked so a single sweep catches them.
-5. **Open Graph finalization** — same 23 pages; `og:url` and `og:image` must become absolute.
+3. **`sitemap.xml`** — does not exist. Needs **24 URLs** today, 29 once location rows 7–11 ship.
+4. **Canonical URL finalization** — 24 pages, every one `TODO:`-marked so a single sweep catches them.
+5. **Open Graph finalization** — same 24 pages; `og:url` and `og:image` must become absolute.
 6. **One real end-to-end lead submission** from the live site. Never run by this project — that path writes a row and emails both the owner and the customer.
 7. **Visual browser QA.** No session has ever had a browser. Largest untested-by-eye items: the three mega panels side by side, the process section, the hero typing, the process board on tablet.
 8. **Search Console** — property verification and sitemap submission, after 1–3.
@@ -213,7 +235,7 @@ A centred dark board (`.processBoard`, max-width 1120px) floating on the white s
 
 | # | Blocker | Impact |
 |---|---|---|
-| 1 | **Production domain undecided** | The only outright launch blocker. Gates `robots.txt`, `sitemap.xml`, canonicals, OG URLs across 23 pages, and Search Console. |
+| 1 | **Production domain undecided** | The only outright launch blocker. Gates `robots.txt`, `sitemap.xml`, canonicals, OG URLs across 24 pages, and Search Console. |
 | 2 | `MODULE_API_KEY` state unknown | Cannot be checked from outside — `leads.list` returns `UNAUTHORIZED` whether the key is unset or merely not supplied. Blocks only a future dashboard, never the public form. |
 
 ---
@@ -229,7 +251,7 @@ A centred dark board (`.processBoard`, max-width 1120px) floating on the white s
 - **Confirm the Facebook page renders in the Page Plugin** → flip `facebookPageConfigured`.
 - **Google Business Profile** — does not exist; the footer icon is hidden at runtime.
 - **May we name Chase on the site?** Copy says "the owner" throughout.
-- **Verified company facts for the "Our Company" menu** — see planned work. Nothing about history, credentials, awards, certifications, years in business, or crew size may be written without Chase confirming it.
+- **Company facts worth adding, now that there is a page to hold them.** `company/index.html` ships using only claims that already appear elsewhere on the site. **Nothing about history, credentials, awards, certifications, years in business, or crew size is on it, and none may be added without Chase confirming it.** If he will confirm any of them, that page is where they belong.
 - **Copy review** of the 6 location pages and 7 Insights articles.
 
 ## Waiting on Aron
@@ -244,99 +266,21 @@ A centred dark board (`.processBoard`, max-width 1120px) floating on the white s
 
 ---
 
-## Planned Next Session — NOT IMPLEMENTED
+## Planned Next Session
 
-Both items below are specified and approved. **Neither exists in the repository.** Do not describe them as done.
+Nothing is specified and waiting. The two items that sat here — the *Our Company* menu and the two-phase process animation — both shipped on 2026-08-09 and are recorded under *Completed Work* above.
 
-### A. "Our Company" navigation
+The highest-value work available is in *Remaining Launch Work*, and item 1 gates most of it.
 
-Add a primary nav item — **"Our Company"**, not a generic "About". Target order:
+**Two smaller things worth knowing about:**
 
-```
-Services · Service Areas · FAQ · Our Company · Insights
-```
-
-**It must use the existing shared mega-menu system** (`.megaPanel` / `.megaFeature` / `.megaBody` / `.megaRow` / `.megaGroup`). Do not create a fourth panel architecture.
-
-Likely panel content — *About BlueGrid · Why Choose BlueGrid · How It Works · Areas We Serve · Our Work · Questions & Answers*. Several of these already have homes on the site and should link there rather than duplicating.
-
-**Use verified company information only.** Do not invent history, credentials, awards, certifications, years of experience, or crew size. What is not confirmed by Chase does not go on the page — see *Waiting on Client*.
-
-A dedicated company page may be created using the existing interior-page system (one level deep, so it inherits the proven one-level chrome).
-
-**Header impact — measured at closeout, from the real font metrics:**
-
-| | Header needs | |
-|---|---|---|
-| Full spacing (>1280px) today | 1080px | |
-| Full spacing with "Our Company" | **1236px** | fine — full spacing only applies above 1280px |
-| Compact band (≤1280px) today | 988px | |
-| Compact band with "Our Company" | **1131px** | |
-
-Slack at the current 1150px switch, compact tokens, with the new item:
-
-```
-  1280px   +149px  fits
-  1200px    +69px  fits
-  1151px    +20px  fits, but barely
-  1100px    -31px  WRAPS
-```
-
-It fits at 1151px with **20px** to spare. The breakpoint was originally tuned to leave ~45px so the wider `'Segoe UI'` fallback could not wrap the bar before Inter loads. **20px is below that margin — expect to move the mobile switch to roughly 1200px.** The header must never wrap; move the breakpoint rather than crushing the nav. Re-run `validateHeader` after any change.
-
-### B. Process animation refinement
-
-**The visual design is approved and must not be redesigned** — floating dark rectangle, five steps, four arrowheads, CTA below.
-
-**Current behaviour:** the whole sequence completes, holds 2.6s, then resets and replays the entire thing, looping forever.
-
-**Desired behaviour — two phases:**
-
-**Phase A — run once.** On the section's first meaningful entry into the viewport:
-
-```
-Step 1 → Arrow 1 flash/dim → Step 2 → Arrow 2 flash/dim → Step 3
-      → Arrow 3 flash/dim → Step 4 → Arrow 4 flash/dim → Step 5
-```
-
-After Step 5, **all five steps remain visible for the rest of the page view. They never reset or replay.**
-
-**Phase B — arrows only, continuously.**
-
-```
-Arrow 1 flash/dim → Arrow 2 → Arrow 3 → Arrow 4 → short pause → repeat
-```
-
-Only the arrows loop. Steps stay stationary and visible.
-
-`prefers-reduced-motion` must still show everything immediately with no sequence and no timers.
-
-Implementation lives in `js/indexJS.js` — `processSequenceConfig`, `initializeProcessSequences()`, `setupProcessBoard()`. The `resetBoard()` call and the `holdThenRestart()` beat are what change; the reveal and flash beats stay. `validateProcessSequence` in the scratchpad asserts the *current* looping order and **will need its expectations rewritten** to the two-phase model.
-
-### B2. Known responsive defect — process board clipping
-
-**Reported:** at narrower desktop/tablet widths the process rectangle extends or clamps past the viewport and **steps 4–5 disappear offscreen.**
-
-What is established:
-
-- The horizontal 5-across layout applies from **1081px up**; at ≤1080px the board goes vertical. So the suspect band is **1081–1280px**.
-- `html { overflow-x: hidden }` is set sitewide, so horizontal overflow is **clipped rather than scrolled** — which matches "disappear offscreen" rather than producing a scrollbar.
-- Measured pressure point: `.processStepTitle` is uppercase display face at 1.2rem. The longest unbreakable word on any page is **"MAINTENANCE" at 143px** (`Clear and Talk Maintenance`, a service page). At a 1081px viewport each step's text column is **147px** — **4px of clearance**, and the Rokkitt fallback is Georgia, which is wider.
-
-**Honest caveat:** the arithmetic above does **not** reproduce the reported clipping — by calculation the board fits at every width in the band. Something in the real render is not in the model. **Reproduce it in a browser first**, at several widths between 1081 and 1280 and on both a 5-step page (homepage) and a 4-step page (any service page), before changing layout.
-
-**Fix the layout.** Do not hide the overflow, and do not shrink everything into unreadability.
-
----
+- **Current-page highlighting in the mega menus** (`technicalDebt.md` item 19) was *not* done alongside the Our Company work, though the debt note suggested it. It was left out deliberately to keep this pass to its two stated objectives. It remains one rule and one small routine for all four panels.
+- **The company page is the natural home for anything Chase confirms** about the business — see *Waiting on Client*.
 
 # NEXT SESSION SHOULD START HERE
 
-1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward.
-2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main`, remote URL, working tree, page count. Expect `main`, clean, and **1 ahead of `origin/main`** — the unpushed commit is this closeout's docs-only compaction, whose parent `9237e53` is the last content commit. Push it or fold it in, as you prefer.
-3. **Implement "Our Company"** (planned work A) using the **existing shared mega-menu system**. Verified company facts only.
-4. **Recalculate header fit and move the breakpoint** after adding the fifth nav item. Measured slack at 1151px is only +20px against a ~45px design margin; plan on moving the mobile switch to about 1200px. The header must never wrap.
-5. **Refactor the process animation** (planned work B) into a one-time step reveal followed by a permanent arrow-only loop. Steps never reset once revealed.
-6. **Fix the responsive process clipping** (B2) — reproduce it in a browser first; fix the layout, not the symptom.
-7. **Run the established validation/fix loop** — `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `heroLoopHarness`, the Apps Script harness, `node --check`, CSS brace balance. `validateProcessSequence` and `validateHeader` both need their expectations updated as part of this work, not silently relaxed.
-
-Do not start the *Remaining Launch Work* items 2–5 until the domain is settled — they would all be done twice.
+1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. The 2026-08-09 session found two things in these docs that were simply wrong (the line-ending split, and the "MAINTENANCE at 143px against 147px" figure); assume there are others.
+2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main`, remote URL, working tree, page count. Expect `main`, clean, **24 pages**, and **3 ahead of `origin/main`**. Nothing has been pushed since `9237e53`.
+3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `heroLoopHarness`, `measureHeader`, `measureProcessFit`, plus the guarded assemblers. **Locate it before starting work, and re-run all nine suites to establish a baseline before changing anything.**
+4. **Aron's browser QA list** is at the end of `technicalDebt.md` item 4 and is the largest untested surface on the project. The 2026-08-09 additions — the Our Company panel, the company page, and the process handover at 1168px — are all things static analysis cannot judge.
+5. **Do not start *Remaining Launch Work* items 2–5 until the domain is settled** — they would all be done twice.

@@ -4,6 +4,106 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-09 — OUR COMPANY MEGA MENU, COMPANY PAGE, TWO-PHASE PROCESS ANIMATION
+
+### Brief
+
+Two objectives. Add an **Our Company** primary nav item built on the existing shared mega-menu system rather than a fourth dropdown architecture; and refine the process animation into a one-time step reveal followed by a permanent arrow-only loop, fixing the responsive clipping reported from browser QA along the way.
+
+### The header could not absorb a fifth item where it stood
+
+Measured from the real Inter/Rokkitt files, as every header decision on this project has been. `Our Company` costs **144px including its gap**, taking the compact header from 988px to **1131px** and the full-spacing header from 1080px to **1236px**.
+
+At the shipped 1150px switch that left **+20px** on Inter and **−22px** on the wider `'Segoe UI'` fallback — the bar would have wrapped on first paint for anyone whose cache was cold, which is the exact failure the breakpoint's ~45px design margin exists to prevent. The switch moved to **1200px**: +70px on Inter, +11px on the fallback. 1176px was the arithmetic minimum and left 4px, which is not a margin.
+
+**The more interesting finding was above the fold, not below it.** With five items the *full-spacing* band became the tightest point on the entire sweep: at 1281px the bar cleared by only 45px, so the widest band was the one under most pressure — the wrong shape for a responsive header. The compact band therefore moved from 1280px to **1360px**, which is `.headerInner`'s own `max-width`, and that is the whole argument for the number. Above 1360px the inner is capped, so available width never changes and full spacing always clears by 124px; below it every pixel of viewport is a pixel of header, which is exactly where compact tokens belong. Crossing 1360px downward still makes the bar roomier (+124px → +229px).
+
+No typography, phone chip, CTA padding or spacing token was touched to make any of this fit.
+
+### Our Company, on the existing system
+
+Four panels now, one architecture. The new panel is `class="megaPanel" id="companyMegaPanel"`, opened by a `.megaFeature`, with six rows in two labelled `.megaGroup`s, every row on `.megaRow`.
+
+**Zero JavaScript.** `indexJS.js` drives `.navItem.hasMegaMenu` generically, so the hover bridge, keyboard handling, `aria-expanded` toggling, outside-click and Escape all applied to the fourth panel the moment it existed.
+
+**Zero new CSS rules.** The company rows are the same icon-plus-text shape the services rows use, so rather than copying declarations the company classes **joined the existing selector groups** — `.megaServicesList, .megaCompanyList`, `.megaServiceLink, .megaCompanyLink`, and so on down to the reduced-motion block. One declaration, two names: the two panels cannot drift apart, and nothing renders differently. The two-column group grid joined `.megaAreasGroups`, which was already exactly that.
+
+Panel content points at whoever owns the answer, which is the rule the FAQ panel already follows: *About BlueGrid* and the featured card go to the new company page; *Why Choose BlueGrid*, *Our Work*, *How It Works* and *Areas We Serve* go to the homepage sections that already hold that material; *Questions & Answers* goes to the FAQ hub.
+
+Measured against its siblings: **414px** tall against services and areas at 392px and FAQ at 486px, so the family spread stays at 24% against a 45% gate.
+
+### A company page, because the alternative was a table of contents
+
+Six rows pointing at five homepage anchors would have made the menu a homepage index — and would have thrown a visitor reading a service page back to the homepage for every one of them. The site also had **no About page of any kind**, which for an owner-operated local business is a real gap rather than a stylistic one.
+
+`company/index.html` is the 24th page. Built from `faq/index.html` as the donor because it sits at the same depth, so every relative path in the shared chrome is already correct and was carried across **byte for byte** — the assembler asserts that, comparing the chrome outside the head and `<main>` against the donor and refusing to write on any difference. 865 words, and **it needed no new CSS**: `pageHero`, `breadcrumbNav`, `intentSection`, `benefitGrid`, `localServiceList`, `localFactGrid`, `relatedGrid` and `pageFormSection` already covered every section.
+
+Schema is `AboutPage` plus a breadcrumb. **Deliberately no second `LocalBusiness`** — the homepage carries the canonical one, and repeating it here would have two URLs competing to *be* the business rather than one describing it.
+
+**Every factual claim on the page already appears somewhere on the site.** Owner-operated and locally based, fully insured with a certificate before work starts, the New Holland C337 with a Fecon head, estimates within 24 hours, one-to-two-day typical projects, 200+ acres reclaimed, mulch stays on site. Nothing about history, years in business, crew size, certifications or awards was written, and the owner is still not named.
+
+### The process animation is a state machine now, not a loop that pauses
+
+The old sequencer completed, held 2.6s, called `resetBoard()`, and told the whole story again. The requirement is not a slower loop — it is that the steps are told **once** and then stop being animated at all.
+
+```
+'idle'  ->  'revealing'  ->  'looping'
+```
+
+Those states only move forward. There is no transition back to `'idle'`, which is what makes "Phase A runs once" a property of the machine rather than of its timing. `resetBoard()` is gone entirely, and the assembler guards that it did not survive.
+
+- **Phase A** — the reveal, 6.08s at five steps. The next step is still revealed from *inside* its arrow's dim callback, so a step cannot appear before its arrow has finished.
+- **Phase B** — arrows only, 4.04s per pass. It cannot touch a step because it never references one.
+
+**One defect this refactor created and the design caught before it shipped.** `.processArrow.isActive` and `.isResting` carry equal specificity, so an arrow holding both renders as whichever is declared later — `isResting`. Phase A never hit this because it flashed each arrow exactly once, from nothing. Phase B re-flashes arrows that are **already resting**, so every flash after the first would have been invisible. `flashArrow()` now removes `isResting` before adding `isActive` and is the single owner of that exclusivity; both the JS and the CSS say so.
+
+Phase A is deliberately **uninterruptible** once started: it is seven seconds, it happens once, and stopping it half way would mean either losing the steps already up or replaying them. Only the endless phase answers to visibility — Phase B pauses off screen and on a hidden tab, and resumes without disturbing a single step.
+
+### The reported clipping did not reproduce — and the number that explained it was wrong
+
+The handoff located a pressure point: **"MAINTENANCE" at 143px against a 147px step column at 1081px.** Re-measuring reproduced the 143px exactly, and then found the pairing was wrong. "MAINTENANCE" is on `services/brushRemoval.html`, a **four**-step board, whose column at 1081px is **197px**, not 147px. It has 54px of clearance. The widest word on the five-step homepage board is "COMPLETE" at 104px against 147px.
+
+Checked properly — every rendered title on all eight boards, uppercased as `text-transform` actually renders them, against its own board's column, at every width from 1081px to 1440px, with a 6% fallback-face inflation — **nothing overflows anywhere.** (My first pass measured the markup text rather than the uppercase render and understated every title; that is how a defect like this hides.)
+
+The box model agrees: `.processStep` is `flex: 1 1 0` with `min-width: 0`, `box-sizing: border-box` is global, and there is no `100vw` anywhere in the process chain. **The board provably cannot overflow its container at any width in the band.**
+
+So the fix is not a patch for a mechanism I cannot find. It is that **the horizontal row should never run compressed in the first place.** The board is `max-width: 1120px` inside `.sectionInner`'s 1.5rem padding, so **1120 + 48 = 1168px** is the narrowest viewport at which it can render at the width it was designed for. Below that it was being squeezed — 147px columns against a design value of 164px — and a squeezed five-across row is what browser QA was looking at.
+
+The handover moved from 1080px to **1167px**, and out of the shared 1080px query into its own, because 1080px also drives the hero, the services grid and several section layouts that had no reason to move with it. The vertical layout itself is unchanged. `.processStepTitle` also gained `overflow-wrap: break-word` — a guard for the next title someone writes, not a fix for a current overflow, and recorded as such.
+
+### Line endings: the documented split was stale
+
+`projectState.md` said `index.html`, `js/indexJS.js` and `css/styleIndex.css` were CRLF while `faq/*`, `locations/*`, `insights/*` and `css/stylePages.css` were LF, and that scripted edits must detect per file.
+
+Audited: **all 26 source files are CRLF in the working tree and LF in the index.** `core.autocrlf` is `true`, so Git normalises on commit and converts on checkout — there is no mixture to preserve. The detect-and-restore habit stays in every script here because it is free and correct, but the table was describing something that is not true.
+
+### Two defects in my own tooling
+
+- **The chrome-comparison guard read `data-confighref="phoneHref"` as a link.** An unanchored `href="..."` match caught the tail of the config attribute and reported nine broken links to files named `phoneHref` and `facebookUrl`. Anchored on whitespace.
+- **A CSS anchor matched twice.** `.megaServiceIcon\n{` appears both as its own rule and as the tail of `.megaServiceLink:focus-visible .megaServiceIcon\n{`. The guard refused to write rather than editing the wrong one.
+
+### Files touched
+
+- `js/indexJS.js` — the whole `PROCESS SEQUENCE` section rewritten: `processSequenceConfig`, `initializeProcessSequences()`, `setupProcessBoard()`
+- `css/styleIndex.css` — header breakpoints 1280→1360 and 1150→1200; a new 1167px process query with the vertical rules moved out of the 1080px query; company classes joined seven services selector groups; `overflow-wrap` on the step title; the arrow-state exclusivity note
+- **24 HTML pages** — the Our Company nav item and panel, the mobile drawer link, and the footer Quick Links entry, by one guarded assembler
+- `company/index.html` — new
+- `docs/` — all three
+
+### Validation
+
+Nine suites, all green: `validateSite` (24 pages, 2,696 links), `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `heroLoopHarness` (91 cycles), the Apps Script harness (64/64), plus `node --check` and CSS brace balance.
+
+`validateProcessSequence` was rebuilt against the two-phase model and is **stricter than what it replaced**: the old suite proved a loop closed, the new one proves the loop cannot reach the steps. Over two minutes of virtual time with the board entering and leaving the viewport repeatedly it asserts five reveals and no repeats, **zero un-reveals ever**, zero step events after the reveal, 23 arrow passes in order, and arrows-only on both pause and resume. The VM harness underneath was kept verbatim.
+
+`validateHeader` gained a **fallback-face sweep** — the criterion the new breakpoint was chosen on now has a test — and `measureHeader` now **reads the primary nav out of `index.html`** instead of carrying its own copy, which is what let the model describe a four-item bar while the site shipped five.
+
+### Left for a browser
+
+The Our Company panel next to its three siblings, and the shield-with-a-check featured icon, which was drawn blind like the pin and the question mark before it. The company page top to bottom. And the process section at 1168px and just below it, where the horizontal row now hands over to the vertical one — that boundary is the thing this session changed and cannot see.
+
+---
+
 ## 2026-08-07 — MERGE TO MAIN, PUSH, REPOSITORY HOUSEKEEPING, SESSION CLOSEOUT
 
 ### Merge

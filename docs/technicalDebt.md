@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-07
+**Last updated:** 2026-08-09
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -11,7 +11,7 @@ Known debt, deferred work, and intentional trade-offs. Items are ordered by laun
 ### 1. Production domain undecided
 **The only outright launch blocker.**
 Canonical tags say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. They disagree.
-Gates canonical URLs and `og:url` on **all 23 pages** (28 once the second location wave ships), plus `sitemap.xml` and `robots.txt` — neither exists. Settle it *before* writing the SEO files or the work is done twice. Every affected tag carries a `TODO:` comment so one sweep catches all of them.
+Gates canonical URLs and `og:url` on **all 24 pages** (29 once the second location wave ships), plus `sitemap.xml` and `robots.txt` — neither exists. Settle it *before* writing the SEO files or the work is done twice. Every affected tag carries a `TODO:` comment so one sweep catches all of them.
 
 ### 2. Badge artwork typo — "FORESTRV"
 The official badge (`graphics/logos/web/bluegridBadge400.png`, `bluegridBadge192.png`) reads **"FORESTRV MULCHING & LAND CLEARING"** on the bottom arc — a V where the Y should be. Verified 2026-08-02 against the actual PNG.
@@ -29,7 +29,16 @@ Before launch: open the homepage on a real phone and confirm the hero photo ends
 **Added 2026-08-06:** the redesigned **services mega panel** has been measured but never seen — open it at 1440px and again at 1151px, where the calculation leaves only 62px between the panel and the left edge. And confirm the **hero typing** reads as intended now that it commits on the frame boundary; the profiler proves the cadence is regular, not that it looks right.
 **Added 2026-08-07 (mega menus):** the two new featured icons — a map pin and a question mark — were drawn blind as SVG path data and have never been rendered. Check they read cleanly at 26px. Also confirm the muted region headings in Service Areas look deliberate rather than washed out, and that the hover bridge removed the flicker rather than making the panel sticky.
 
-**Added 2026-08-07:** the **process sequence** is the largest untested-by-eye item on the site. The simulation proves the order, the loop, and the viewport behaviour exactly; it says nothing about whether the dark board sits well on the white section, whether the arrow flash is bright enough to read as a flash without being gaudy, whether 10.18s per cycle feels deliberate or slow, or whether the vertical layout below 1080px is worth its height. Expect the timing constants in `processSequenceConfig` to need one tuning pass against a real screen.
+**Added 2026-08-07:** the **process sequence** is the largest untested-by-eye item on the site. The simulation proves the order and the viewport behaviour exactly; it says nothing about whether the dark board sits well on the white section, or whether the arrow flash is bright enough to read as a flash without being gaudy. Expect the timing constants in `processSequenceConfig` to need one tuning pass against a real screen.
+
+**Added 2026-08-09 — the current list, in priority order:**
+
+1. **The process handover at 1168px.** Load the homepage at 1200px, then 1170px, then 1160px. Above 1168px the board is horizontal at its full 1120px; below it, vertical. That boundary is what this session changed and is the direct answer to the clipping report — confirm the vertical layout is the better presentation there, and that nothing is cut off at any width.
+2. **Phase A then Phase B.** Scroll the process section in and watch once: five steps reveal, then only the arrows should ever move again. Specifically confirm **the arrows still flash during Phase B** — they are re-flashed from a resting state, and an equal-specificity CSS collision there would make every flash after the first invisible. The code removes `isResting` first to prevent exactly that, but it has never been seen.
+3. **Is 4.04s per arrow pass right?** Phase B runs forever in the corner of the page. Too fast reads as a fidget.
+4. **The Our Company panel** beside its three siblings at 1440px and again at 1201px, and the **shield-with-a-check featured icon**, drawn blind at 26px like the pin and question mark before it.
+5. **The company page** top to bottom — it reuses eight existing interior-page components in a combination none of them have been seen in.
+6. **The header at 1361px and 1360px**, where the compact band now starts, and at 1201px, the last desktop width.
 
 ### 5. No real lead has been created from the live site
 The endpoint is wired and verified with read-only probes plus a honeypot POST that writes nothing. **A genuine submission has never been run by this project** — that path writes a row and emails both the owner and the customer, so it was not triggered unilaterally.
@@ -51,7 +60,7 @@ Each cost FAQ instead answers with the factors that move the price on that count
 **Fix: get rough per-acre or per-day ranges from Chase.** The single highest-value upgrade available, and it costs one conversation.
 
 ### 8. Thin photo library
-13 images total for **23 pages**. Several are reused across service pages, location heroes, Insights heroes, and galleries.
+13 images total for **24 pages**. Several are reused across service pages, location heroes, Insights heroes, and galleries.
 Consequences already visible: two service pages (`stormCleanup`, `huntingPropertyPrep`) and **all 6 location pages** ship with no gallery, because no photo can be honestly captioned to a named town; and all 8 Insights pages use stand-in imagery (item 9).
 Needs a real photo drop — ideally before/after pairs per service, **tagged by where they were taken**.
 
@@ -80,7 +89,7 @@ The 2026-08-06 pass removed everything around it — the write now lands on a fr
 One consequence worth knowing before someone "fixes" it: text in a promoted layer gets grayscale rather than subpixel antialiasing. **The line was already promoted for the first 2.2 seconds** via the `[data-heroanimate]` entrance, so this makes the rendering consistent rather than introducing something new — and at 41–74px display type the difference is not expected to be visible. Unverified, like everything else in item 4.
 
 ### 10e. ~~The process section's visual was built from a description~~ — the design is now APPROVED
-Kept as a pointer, not as debt: the floating dark rectangle, five steps, four arrowheads and CTA-below were confirmed by Aron on 2026-08-07 and **must not be redesigned.** What changes next session is the *animation behaviour only* — see the planned work in `projectState.md`. Original note follows.
+Kept as a pointer, not as debt: the floating dark rectangle, five steps, four arrowheads and CTA-below were confirmed by Aron on 2026-08-07 and **must not be redesigned.** The animation behaviour was rewritten on 2026-08-09 (one-time reveal, then an arrow-only loop) without touching any of it. Original note follows.
 
 ### 10e-context. How that visual came to exist
 The 2026-08-07 brief framed the work as animation-only on top of an established visual — a centred free-floating dark rectangle, arrowheads between steps, no connecting line, CTA below. **That visual did not exist in this repository.** What shipped was a white section with a horizontal gradient rule and no arrowheads, and no branch, stash, commit, or other client site under `ClientSites/` had the described version.
@@ -91,11 +100,18 @@ It was therefore built to the description rather than matched to a reference. Ev
 `.processCta` adds `Get My Free Estimate` → `#estimateForm` below the board on all 8 pages. The service pages already carry that same anchor in the page hero, so those pages now offer it twice.
 That is normal for a long page — a CTA at the top and another after the explainer is standard — but it was added because the brief called for a CTA below the container, not because a gap was measured. Worth a glance when the section is reviewed; removing it is one line in the markup on 8 pages.
 
-### 10g. Process board clipping at narrower desktop widths — REPORTED, NOT REPRODUCED
-Aron reports that at narrower desktop/tablet widths the process rectangle extends or clamps past the viewport and **steps 4–5 disappear offscreen.**
-Established: the horizontal 5-across layout applies from **1081px up** (≤1080px the board goes vertical), so the suspect band is **1081–1280px**. `html { overflow-x: hidden }` is set sitewide, so overflow is **clipped rather than scrolled** — which matches "disappears offscreen" instead of producing a scrollbar. Measured pressure point: the longest unbreakable uppercase title word is **"MAINTENANCE" at 143px** against a **147px** text column at a 1081px viewport, and the Rokkitt fallback is Georgia, which is wider.
-**The arithmetic does not reproduce the defect** — by calculation the board fits at every width in the band, so the model is missing something real. **Reproduce it in a browser first**, at several widths between 1081 and 1280 and on both a 5-step page (homepage) and a 4-step page (any service page).
-**Fix the layout.** Do not hide the overflow and do not shrink everything into unreadability.
+### 10g. ~~Process board clipping at narrower desktop widths~~ — ADDRESSED 2026-08-09, mechanism never found
+Kept in full because the honest version of this is more useful than "fixed".
+
+**The 143px figure that framed this was a mis-pairing.** "MAINTENANCE" does measure 143px uppercase in Rokkitt — re-measuring reproduced it exactly — but it is on `services/brushRemoval.html`, a **four**-step board, whose column at 1081px is **197px**, not the 147px of a five-step board. It has 54px of clearance. The widest word on the five-step homepage board is "COMPLETE" at 104px against 147px.
+
+Checked properly — every rendered title on all eight boards, uppercased as `text-transform` renders them, against its own board's column, every width 1081–1440px, with a 6% fallback-face inflation — **nothing overflows anywhere.** The box model agrees: `.processStep` is `flex: 1 1 0` with `min-width: 0`, `box-sizing: border-box` is global, and there is no `100vw` in the process chain. The board **provably cannot** overflow its container at any width in the band.
+
+**So the reported symptom has no mechanism I can find, and it was not fixed by finding one.** What changed is that the horizontal row no longer runs compressed at all: the handover moved from 1080px to **1167px**, derived as `1120px` (board `max-width`) + `2 × 1.5rem` (section padding) — the narrowest viewport at which the board can render at its design width. Below 1168px it was being squeezed to 147px columns against a design value of 164px, and that band is where the report came from.
+
+`.processStepTitle` also gained `overflow-wrap: break-word`. **That is a guard for the next title someone writes, not a fix for a current overflow.**
+
+**If Aron still sees clipping after this, the mechanism is genuinely outside the box model** — browser zoom, a device pixel ratio effect, or something the static model cannot represent — and the next session should get a real browser on it rather than re-deriving the arithmetic, which is now known to be clean.
 
 ### 10h. The Git remote URL is stale
 GitHub reports the repository has moved to `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, but `origin` still points at `https://github.com/ArxnAlley/BluegridLandSolutions.git`.
@@ -103,10 +119,10 @@ Pushes currently succeed **via GitHub's redirect only.** That redirect stops wor
 **Fix:** `git remote set-url origin https://github.com/ArxnAlley/client_BluegridLandSolutions.git`. Requested on 2026-08-07 and then superseded by other work before it ran.
 
 ### 11. `robots.txt` and `sitemap.xml` do not exist
-Deferred by instruction. Both depend on item 1. The sitemap needs **23 URLs**.
+Deferred by instruction. Both depend on item 1. The sitemap needs **24 URLs**.
 
 ### 12. Open Graph not finalized
-`og:image` and `og:url` use relative or placeholder-domain paths across all **23 pages**. OG images must be absolute to render in Facebook/iMessage previews. TODO-marked in every page head.
+`og:image` and `og:url` use relative or placeholder-domain paths across all **24 pages**. OG images must be absolute to render in Facebook/iMessage previews. TODO-marked in every page head.
 
 ### 13. Chase owner introduction video missing
 The section is built, video-ready, and ships a polished placeholder. Supplying it is a two-field config change — `introVideoUrl` + `introVideoConfigured` — with YouTube, Vimeo, and self-hosted all supported. No code debt; purely awaiting the asset.
@@ -126,9 +142,9 @@ Google does not require dates, but they help freshness signals and readers use t
 
 ## Low Priority
 
-### 17. Shared chrome is duplicated across 23 pages
-Header, mobile drawer, estimate modal, footer, and floating actions are copied into every page — roughly 900 lines × 23. Inherent to a no-build static site.
-Mitigated: interior pages are generated by guarded assemblers, not hand-copied, and `applyBusinessConfig()` drives phone/email/social from one place at runtime. **A nav change now requires editing 23 files** — this session's two chrome passes each needed a scripted, guarded run to be safe. See *Consider a build step*.
+### 17. Shared chrome is duplicated across 24 pages
+Header, mobile drawer, estimate modal, footer, and floating actions are copied into every page — roughly 900 lines × 24. Inherent to a no-build static site.
+Mitigated: interior pages are generated by guarded assemblers, not hand-copied, and `applyBusinessConfig()` drives phone/email/social from one place at runtime. **A nav change now requires editing 24 files** — this session's two chrome passes each needed a scripted, guarded run to be safe. See *Consider a build step*.
 
 ### 18. Service-link path repointing has now been rediscovered three times
 Service links have **three** path forms: root pages use `services/x.html`, pages inside `services/` use the bare sibling `x.html`, and every other one-level folder uses `../services/x.html`. Chrome spliced out of a `services/*.html` page therefore carries the sibling form and must be repointed.
@@ -136,13 +152,21 @@ Three separate one-shot generators have independently hit this — the second on
 It belongs in the Phase 13 generator rather than in each script's memory.
 
 ### 19. Current page is not highlighted in the mega menus
-`servicePageArchitecture.md` (Shared Template Anatomy, row 1) specifies it. Not implemented — the header block is byte-identical across all 23 pages. Confirmed at closeout: no `aria-current` or current-state class exists in either `js/indexJS.js` or `css/styleIndex.css`.
-Now that all three panels share `.megaRow`, this is **one rule and one small routine for the whole system** rather than three implementations: mark the row whose `href` resolves to `window.location.pathname` and style `.megaRow[aria-current]`. Worth doing alongside the "Our Company" work, while the panels are already open.
+`servicePageArchitecture.md` (Shared Template Anatomy, row 1) specifies it. Not implemented — the header block is byte-identical across all 24 pages. Confirmed at closeout: no `aria-current` or current-state class exists in either `js/indexJS.js` or `css/styleIndex.css`.
+Now that all four panels share `.megaRow`, this is **one rule and one small routine for the whole system** rather than four implementations: mark the row whose `href` resolves to `window.location.pathname` and style `.megaRow[aria-current]`.
+**Not done alongside the Our Company work on 2026-08-09**, though this note suggested it — that pass was held to its two stated objectives. Still worth doing, and now covers four panels and 24 pages.
 
-### 20. The 1150px header headroom is about to be spent
-The nav restructure cut the primary nav from 577px to **450px**, leaving **163px of slack** at 1151px where the breakpoint had been tuned for 45px.
-**That surplus is committed.** The planned "Our Company" nav item measures **+149px** (156px with its gap), taking the compact header from 988px to **1131px** and the slack at 1151px from 163px down to **+20px** — below the ~45px margin the breakpoint holds so the wider `'Segoe UI'` fallback cannot wrap the bar before Inter loads.
-**Expect the mobile switch to move to roughly 1200px** when that item ships. The header must never wrap: move the breakpoint rather than crushing the nav, and re-run `validateHeader` after any nav change.
+### 20. ~~The 1150px header headroom is about to be spent~~ — SPENT AND RE-BUDGETED 2026-08-09
+"Our Company" cost **144px including its gap**. The compact header went 988px → **1131px** and full spacing 1080px → **1236px**.
+
+Both breakpoints moved, and neither typography, the phone chip, the CTA nor any spacing token was shrunk to make room:
+
+- **Mobile switch 1150px → 1200px.** At 1151px the five-item bar had +20px on Inter and **−22px on the `'Segoe UI'` fallback** — it would have wrapped on first paint for a cold cache. At 1201px it clears by **+70px / +11px**. 1176px was the arithmetic minimum and left 4px, which is not a margin.
+- **Compact band 1280px → 1360px.** With five items the *full-spacing* band became the tightest point on the whole sweep (+45px at 1281px), which is the wrong shape — the widest band should not be the one under pressure. 1360px is `.headerInner`'s own `max-width`: above it the inner is capped so full spacing always clears by 124px, below it every pixel of viewport is a pixel of header.
+
+`validateHeader` now also sweeps a **6%-inflated fallback face**, so the criterion the switch was chosen on has a test. `measureHeader` **reads the primary nav out of `index.html`** rather than carrying its own copy — the old copy is why the model went on describing a four-item bar.
+
+**Remaining headroom is real but finite: a sixth nav item would push the compact header past 1200px and force the switch up again.** Re-run `validateHeader` after any nav change.
 
 ### 21. Hero animation durations are duplicated between CSS and JS
 `heroDuetConfig.forwardSweepMs` (1400) and `reverseDissolveMs` (1800) in `js/indexJS.js` must stay in lockstep with `transition: --heroSweepPos 1400ms` and `transition: opacity 1800ms` in `css/styleIndex.css`. Nothing enforces the pairing.
@@ -180,7 +204,7 @@ Copy says "the owner" throughout because naming Chase publicly was never approve
 - **`locations/` hub page** — the six location pages have no index of their own; the homepage `#serviceAreas` block and the Forestry Mulching "Where We Work" section stand in. Specced as part of Phase 13.
 - **Insights growth** — the section is built to scale. A new article needs only a record in the content data; the uniqueness gate and the no-dates check already apply.
 - **Structured data expansion** — `LocalBusiness` omits a street address (service-area business); revisit if the client wants one public.
-- **Consider a build step** — the site is at 23 pages and item 17's duplication already costs scripted, guarded passes for any nav change. Phase 13 (`phasePrompts/phase13ServiceAreaExpansion.md`) specifies the generator; its stated trigger is "hand-maintenance of location pages exceeds ~12 files", and the shared chrome has arguably hit that first.
+- **Consider a build step** — the site is at 24 pages and item 17's duplication already costs scripted, guarded passes for any nav change. Phase 13 (`phasePrompts/phase13ServiceAreaExpansion.md`) specifies the generator; its stated trigger is "hand-maintenance of location pages exceeds ~12 files", and the shared chrome has arguably hit that first.
 
 ---
 
@@ -201,7 +225,7 @@ Recorded so future sessions do not "fix" them:
 - **The FAQ hub shares no questions with the rest of the site.** Deliberate and enforced by a check. The site had 75 FAQs; the hub took the 28 that were left rather than competing with the service pages.
 - **Mobile navigation does not render the mega menu.** Deliberate and instructed — a mega menu inside a full-screen drawer is worse than a short list.
 - **The page assemblers are not in the repo.** New pages were generated once from guarded splices plus content data, then committed as plain static HTML. Phase 13 builds the real generator; shipping a half-generator now would leave two competing sources of truth.
-- **Mixed line endings across files.** Not worth a normalising commit that would touch every file and destroy `git blame`. Scripted edits detect and preserve per file.
+- **CRLF working tree, LF index.** `core.autocrlf` is `true`, so Git normalises on commit and converts on checkout. Audited 2026-08-09: all 26 source files are CRLF on disk and LF in the index — **there is no mixture**, and the older note claiming some files were LF on disk was wrong. Nothing to fix; scripted edits detect and restore per file anyway.
 
 ---
 
@@ -236,3 +260,8 @@ Recorded so future sessions do not "fix" them:
 | Nothing pushed to origin | 2026-08-07 | `main` pushed; local and `origin/main` synchronized at `9237e53`. |
 | GBP service graphic committed by accident | 2026-08-07 | 2.6MB asset the site never loaded, swept in by a broad `git add -A` in `235a4a3`. Removed in `9237e53` after verifying zero references. |
 | GBP marketing assets appearing as untracked noise | 2026-08-07 | Repository's first `.gitignore`, one rule: `graphics/GBP - Services/`. Folder stays local and intact. |
+| Process sequence reset and replayed the whole board forever | 2026-08-09 | Two phases as explicit forward-only states. `resetBoard()` deleted; the assembler guards it did not survive. Verified over 120s of virtual time: 5 reveals, none repeated, **0 un-reveals**, 0 step events after the reveal. |
+| Site had no About page of any kind | 2026-08-09 | `company/index.html`, 24th page, built from the `faq/` donor with chrome carried byte for byte. 865 words, **zero new CSS**, `AboutPage` schema, verified claims only. |
+| Fifth nav item did not fit the header | 2026-08-09 | Switch 1150→1200px, compact band 1280→1360px. Nothing shrunk. See item 20. |
+| The header model carried its own copy of the nav | 2026-08-09 | `measureHeader` reads `index.html`. It had been describing a four-item bar. |
+| Mega-menu row rules were services-branded | 2026-08-09 | Company classes joined the existing selector groups rather than copying declarations — one block, two names, so the panels cannot drift. |
