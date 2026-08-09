@@ -56,7 +56,7 @@
 
     /* ── Header layout ──
        The header morphs through three states: full desktop, compact
-       desktop (≤1280px), and mobile (≤1150px). Every dimension that
+       desktop (≤1360px), and mobile (≤1200px). Every dimension that
        differs between them lives here and is overridden in those two
        media queries; the header rules themselves only ever read these,
        so retuning the spacing is one edit in one place rather than a
@@ -1525,7 +1525,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
-.megaServicesList
+.megaServicesList,
+.megaCompanyList
 {
 
     display: flex;
@@ -1543,9 +1544,13 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 }
 
 /* Everything a row does — padding, radius, hover tint, leading rule —
-   comes from .megaRow. A service row adds only its icon column. */
+   comes from .megaRow. A service row adds only its icon column, and the
+   Our Company rows are the same shape — so they join these selector
+   groups rather than restating them. One declaration, two names: the
+   two panels cannot drift apart, and nothing renders differently. */
 
-.megaServiceLink
+.megaServiceLink,
+.megaCompanyLink
 {
 
     display: flex;
@@ -1556,7 +1561,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
-.megaServiceIcon
+.megaServiceIcon,
+.megaCompanyIcon
 {
 
     flex-shrink: 0;
@@ -1576,14 +1582,17 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 }
 
 .megaServiceLink:hover .megaServiceIcon,
-.megaServiceLink:focus-visible .megaServiceIcon
+.megaServiceLink:focus-visible .megaServiceIcon,
+.megaCompanyLink:hover .megaCompanyIcon,
+.megaCompanyLink:focus-visible .megaCompanyIcon
 {
 
     opacity: 1;
 
 }
 
-.megaServiceText
+.megaServiceText,
+.megaCompanyText
 {
 
     display: flex;
@@ -1594,7 +1603,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
-.megaServiceText strong
+.megaServiceText strong,
+.megaCompanyText strong
 {
 
     font-size: 0.9rem;
@@ -1607,7 +1617,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
-.megaServiceText small
+.megaServiceText small,
+.megaCompanyText small
 {
 
     font-size: 0.76rem;
@@ -1625,7 +1636,8 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
    themselves while still reading top-to-bottom, which a row-flowed
    grid does not. */
 
-.megaAreasGroups
+.megaAreasGroups,
+.megaCompanyGroups
 {
 
     display: grid;
@@ -4792,6 +4804,13 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 .processStepTitle
 {
 
+    /* The step column is narrow by design and the face is uppercase
+       display, so a long word is the one thing that could reach past
+       the column. .processStep is min-width: 0, meaning it would spill
+       rather than widen the board — this breaks it instead. */
+
+    overflow-wrap: break-word;
+
     margin: 0 0 0.4rem;
 
     font-family: var(--fontDisplay);
@@ -4925,7 +4944,14 @@ html.jsEnabled .processArrow
 }
 
 /* Active: the flash. Brighter than resting, a restrained glow, and a
-   small scale — no bounce, no travel. */
+   small scale — no bounce, no travel.
+
+   isActive and isResting carry equal specificity, so an arrow holding
+   both would render as whichever is declared later — isResting. They
+   are mutually exclusive, and flashArrow() in indexJS.js is what
+   guarantees it: it removes isResting before adding isActive. Phase B
+   re-flashes arrows that are already resting, which is where a missing
+   removal would show up as arrows that never brighten. */
 
 html.jsEnabled .processArrow.isActive
 {
@@ -6554,21 +6580,28 @@ html.jsEnabled .processArrow.isResting
 /* ============================================================
    HEADER — COMPACT DESKTOP BAND
 
-   Measured against the real Inter/Rokkitt metrics, the full-spacing
-   header needs 1207px of viewport. Below that the nav links and the
-   phone number wrapped, because .headerInner is a flex row whose
-   items shrink before anything else gives.
+   Measured against the real Inter/Rokkitt metrics. This band tightens
+   spacing only — no font sizes, no CTA padding — and buys 105px,
+   because .headerInner is a flex row whose items would otherwise
+   shrink before anything else gives.
 
-   This band tightens spacing only — no font sizes, no CTA padding —
-   and buys 101px, bringing the requirement down to 1106px. It starts
-   at 1280px, comfortably above the 1207px wrap point, so the change
-   is never visible as a jump: crossing 1280 downward makes the bar
-   roomier, not tighter.
+   It starts at 1360px, which is .headerInner's own max-width, and
+   that is the whole argument for the number. Above 1360px the inner
+   is capped, so the available width never changes and full spacing
+   always clears by 124px. Below it every pixel of viewport is a pixel
+   of header, which is exactly where the compact tokens should begin.
 
-   Above 1280px nothing changes. Large-desktop spacing is untouched.
+   The band moved up from 1280px when "Our Company" made the nav five
+   items. Full spacing then needed 1236px, leaving only 45px at 1281px
+   — the tightest point on the whole sweep sitting in the *widest*
+   band, which is the wrong shape for a responsive header. Anchoring
+   the band to the inner width fixes that by construction.
+
+   Crossing 1360px downward still makes the bar roomier, not tighter:
+   +124px above, +229px below.
 ============================================================ */
 
-@media (max-width: 1280px)
+@media (max-width: 1360px)
 {
 
     /* Tokens only — every header rule already reads these, so the
@@ -6607,19 +6640,28 @@ html.jsEnabled .processArrow.isResting
 /* ============================================================
    HEADER — MOBILE NAV SWITCH
 
-   Even fully tightened the desktop bar needs 1106px, so a 1100px
-   viewport is still 6px short. The switch therefore moves from
-   1080px to 1150px, which is the first round number that leaves the
-   bar genuinely comfortable rather than merely fitting: at 1151px
-   there is 45px of slack, enough to absorb the wider 'Segoe UI'
-   fallback if Inter has not loaded yet.
+   Fully tightened, the five-item bar needs 1131px of viewport. The
+   switch sits at 1200px rather than at that number because the
+   breakpoint has always been tuned to hold ~45px of slack, which is
+   what absorbs the wider 'Segoe UI' fallback if Inter has not loaded
+   yet — a cold-cache visitor must never see the header wrap during a
+   font swap.
+
+   At 1201px, the last desktop width, the bar clears by 70px on Inter
+   and by 28px on the fallback face. 1176px would have been the
+   arithmetic minimum and leaves 4px on the fallback; 1200px is the
+   round number that keeps a real margin.
+
+   It moved up from 1150px when "Our Company" joined the nav: that
+   item costs 144px including its gap, and at 1151px it would have
+   left 20px on Inter and wrapped outright on the fallback.
 
    This is header-only on purpose. The 1080px query below also drives
    the hero, the services grid, and other section layouts; moving all
    of that would be a redesign of things nobody asked about.
 ============================================================ */
 
-@media (max-width: 1150px)
+@media (max-width: 1200px)
 {
 
     :root
@@ -6671,6 +6713,76 @@ html.jsEnabled .processArrow.isResting
     {
 
         display: flex;
+
+    }
+
+}
+
+/* ============================================================
+   PROCESS BOARD — HORIZONTAL ROW GIVES WAY
+
+   1167px is derived, not chosen: the board is max-width 1120px and
+   sits inside .sectionInner's 1.5rem padding, so 1120 + 48 = 1168px
+   is the narrowest viewport at which it can still render at the width
+   it was designed for. Below that the five-across row is running
+   compressed — at 1081px each step column is 147px against a design
+   value of 164px — and a compressed row is what the browser QA
+   reported as steps running past the edge of the board.
+
+   So the horizontal presentation is kept for exactly as long as it
+   genuinely fits, and hands over the moment it does not. Above
+   1168px every column is at its full design width on every board;
+   below it the vertical layout takes the whole story.
+
+   It moved up from 1080px, and out of that shared query, because
+   1080px also drives the hero, the services grid and several section
+   layouts — none of which had any reason to move with it.
+
+   The vertical layout itself is unchanged. The old two-up grid broke
+   the story: the arrow at the end of a row pointed right, into the
+   edge of the board, rather than at the step that actually follows.
+   Stacked, the arrows rotate to point down and the progression stays
+   true at any step count.
+============================================================ */
+
+@media (max-width: 1167px)
+{
+
+    .processBoard
+    {
+
+        padding: 2rem 1.4rem;
+
+    }
+
+    .processSteps
+    {
+
+        flex-direction: column;
+
+        align-items: stretch;
+
+        gap: 1.1rem;
+
+    }
+
+    .processStep
+    {
+
+        flex: 0 0 auto;
+
+        max-width: 30rem;
+
+        margin: 0 auto;
+
+    }
+
+    .processArrow
+    {
+
+        --processArrowTurn: 90deg;
+
+        margin-top: 0;
 
     }
 
@@ -6862,53 +6974,6 @@ html.jsEnabled .processArrow.isResting
         grid-template-columns: 1fr;
 
         gap: 2.6rem;
-
-    }
-
-    /* ── Process goes vertical here ──
-       The old two-up grid broke the story: the arrow at the end of a
-       row pointed right, into the edge of the board, rather than at the
-       step that actually follows. Stacked, the arrows rotate to point
-       down and the progression stays true at any step count.
-
-       1080px is where this design already gave up on the horizontal
-       row, so the switch is not moving — only what it switches to. */
-
-    .processBoard
-    {
-
-        padding: 2rem 1.4rem;
-
-    }
-
-    .processSteps
-    {
-
-        flex-direction: column;
-
-        align-items: stretch;
-
-        gap: 1.1rem;
-
-    }
-
-    .processStep
-    {
-
-        flex: 0 0 auto;
-
-        max-width: 30rem;
-
-        margin: 0 auto;
-
-    }
-
-    .processArrow
-    {
-
-        --processArrowTurn: 90deg;
-
-        margin-top: 0;
 
     }
 
@@ -7574,6 +7639,7 @@ html.jsEnabled .processArrow.isResting
     .megaRow,
     .megaRow::before,
     .megaServiceIcon,
+    .megaCompanyIcon,
     .megaAreaLink,
     .navChevron
     {

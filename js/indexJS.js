@@ -1548,26 +1548,42 @@ function initializeHeroDuet()
 /* ============================================================
    PROCESS SEQUENCE  (reusable Nulo Studio system)
 
-   Walks a visitor through a process board one step at a time:
+   Walks a visitor through a process board once, then keeps the
+   movement alive without ever telling the story a second time:
 
-       step reveals -> arrow flashes -> arrow dims -> next step
+       PHASE A   step reveals -> arrow flashes -> arrow dims -> next
+                 step, until every step is up.  Runs ONCE per page
+                 view.
 
-   and once the last step is up, holds the finished picture, resets,
-   and tells it again.
+       PHASE B   arrow 1 -> arrow 2 -> arrow 3 -> arrow 4 -> pause ->
+                 repeat.  Arrows only, forever.
 
-   Drives any element carrying data-processsequence. Step count is
-   read from the DOM rather than configured — the homepage board runs
-   five steps and the service pages four, and the arrows are simply
-   however many sit between them.
+   The two phases are separate states rather than one long repeating
+   animation, because the requirement is not "loop the whole thing
+   slowly" — it is that the steps are told once and then stop being
+   animated at all. Nothing in Phase B touches a step, so a revealed
+   board cannot reset, fade, translate back, or replay its entrance.
+
+       'idle'  ->  'revealing'  ->  'looping'
+
+   Those states only ever move forward. Re-entering the viewport can
+   start the reveal, and can pause or resume the arrow loop, but there
+   is no transition back to 'idle' — which is what makes "Phase A runs
+   once" a property of the machine rather than of its timing.
+
+   Drives any element carrying data-processsequence. Step count is read
+   from the DOM rather than configured — the homepage board runs five
+   steps and the service pages four, and the arrows are simply however
+   many sit between them.
 
    Cost is deliberately tiny: the only DOM work is a class toggle on a
-   single element per beat, roughly a dozen per ten-second cycle, and
-   every property those classes touch is opacity, transform or filter.
-   No element is ever created, removed, measured or re-written, so the
-   board cannot trigger layout while it plays. setTimeout is the right
-   tool here for the same reason requestAnimationFrame was the right
-   one for the hero: this schedules a handful of state changes that CSS
-   then animates, rather than committing a frame of its own.
+   single element per beat, and every property those classes touch is
+   opacity, transform or filter. No element is ever created, removed,
+   measured or re-written, so the board cannot trigger layout while it
+   plays. setTimeout is the right tool here for the same reason
+   requestAnimationFrame was the right one for the hero: this schedules
+   a handful of state changes that CSS then animates, rather than
+   committing a frame of its own.
 ============================================================ */
 
 const processSequenceConfig = {
@@ -1583,19 +1599,26 @@ const processSequenceConfig = {
 
     arrowFadeMs: 240,
 
-    completedHoldMs: 2600,
+    /* A beat before step one, so the reveal reads as beginning rather
+       than as already in progress when the board arrives. */
 
-    /* Long enough for everything to fade out together before step one
-       comes back, so the reset reads as a breath rather than a cut. */
+    startDelayMs: 260,
 
-    resetFadeMs: 380,
+    /* The finished picture holds before the arrows pick the movement
+       back up — long enough that Phase B reads as a separate, quieter
+       idea rather than as the tail of the reveal. */
 
-    restartGapMs: 260,
+    revealSettleMs: 1600,
 
-    /* Deliberately wide hysteresis: the sequence begins once the board
-       is meaningfully on screen, and only stops once it has left
-       completely. Scroll jitter around a single boundary therefore
-       cannot restart the story. */
+    /* Breath between passes of the arrow loop. Without it the loop
+       reads as a chase; with it, as a pulse. */
+
+    loopPauseMs: 1400,
+
+    /* Deliberately wide hysteresis: the reveal begins once the board is
+       meaningfully on screen, and the arrow loop only stops once the
+       board has left completely. Scroll jitter around a single boundary
+       therefore cannot start or stop anything. */
 
     enterRatio: 0.4
 
@@ -1615,9 +1638,9 @@ function initializeProcessSequences()
 
     }
 
-    /* Reduced motion never runs the sequence at all — the stylesheet
-       shows every step and every arrow in their finished state, so
-       there is nothing to drive and no observer worth registering. */
+    /* Reduced motion never runs either phase — the stylesheet shows
+       every step and every arrow in their finished state, so there is
+       nothing to drive and no observer worth registering. */
 
     if (prefersReducedMotion || !('IntersectionObserver' in window))
     {
@@ -1633,9 +1656,8 @@ function initializeProcessSequences()
 
     });
 
-    /* A backgrounded tab paints nothing, so letting the timers run on
-       would spend the story where nobody is watching and return the
-       visitor to the middle of it. */
+    /* A backgrounded tab paints nothing, so letting the arrow loop run
+       on would spend its timers where nobody is watching. */
 
     document.addEventListener(
         'visibilitychange',
@@ -1668,11 +1690,15 @@ function setupProcessBoard(board)
 
     }
 
-    let pendingTimerId = null;
+    /* 'idle' -> 'revealing' -> 'looping', and never backwards. */
 
-    let running = false;
+    let phase = 'idle';
+
+    let loopRunning = false;
 
     let inView = false;
+
+    let pendingTimerId = null;
 
     function after(delayMs, nextBeat)
     {
@@ -1705,28 +1731,44 @@ function setupProcessBoard(board)
 
     }
 
-    function resetBoard()
+    /* ── The arrow beat, shared by both phases ──
+
+       isActive and isResting are mutually exclusive, and this function
+       is the only thing that guarantees it. That matters: the two rules
+       carry equal specificity, so if an arrow ever held both, the one
+       declared later in the stylesheet would win and the flash would
+       not render. Phase B re-flashes arrows that are already resting,
+       which is exactly where that would have bitten. */
+
+    function flashArrow(arrow, whenFinished)
     {
 
-        steps.forEach(function (step)
-        {
+        arrow.classList.remove('isResting');
 
-            step.classList.remove('isRevealed');
+        arrow.classList.add('isActive');
 
-        });
+        after(
+            processSequenceConfig.arrowActiveMs,
+            function ()
+            {
 
-        arrows.forEach(function (arrow)
-        {
+                arrow.classList.remove('isActive');
 
-            arrow.classList.remove('isActive');
+                arrow.classList.add('isResting');
 
-            arrow.classList.remove('isResting');
+                after(processSequenceConfig.arrowFadeMs, whenFinished);
 
-        });
+            }
+        );
 
     }
 
-    /* ── The beats ── */
+    /* ── Phase A: the one-time reveal ── */
+
+    /* The arrow is movement into the next step, so the next step is
+       revealed from inside the arrow's own callback rather than
+       alongside it — a step cannot appear until its arrow has finished
+       flashing and dimmed. */
 
     function revealStep(index)
     {
@@ -1741,98 +1783,41 @@ function setupProcessBoard(board)
                 if (index >= steps.length - 1)
                 {
 
-                    holdThenRestart();
+                    finishReveal();
 
                     return;
 
                 }
 
-                flashArrow(index);
+                const arrow = arrows[index];
+
+                if (!arrow)
+                {
+
+                    revealStep(index + 1);
+
+                    return;
+
+                }
+
+                flashArrow(arrow, function ()
+                {
+
+                    revealStep(index + 1);
+
+                });
 
             }
         );
 
     }
 
-    /* The arrow is movement into the next step, so the next step is
-       revealed from inside this beat rather than alongside it — it
-       cannot appear until its arrow has finished flashing and dimmed. */
-
-    function flashArrow(index)
+    function startReveal()
     {
 
-        const arrow = arrows[index];
+        phase = 'revealing';
 
-        if (!arrow)
-        {
-
-            revealStep(index + 1);
-
-            return;
-
-        }
-
-        arrow.classList.add('isActive');
-
-        after(
-            processSequenceConfig.arrowActiveMs,
-            function ()
-            {
-
-                arrow.classList.remove('isActive');
-
-                arrow.classList.add('isResting');
-
-                after(
-                    processSequenceConfig.arrowFadeMs,
-                    function ()
-                    {
-
-                        revealStep(index + 1);
-
-                    }
-                );
-
-            }
-        );
-
-    }
-
-    function holdThenRestart()
-    {
-
-        after(
-            processSequenceConfig.completedHoldMs,
-            function ()
-            {
-
-                resetBoard();
-
-                after(
-                    processSequenceConfig.resetFadeMs + processSequenceConfig.restartGapMs,
-                    function ()
-                    {
-
-                        revealStep(0);
-
-                    }
-                );
-
-            }
-        );
-
-    }
-
-    /* ── Run state ── */
-
-    function start()
-    {
-
-        running = true;
-
-        resetBoard();
-
-        after(processSequenceConfig.restartGapMs, function ()
+        after(processSequenceConfig.startDelayMs, function ()
         {
 
             revealStep(0);
@@ -1841,23 +1826,78 @@ function setupProcessBoard(board)
 
     }
 
-    function stop()
+    /* ── The hand-off ──
+
+       Reached exactly once. Every step is revealed and every step stays
+       revealed from here to the end of the page view. */
+
+    function finishReveal()
     {
 
-        running = false;
+        phase = 'looping';
 
-        clearPending();
-
-        resetBoard();
+        after(processSequenceConfig.revealSettleMs, syncArrowLoop);
 
     }
 
-    function syncBoard()
+    /* ── Phase B: arrows only ── */
+
+    function runArrowPass(index)
     {
+
+        if (index >= arrows.length)
+        {
+
+            after(processSequenceConfig.loopPauseMs, function ()
+            {
+
+                runArrowPass(0);
+
+            });
+
+            return;
+
+        }
+
+        flashArrow(arrows[index], function ()
+        {
+
+            runArrowPass(index + 1);
+
+        });
+
+    }
+
+    /* Pausing leaves every arrow at rest rather than stranding one
+       mid-flash. Steps are not mentioned here, and that is the point. */
+
+    function restAllArrows()
+    {
+
+        arrows.forEach(function (arrow)
+        {
+
+            arrow.classList.remove('isActive');
+
+            arrow.classList.add('isResting');
+
+        });
+
+    }
+
+    function syncArrowLoop()
+    {
+
+        if (phase !== 'looping')
+        {
+
+            return;
+
+        }
 
         const shouldRun = inView && !document.hidden;
 
-        if (shouldRun === running)
+        if (shouldRun === loopRunning)
         {
 
             return;
@@ -1867,13 +1907,48 @@ function setupProcessBoard(board)
         if (shouldRun)
         {
 
-            start();
+            loopRunning = true;
+
+            runArrowPass(0);
 
             return;
 
         }
 
-        stop();
+        loopRunning = false;
+
+        clearPending();
+
+        restAllArrows();
+
+    }
+
+    /* ── Run state ── */
+
+    function syncBoard()
+    {
+
+        if (phase === 'idle')
+        {
+
+            if (inView && !document.hidden)
+            {
+
+                startReveal();
+
+            }
+
+            return;
+
+        }
+
+        /* Phase A is deliberately uninterruptible. It is the one-time
+           telling of the story and lasts about seven seconds; stopping
+           it half way would mean either losing the steps already up or
+           replaying them, and the brief forbids both. Only the endless
+           phase answers to visibility. */
+
+        syncArrowLoop();
 
     }
 
@@ -1908,11 +1983,11 @@ function setupProcessBoard(board)
             entries.forEach(function (entry)
             {
 
-                /* Asymmetric on purpose. Entering takes a meaningful
-                   arrival; leaving takes the board going completely off
+                /* Asymmetric on purpose. Arriving takes a meaningful
+                   entry; leaving takes the board going completely off
                    screen. One predicate for both would put start and
                    stop on the same boundary, and a visitor parked there
-                   would restart the story on every scroll tremor. */
+                   would flicker the arrow loop on every scroll tremor. */
 
                 if (!entry.isIntersecting)
                 {
