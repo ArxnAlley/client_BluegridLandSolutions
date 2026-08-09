@@ -119,7 +119,7 @@ Every header dimension is a `:root` custom property overridden in the two header
 | Internal links & assets | **24 pages, 2,696 links, zero broken** |
 | Navigation / mobile drawer / FAQ hub / Insights | PASS on all 24 pages |
 | **Mega menu system** | PASS — 24 pages × 4 panels: one shell, every row on `.megaRow`, links resolving with the right relative form per depth, no duplicate ids, `aria-controls` intact, fit 1201–1600px, height spread **24%** against a 45% gate |
-| **Process sequence** | PASS — 8 pages, two-phase: Phase A exact 13-beat order and **5 reveals in 120s with none repeated**, **0 un-reveals ever**, 0 step events after the reveal, 23 arrow passes in order, max 1 arrow bright, arrows-only on pause and resume, reduced motion registers nothing |
+| **Process sequence** | PASS — 8 pages, two-phase: Phase A exact 13-beat order, max 1 arrow bright, **5 reveals in 120s with none repeated**, **0 un-reveals ever**; Phase B **25 passes each filling 1 → 1+2 → 1+2+3 → 1+2+3+4**, peaking at all four, holding 1400ms, clearing on one tick, **0 step events throughout**, fresh pass at arrow 1 on resume; reduced motion registers nothing |
 | Header width sweep 900–1600px | PASS — zero wrapping; tightest desktop **1201px at +70px** slack, **+11px on the fallback face** |
 | Hero seam geometry (5 viewports) | PASS — copy ends exactly on the seam, 24px card overlap |
 | Hero before/after loop (10 min simulated) | PASS — **91 cycles alternating**, 6.16–7.01s cadence |
@@ -193,13 +193,15 @@ A centred dark board (`.processBoard`, max-width 1120px) floating on the white s
 ```
 
 - **Phase A** runs **once per page view**, 6.08s at five steps: step reveals → arrow flashes → arrow dims → next step. The next step is revealed from *inside* its arrow's dim callback, so a step cannot appear before its arrow has finished. When it ends, every step is revealed and **stays revealed for the rest of the page view**.
-- **Phase B** is arrows only, forever: arrow 1 → 2 → 3 → 4 → pause → repeat, 4.04s per pass. It cannot touch a step because it never references one.
+- **Phase B** is arrows only, forever, and the highlight **accumulates** rather than travelling: arrow 1 lights and stays lit, then 1+2, then 1+2+3, then all four; a **1400ms hold** with the row full; then all four clear on a single tick; then a 900ms pause and it begins again. **3.56s per pass.** It cannot touch a step because it never references one.
+
+  Accumulating rather than travelling is the point: the row fills and empties, which reads as the whole progression completing over and over, rather than as a single point chasing along it. Phase A is still a travelling flash — each arrow dims before the next step lands — so the two phases deliberately do not share a beat function.
 
 There is no transition back to `'idle'`, which is what makes "Phase A runs once" a property of the machine rather than of its timing. `resetBoard()` is gone.
 
 Phase A is deliberately **uninterruptible** once started — seven seconds, once, and stopping it half way would either lose the steps already up or replay them. Only Phase B answers to visibility: it pauses off screen and on a hidden tab, and resumes without disturbing a step. Reduced motion shows everything immediately and registers no observer and no timers.
 
-**One trap worth knowing.** `.processArrow.isActive` and `.isResting` carry equal specificity, so an arrow holding both renders as whichever is declared later — `isResting`. Phase B re-flashes arrows that are already resting, so `flashArrow()` **must** remove `isResting` before adding `isActive`; it is the single owner of that exclusivity. Both files say so in comments.
+**One trap worth knowing.** `.processArrow.isActive` and `.isResting` carry equal specificity, so an arrow holding both renders as whichever is declared later — `isResting`, meaning the arrow never appears to light at all. Exactly two functions touch those classes — `flashArrow()` for Phase A and `lightArrow()` for Phase B — and **both must remove one before adding the other**. Phase B lights arrows that are already resting, so a missing removal there would show up as a row that never brightens. Both files say so in comments, and the validator asserts the ordering in each function.
 
 **Responsive:** horizontal five-across down to **1168px**, vertical below. That number is `1120px` (board `max-width`) + `2 × 1.5rem` (section padding) — the narrowest viewport at which the board can be the size it was designed at. See the note in `technicalDebt.md` on why the reported clipping never reproduced.
 

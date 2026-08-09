@@ -1555,8 +1555,14 @@ function initializeHeroDuet()
                  step, until every step is up.  Runs ONCE per page
                  view.
 
-       PHASE B   arrow 1 -> arrow 2 -> arrow 3 -> arrow 4 -> pause ->
-                 repeat.  Arrows only, forever.
+       PHASE B   arrow 1 lights and stays lit, then 1+2, then 1+2+3,
+                 then all four; a hold, then all four fade together and
+                 it begins again.  Arrows only, forever.
+
+                 The highlight accumulates rather than travelling: the
+                 row fills up and empties, which reads as the whole
+                 progression completing over and over rather than as a
+                 single point chasing along it.
 
    The two phases are separate states rather than one long repeating
    animation, because the requirement is not "loop the whole thing
@@ -1610,10 +1616,21 @@ const processSequenceConfig = {
 
     revealSettleMs: 1600,
 
-    /* Breath between passes of the arrow loop. Without it the loop
-       reads as a chase; with it, as a pulse. */
+    /* Phase B, the cumulative sweep. Arrows light one after another
+       at loopStepMs and stay lit; once all four are up they hold for
+       loopHoldMs, then clear together and the row sits dark for
+       loopPauseMs before the next pass.
 
-    loopPauseMs: 1400,
+       The clear is the 260ms opacity transition already on
+       .processArrow, so loopPauseMs has to stay comfortably longer than
+       that — otherwise arrow one would start lighting again while the
+       previous pass was still fading out. */
+
+    loopStepMs: 420,
+
+    loopHoldMs: 1400,
+
+    loopPauseMs: 900,
 
     /* Deliberately wide hysteresis: the reveal begins once the board is
        meaningfully on screen, and the arrow loop only stops once the
@@ -1731,14 +1748,14 @@ function setupProcessBoard(board)
 
     }
 
-    /* ── The arrow beat, shared by both phases ──
+    /* ── Phase A's arrow beat: flash, then dim ──
 
-       isActive and isResting are mutually exclusive, and this function
-       is the only thing that guarantees it. That matters: the two rules
-       carry equal specificity, so if an arrow ever held both, the one
-       declared later in the stylesheet would win and the flash would
-       not render. Phase B re-flashes arrows that are already resting,
-       which is exactly where that would have bitten. */
+       isActive and isResting are mutually exclusive. The two rules
+       carry equal specificity, so an arrow holding both renders as
+       whichever is declared later — isResting — and would never appear
+       to light at all. This function and lightArrow() below are the
+       only two places that touch those classes, and both remove one
+       before adding the other. Nothing else may. */
 
     function flashArrow(arrow, whenFinished)
     {
@@ -1840,36 +1857,82 @@ function setupProcessBoard(board)
 
     }
 
-    /* ── Phase B: arrows only ── */
+    /* ── Phase B: the cumulative sweep ──
 
-    function runArrowPass(index)
+       Deliberately not built on flashArrow(): that beat dims an arrow
+       before moving on, and the whole point here is that nothing dims
+       until the row is full. Each arrow lights and stays lit. */
+
+    function lightArrow(index)
     {
+
+        /* A one-step board has no arrows at all, so this is a real
+           branch and not just defensiveness. */
 
         if (index >= arrows.length)
         {
 
-            after(processSequenceConfig.loopPauseMs, function ()
-            {
-
-                runArrowPass(0);
-
-            });
+            holdThenClear();
 
             return;
 
         }
 
-        flashArrow(arrows[index], function ()
+        const arrow = arrows[index];
+
+        arrow.classList.remove('isResting');
+
+        arrow.classList.add('isActive');
+
+        /* The row is full — hold from here rather than scheduling one
+           more step first, so loopHoldMs is the hold a visitor actually
+           sees rather than one step short of it. */
+
+        if (index === arrows.length - 1)
         {
 
-            runArrowPass(index + 1);
+            holdThenClear();
+
+            return;
+
+        }
+
+        after(processSequenceConfig.loopStepMs, function ()
+        {
+
+            lightArrow(index + 1);
 
         });
 
     }
 
-    /* Pausing leaves every arrow at rest rather than stranding one
-       mid-flash. Steps are not mentioned here, and that is the point. */
+    /* All four are lit here. They hold, clear on one tick so the row
+       empties as a single gesture rather than unravelling, and the
+       pause lets that fade finish before the next pass starts. */
+
+    function holdThenClear()
+    {
+
+        after(processSequenceConfig.loopHoldMs, function ()
+        {
+
+            restAllArrows();
+
+            after(processSequenceConfig.loopPauseMs, function ()
+            {
+
+                lightArrow(0);
+
+            });
+
+        });
+
+    }
+
+    /* Clears the row: every arrow back to rest, whether it was lit by
+       a Phase A flash or by a Phase B sweep. Also what Phase B uses at
+       the end of each pass. Steps are not mentioned here, and that is
+       the point. */
 
     function restAllArrows()
     {
@@ -1909,7 +1972,12 @@ function setupProcessBoard(board)
 
             loopRunning = true;
 
-            runArrowPass(0);
+            /* Always from a clear row — a resumed loop starts its pass
+               at arrow one rather than picking up a half-filled row. */
+
+            restAllArrows();
+
+            lightArrow(0);
 
             return;
 

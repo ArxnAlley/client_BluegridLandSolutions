@@ -4948,10 +4948,13 @@ html.jsEnabled .processArrow
 
    isActive and isResting carry equal specificity, so an arrow holding
    both would render as whichever is declared later — isResting. They
-   are mutually exclusive, and flashArrow() in indexJS.js is what
-   guarantees it: it removes isResting before adding isActive. Phase B
-   re-flashes arrows that are already resting, which is where a missing
-   removal would show up as arrows that never brighten. */
+   are mutually exclusive, and exactly two functions in indexJS.js
+   guarantee it — flashArrow() for Phase A and lightArrow() for Phase B
+   — both removing one class before adding the other.
+
+   Phase B lights arrows that are already resting and leaves them lit,
+   accumulating until all four are active, so a missing removal there
+   would show up as a row that never brightens at all. */
 
 html.jsEnabled .processArrow.isActive
 {

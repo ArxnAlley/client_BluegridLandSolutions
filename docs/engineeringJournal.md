@@ -52,10 +52,14 @@ The old sequencer completed, held 2.6s, called `resetBoard()`, and told the whol
 
 Those states only move forward. There is no transition back to `'idle'`, which is what makes "Phase A runs once" a property of the machine rather than of its timing. `resetBoard()` is gone entirely, and the assembler guards that it did not survive.
 
-- **Phase A** — the reveal, 6.08s at five steps. The next step is still revealed from *inside* its arrow's dim callback, so a step cannot appear before its arrow has finished.
-- **Phase B** — arrows only, 4.04s per pass. It cannot touch a step because it never references one.
+- **Phase A** — the reveal, 6.08s at five steps. A travelling flash: each arrow brightens, dims, and only then does the next step land, revealed from *inside* its arrow's dim callback.
+- **Phase B** — arrows only, 3.56s per pass, and **cumulative**: arrow 1 lights and stays lit, then 1+2, then 1+2+3, then all four; a 1400ms hold with the row full; all four clear on a single tick; 900ms of dark; repeat. It cannot touch a step because it never references one.
 
-**One defect this refactor created and the design caught before it shipped.** `.processArrow.isActive` and `.isResting` carry equal specificity, so an arrow holding both renders as whichever is declared later — `isResting`. Phase A never hit this because it flashed each arrow exactly once, from nothing. Phase B re-flashes arrows that are **already resting**, so every flash after the first would have been invisible. `flashArrow()` now removes `isResting` before adding `isActive` and is the single owner of that exclusivity; both the JS and the CSS say so.
+The two phases deliberately **do not share a beat function**. `flashArrow()` dims an arrow before moving on, which is right for the reveal and wrong for the loop — the whole point of the loop is that nothing dims until the row is full. `lightArrow()` is its own beat, and the peak of four lit arrows is what proves the difference: if any arrow dimmed on the way across, the row could never reach four.
+
+**One defect this refactor created and the design caught before it shipped.** `.processArrow.isActive` and `.isResting` carry equal specificity, so an arrow holding both renders as whichever is declared later — `isResting`, meaning it never appears to light. Phase A never hit this because it flashed each arrow exactly once, from nothing. Phase B lights arrows that are **already resting**, so the entire loop would have been invisible. Both `flashArrow()` and `lightArrow()` remove one class before adding the other and are the only two places that touch them; the JS, the CSS and the validator all say so.
+
+**A smaller one, found by the validator rather than by reading.** The first cut of `lightArrow()` lit the last arrow and then scheduled one more step before handing to the hold, so the hold a visitor would actually see was `loopStepMs + loopHoldMs` — 1520ms against a config that said 1100. The recursion now ends when the last arrow lights. The config value is the hold.
 
 Phase A is deliberately **uninterruptible** once started: it is seven seconds, it happens once, and stopping it half way would mean either losing the steps already up or replaying them. Only the endless phase answers to visibility — Phase B pauses off screen and on a hidden tab, and resumes without disturbing a single step.
 
@@ -94,13 +98,19 @@ Audited: **all 26 source files are CRLF in the working tree and LF in the index.
 
 Nine suites, all green: `validateSite` (24 pages, 2,696 links), `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `heroLoopHarness` (91 cycles), the Apps Script harness (64/64), plus `node --check` and CSS brace balance.
 
-`validateProcessSequence` was rebuilt against the two-phase model and is **stricter than what it replaced**: the old suite proved a loop closed, the new one proves the loop cannot reach the steps. Over two minutes of virtual time with the board entering and leaving the viewport repeatedly it asserts five reveals and no repeats, **zero un-reveals ever**, zero step events after the reveal, 23 arrow passes in order, and arrows-only on both pause and resume. The VM harness underneath was kept verbatim.
+`validateProcessSequence` was rebuilt against the two-phase model and is **stricter than what it replaced**: the old suite proved a loop closed, the new one proves the loop cannot reach the steps. Over two minutes of virtual time with the board entering and leaving the viewport repeatedly it asserts five reveals and no repeats, **zero un-reveals ever**, and zero step events after the reveal.
+
+Phase B is checked by **replaying the timeline into discrete passes** rather than sampling it. A pass opens when the first arrow lights on an empty row and closes when the row clears, and each of the 25 observed passes has to fill in the order 1, 1+2, 1+2+3, 1+2+3+4, **peak at exactly four**, hold at least 500ms, and clear every arrow on a single tick. The peak is the load-bearing assertion: if any arrow dimmed on the way across, four could never be lit at once, so a travelling flash cannot pass a cumulative test. The old "never more than one arrow bright" check was not deleted — it was narrowed to Phase A, where it is still true.
+
+The VM harness underneath was kept verbatim through both rewrites.
 
 `validateHeader` gained a **fallback-face sweep** — the criterion the new breakpoint was chosen on now has a test — and `measureHeader` now **reads the primary nav out of `index.html`** instead of carrying its own copy, which is what let the model describe a four-item bar while the site shipped five.
 
 ### Left for a browser
 
 The Our Company panel next to its three siblings, and the shield-with-a-check featured icon, which was drawn blind like the pin and the question mark before it. The company page top to bottom. And the process section at 1168px and just below it, where the horizontal row now hands over to the vertical one — that boundary is the thing this session changed and cannot see.
+
+The cumulative sweep also needs an eye on it. The simulation proves the row fills in order and empties as one gesture; it says nothing about whether four lit arrows at once reads as the progression completing or just as four bright arrows, or whether 3.56s per pass is a pulse or a fidget. Those are the two constants most likely to want a tuning pass: `loopStepMs` and `loopHoldMs`.
 
 ---
 

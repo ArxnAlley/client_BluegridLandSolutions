@@ -34,11 +34,12 @@ Before launch: open the homepage on a real phone and confirm the hero photo ends
 **Added 2026-08-09 — the current list, in priority order:**
 
 1. **The process handover at 1168px.** Load the homepage at 1200px, then 1170px, then 1160px. Above 1168px the board is horizontal at its full 1120px; below it, vertical. That boundary is what this session changed and is the direct answer to the clipping report — confirm the vertical layout is the better presentation there, and that nothing is cut off at any width.
-2. **Phase A then Phase B.** Scroll the process section in and watch once: five steps reveal, then only the arrows should ever move again. Specifically confirm **the arrows still flash during Phase B** — they are re-flashed from a resting state, and an equal-specificity CSS collision there would make every flash after the first invisible. The code removes `isResting` first to prevent exactly that, but it has never been seen.
-3. **Is 4.04s per arrow pass right?** Phase B runs forever in the corner of the page. Too fast reads as a fidget.
-4. **The Our Company panel** beside its three siblings at 1440px and again at 1201px, and the **shield-with-a-check featured icon**, drawn blind at 26px like the pin and question mark before it.
-5. **The company page** top to bottom — it reuses eight existing interior-page components in a combination none of them have been seen in.
-6. **The header at 1361px and 1360px**, where the compact band now starts, and at 1201px, the last desktop width.
+2. **Phase A then Phase B.** Scroll the process section in and watch once: five steps reveal, then only the arrows should ever move again. Confirm **the arrows light at all during Phase B** — they are lit from a resting state, and an equal-specificity CSS collision there would leave the whole loop invisible. `lightArrow()` removes `isResting` first to prevent exactly that, but it has never been seen.
+3. **Does the cumulative sweep read as intended?** The row should fill 1 → 1+2 → 1+2+3 → 1+2+3+4, hold with all four lit, then clear together. The open question is whether four simultaneously lit arrows read as *the progression completing* or just as four bright arrows — and whether the accumulation is legible at all at the arrow's 16px size and 0.26 → 1.0 opacity range. If it is not, the flash is the thing to strengthen, not the timing.
+4. **Is 3.56s per pass right?** Phase B runs forever in the corner of the page: 420ms between arrows, a 1400ms hold, a 900ms pause. Too fast reads as a fidget. `loopStepMs` and `loopHoldMs` in `processSequenceConfig` are the two to tune.
+5. **The Our Company panel** beside its three siblings at 1440px and again at 1201px, and the **shield-with-a-check featured icon**, drawn blind at 26px like the pin and question mark before it.
+6. **The company page** top to bottom — it reuses eight existing interior-page components in a combination none of them have been seen in.
+7. **The header at 1361px and 1360px**, where the compact band now starts, and at 1201px, the last desktop width.
 
 ### 5. No real lead has been created from the live site
 The endpoint is wired and verified with read-only probes plus a honeypot POST that writes nothing. **A genuine submission has never been run by this project** — that path writes a row and emails both the owner and the customer, so it was not triggered unilaterally.
@@ -261,6 +262,7 @@ Recorded so future sessions do not "fix" them:
 | GBP service graphic committed by accident | 2026-08-07 | 2.6MB asset the site never loaded, swept in by a broad `git add -A` in `235a4a3`. Removed in `9237e53` after verifying zero references. |
 | GBP marketing assets appearing as untracked noise | 2026-08-07 | Repository's first `.gitignore`, one rule: `graphics/GBP - Services/`. Folder stays local and intact. |
 | Process sequence reset and replayed the whole board forever | 2026-08-09 | Two phases as explicit forward-only states. `resetBoard()` deleted; the assembler guards it did not survive. Verified over 120s of virtual time: 5 reveals, none repeated, **0 un-reveals**, 0 step events after the reveal. |
+| Phase B read as a point chasing along the row | 2026-08-09 | Rebuilt as a cumulative sweep: highlights accumulate to all four, hold, then clear together. `lightArrow()` is its own beat — reusing Phase A's `flashArrow()` would have dimmed each arrow on the way across. 25 passes verified, each peaking at four. |
 | Site had no About page of any kind | 2026-08-09 | `company/index.html`, 24th page, built from the `faq/` donor with chrome carried byte for byte. 865 words, **zero new CSS**, `AboutPage` schema, verified claims only. |
 | Fifth nav item did not fit the header | 2026-08-09 | Switch 1150→1200px, compact band 1280→1360px. Nothing shrunk. See item 20. |
 | The header model carried its own copy of the nav | 2026-08-09 | `measureHeader` reads `index.html`. It had been describing a four-item bar. |
