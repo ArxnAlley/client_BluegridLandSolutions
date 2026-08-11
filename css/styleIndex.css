@@ -7325,7 +7325,14 @@ html.jsEnabled .processArrow.isResting
 
         gap: 0.45rem;
 
-        height: 60px;
+        /* No fixed height on purpose. box-sizing is border-box, so a
+           height here is the OUTER box and the buttons have to fit
+           inside it minus this padding and the border below. It used to
+           say 60px, which left a 44.56px content box for 46px buttons,
+           so they overflowed 0.72px past the top and bottom and painted
+           over the border — pills on a 24px radius, crossing the corner
+           on a different curve. Sizing to content means the bar is
+           always exactly its buttons plus its own padding and border. */
 
         padding: 0.42rem;
 
@@ -7551,7 +7558,9 @@ html.jsEnabled .processArrow.isResting
 
         gap: 0.35rem;
 
-        height: 58px;
+        /* Height stays derived here too — see the note at the 1150px
+           rule. This block only retunes the inset, the gap and the
+           radius. */
 
         border-radius: 22px;
 

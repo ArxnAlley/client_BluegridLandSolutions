@@ -42,6 +42,7 @@
 | **Primary logo migration** | **Complete** |
 | **Site-wide copy cleanup (dashes, spelling)** | **Complete** |
 | **On-page SEO sweep (headings, intent map, schema)** | **Complete** |
+| **Mobile floating CTA — bottom edge clipping** | **Complete** |
 
 **The production domain is the only outright launch blocker.**
 
@@ -120,6 +121,7 @@ Every header dimension is a `:root` custom property overridden in the two header
 | Check | Result |
 |---|---|
 | Internal links & assets | **24 pages, zero broken** |
+| **Mobile floating CTA** (`validateFloatingCta`, new) | PASS — bar sizes to content at both breakpoints (61.44px / 59.44px), touch targets 46px and 44px, `env(safe-area-inset-*)` on all three insets, bar outside `<main>` and `<footer>` on 24 pages |
 | **On-page SEO** (`validateSeo`, new) | PASS — 24 pages: exactly one non-empty H1 each, no skipped heading levels, 24 unique titles and descriptions within budget, canonicals and breadcrumbs present, per-page-kind schema, **every FAQ schema question rendered on its page**, alt coverage, descriptive anchors, no content orphans, **zero H1 intent collisions** |
 | Navigation / mobile drawer / FAQ hub / Insights | PASS on all 24 pages |
 | **Mega menu system** | PASS — 24 pages × 4 panels: one shell, every row on `.megaRow`, links resolving with the right relative form per depth, no duplicate ids, `aria-controls` intact, fit 1201–1600px, height spread **24%** against a 45% gate |
@@ -249,6 +251,23 @@ Also corrected: **British spellings mixed inconsistently with American ones** on
 
 **The company page was a content orphan** — reachable only from nav and footer, which passes no topical relevance. Three editorial links added from the homepage owner section, the FAQ hub intro, and the Insights lede.
 
+### Mobile floating CTA — fixed 2026-08-11
+
+The sticky Call Now / Free Estimate bar was cropped along its bottom edge on mobile. **The cause was a box-model contradiction, not a positioning or safe-area problem.**
+
+`.mobileFloatingActions` declared a fixed `height` while also carrying padding and a border. `box-sizing` is `border-box` globally, so that height is the *outer* box:
+
+| | Declared | Padding + border | Content box | Buttons | Overflow |
+|---|---|---|---|---|---|
+| ≤640px | 60px | 13.44 + 2 | **44.56px** | 46px | **1.44px** |
+| ≤360px | 58px | 13.44 + 2 | **42.56px** | 44px | **1.44px** |
+
+With `align-items: center` the surplus splits evenly, so each button sat **0.72px past the top and bottom** of the content box. The bar sets no `overflow`, so the buttons painted over its 1px border — and they are `border-radius: 999px` pills on a 24px-radius container, so at the bottom corners the pill edge crossed the border on a different curve. That is what read as the bottom edge and rounded corners being cropped.
+
+**Fix: the fixed heights are gone and the bar derives its height from its content**, so the box and its buttons can never disagree again. The bar is now 61.44px and 59.44px, 1.44px taller than the values replaced, which is not a visible change.
+
+**Deliberately unchanged:** the radius, the shadow, the colours, the scroll trigger, and the insets — `bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px))` and `left`/`right: max(1rem, env(safe-area-inset-*, 0px))` were already correct, which is why an arbitrary pixel offset would have hidden the real bug. Touch targets stay at 46px and 44px, both at or above the 44px minimum.
+
 ### Merge, push, and housekeeping
 `phase2a-lead-capture` merged into `main` as a clean **fast-forward** (`8108f94..bc4021d`), 17 commits, 42 files, 52,050 insertions, **zero deletions**; the single rename is the Phase 2C `hero_after.JPG → after.JPG` casing fix. Full validation re-run on `main` after the merge — 12/12. Pushed `main → origin/main`. The feature branch was **not deleted** and still exists at `bc4021d`, 8 ahead of `origin/phase2a-lead-capture`. Then the GBP housekeeping commit `9237e53`.
 
@@ -327,6 +346,6 @@ The highest-value work available is in *Remaining Launch Work*, and item 1 gates
 
 1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. The 2026-08-09 session found two things in these docs that were simply wrong (the line-ending split, and the "MAINTENANCE at 143px against 147px" figure); assume there are others.
 2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main`, remote URL, working tree, page count. Expect `main`, clean, **24 pages**, and **3 ahead of `origin/main`**. Nothing has been pushed since `9237e53`.
-3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `heroLoopHarness`, `measureHeader`, `measureProcessFit`, plus the guarded assemblers and the copy-rewrite tables. **Locate it before starting work, and re-run all ten suites to establish a baseline before changing anything.** This is the single most fragile thing about the project's process — see `technicalDebt.md`.
+3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `heroLoopHarness`, `measureHeader`, `measureProcessFit`, plus the guarded assemblers and the copy-rewrite tables. **Locate it before starting work, and re-run all eleven suites to establish a baseline before changing anything.** This is the single most fragile thing about the project's process — see `technicalDebt.md`.
 4. **Aron's browser QA list** is at the end of `technicalDebt.md` item 4 and is the largest untested surface on the project. The 2026-08-09 additions — the Our Company panel, the company page, and the process handover at 1168px — are all things static analysis cannot judge.
 5. **Do not start *Remaining Launch Work* items 2–5 until the domain is settled** — they would all be done twice.

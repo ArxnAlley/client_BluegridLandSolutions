@@ -75,6 +75,29 @@ Which is now what both a screen reader and a crawler get, and it matches what a 
 
 `validateSeo` compares every `FAQPage` question against the rendered text. Three did not match, on three different service pages. In all three the schema carried the longer, better-targeted phrasing and the page carried a shortened version, so the **rendered question moved to match the schema** rather than the reverse. That fixes a guidelines violation and improves the heading at the same time.
 
+### The floating CTA was cropped by 1.44px, and the cause was arithmetic
+
+Reported as the sticky Call Now / Free Estimate bar being cut off along its bottom edge on mobile, with the rounded corners not rendering cleanly.
+
+Everything that usually causes this was already right. The bar is `position: fixed` directly on `<body>`, so `overflow-x: hidden` on `html`/`body` cannot reach it and there is no transformed ancestor. The insets already read `bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px))` and `left`/`right: max(1rem, env(safe-area-inset-*, 0px))`, which is both safe-area aware and incapable of causing horizontal overflow.
+
+The bug was in the box:
+
+```
+  <=640px   height 60px - padding 13.44 - border 2 = 44.56px content
+            buttons 46px  ->  1.44px too tall
+  <=360px   height 58px - padding 13.44 - border 2 = 42.56px content
+            buttons 44px  ->  1.44px too tall
+```
+
+`box-sizing: border-box` is global, so the declared height is the outer box and the buttons had less room than the number suggested. `align-items: center` split the surplus, putting each button **0.72px past the top and bottom**. Nothing clips the bar, so the buttons simply painted over its 1px border — and being 999px pills on a 24px-radius container, at the bottom corners their edge crossed the border on a different curve. Hence "cropped by a few pixels".
+
+The fix is to delete the fixed heights. The bar then measures its buttons plus its own padding and border, which is 61.44px and 59.44px: 1.44px taller than before, invisible, and structurally unable to disagree with itself again. Radius, shadow, colours and the scroll trigger are untouched.
+
+Worth noting what was *not* done: adding a pixel or two of bottom offset would have moved the bar down and left the buttons still crossing the border. The symptom would have looked fixed at one size.
+
+`validateFloatingCta` encodes the rule rather than the number: it fails if the bar declares a height at all, and if one is ever reintroduced it recomputes the content box and fails when the buttons do not fit. It also checks the 44px touch-target minimum, the safe-area insets, and that the bar sits outside `<main>` and `<footer>` on all 24 pages. Verified by reintroducing `height: 60px` and watching it report the 1.44px overflow, then reverting.
+
 ### Files touched
 
 - `graphics/logos/web/bluegridMark290.png` — new, plus the two client source assets committed
@@ -84,11 +107,11 @@ Which is now what both a screen reader and a crawler get, and it matches what a 
 
 ### Validation
 
-Ten suites green, plus `node --check` and CSS brace balance. **New: `validateSeo`** — one H1 per page, heading hierarchy, title and description uniqueness and budget, canonicals, breadcrumbs, per-page-kind schema, FAQ schema matching rendered questions, alt coverage, anchor text quality, content-level inbound links (chrome links do not count), and H1 intent collision.
+Eleven suites green, plus `node --check` and CSS brace balance. **New: `validateFloatingCta`** (box model, touch targets, safe areas, clipping ancestors) and **`validateSeo`** — one H1 per page, heading hierarchy, title and description uniqueness and budget, canonicals, breadcrumbs, per-page-kind schema, FAQ schema matching rendered questions, alt coverage, anchor text quality, content-level inbound links (chrome links do not count), and H1 intent collision.
 
 ### Left for a browser
 
-The new header mark at every breakpoint, and the footer badge at 120px where a 290px source is doing the most work. Whether the rewritten H2s still read like the same site — that is a judgement about voice, and 36 of them changed.
+The new header mark at every breakpoint, and the footer badge at 120px where a 290px source is doing the most work. Whether the rewritten H2s still read like the same site — that is a judgement about voice, and 36 of them changed. And the floating CTA bar on a real handset with a home indicator, where `env(safe-area-inset-bottom)` finally has a non-zero value to contribute.
 
 ---
 

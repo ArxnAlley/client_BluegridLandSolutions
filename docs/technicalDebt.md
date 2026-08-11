@@ -44,6 +44,8 @@ Before launch: open the homepage on a real phone and confirm the hero photo ends
 
 4b. **The new header mark at every breakpoint** (69px / 60px / 56px / 50px), and the **footer badge at 120px**, where a 290px source is doing the most work it will ever do. Also confirm the white circle reads correctly against the dark scrolled header.
 
+4d. **The floating CTA bar on a real handset**, ideally one with a home indicator so `env(safe-area-inset-bottom)` contributes something. Confirm both bottom corners render cleanly now and the bar keeps its breathing room above the indicator.
+
 4c. **Whether the rewritten H2s still sound like the same site.** 36 headings moved from brand voice to topic on 2026-08-11. The reasoning is sound and the kickers still carry the rhythm, but that is a judgement about tone and it has not been read on a screen.
 6. **The company page** top to bottom — it reuses eight existing interior-page components in a combination none of them have been seen in.
 7. **The header at 1361px and 1360px**, where the compact band now starts, and at 1201px, the last desktop width.
@@ -291,6 +293,7 @@ Recorded so future sessions do not "fix" them:
 | Homepage H1 was duplicated and carried no intent | 2026-08-11 | "Take Back Take back your property." → "Take Back your property. Forestry mulching and land clearing in Southern Ohio and Eastern Kentucky." |
 | Company page was a content orphan | 2026-08-11 | Three editorial inbound links; `validateSeo` counts body links only, so chrome does not mask it. |
 | British and American spellings mixed | 2026-08-11 | Normalised to American on a US local business site. |
+| Floating CTA bar cropped along its bottom edge | 2026-08-11 | A fixed height that ignored its own padding and border left the 46px buttons 1.44px taller than the 44.56px content box, so they painted over the bottom border and its rounded corners. Height now derives from content. `validateFloatingCta` fails if a height is reintroduced that does not fit. |
 | Site had no About page of any kind | 2026-08-09 | `company/index.html`, 24th page, built from the `faq/` donor with chrome carried byte for byte. 865 words, **zero new CSS**, `AboutPage` schema, verified claims only. |
 | Fifth nav item did not fit the header | 2026-08-09 | Switch 1150→1200px, compact band 1280→1360px. Nothing shrunk. See item 20. |
 | The header model carried its own copy of the nav | 2026-08-09 | `measureHeader` reads `index.html`. It had been describing a four-item bar. |
