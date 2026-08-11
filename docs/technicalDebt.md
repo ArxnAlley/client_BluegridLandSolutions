@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-11
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -13,9 +13,12 @@ Known debt, deferred work, and intentional trade-offs. Items are ordered by laun
 Canonical tags say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. They disagree.
 Gates canonical URLs and `og:url` on **all 24 pages** (29 once the second location wave ships), plus `sitemap.xml` and `robots.txt` — neither exists. Settle it *before* writing the SEO files or the work is done twice. Every affected tag carries a `TODO:` comment so one sweep catches all of them.
 
-### 2. Badge artwork typo — "FORESTRV"
-The official badge (`graphics/logos/web/bluegridBadge400.png`, `bluegridBadge192.png`) reads **"FORESTRV MULCHING & LAND CLEARING"** on the bottom arc — a V where the Y should be. Verified 2026-08-02 against the actual PNG.
-Appears in the header, mobile menu, footer, and Facebook fallback on **every page**. Needs corrected source artwork from the client. Would be embarrassing in print or on a truck wrap.
+### 2. ~~Badge artwork typo — "FORESTRV"~~ — OFF THE WEBSITE 2026-08-11
+The old badge (`bluegridBadge400.png`, `bluegridBadge192.png`) reads **"FORESTRV MULCHING & LAND CLEARING"** on its bottom arc, a V where the Y should be. Verified 2026-08-02 against the actual PNG.
+
+**The website no longer uses that artwork.** The primary mark is now `bluegridMark290.png`, derived from the client's `circleBG_logo.png`, which carries no arc text at all — so the misspelling cannot appear on any page. All 76 references migrated.
+
+**Still open outside the website:** the misspelled badge files remain on disk, and if the client has that artwork on a truck wrap, signage, business cards, or a GBP profile photo, it is still wrong there. `newBG_logo.png` spells **FORESTRY** correctly and is the asset to hand anyone who asks for print artwork.
 
 ### 3. Placeholder contact details still shipping
 - Phone `(740) 464-2526` — TODO-marked, sourced from the flyer, never confirmed
@@ -38,6 +41,10 @@ Before launch: open the homepage on a real phone and confirm the hero photo ends
 3. **Does the cumulative sweep read as intended?** The row should fill 1 → 1+2 → 1+2+3 → 1+2+3+4, hold with all four lit, then clear together. The open question is whether four simultaneously lit arrows read as *the progression completing* or just as four bright arrows — and whether the accumulation is legible at all at the arrow's 16px size and 0.26 → 1.0 opacity range. If it is not, the flash is the thing to strengthen, not the timing.
 4. **Is 3.56s per pass right?** Phase B runs forever in the corner of the page: 420ms between arrows, a 1400ms hold, a 900ms pause. Too fast reads as a fidget. `loopStepMs` and `loopHoldMs` in `processSequenceConfig` are the two to tune.
 5. **The Our Company panel** beside its three siblings at 1440px and again at 1201px, and the **shield-with-a-check featured icon**, drawn blind at 26px like the pin and question mark before it.
+
+4b. **The new header mark at every breakpoint** (69px / 60px / 56px / 50px), and the **footer badge at 120px**, where a 290px source is doing the most work it will ever do. Also confirm the white circle reads correctly against the dark scrolled header.
+
+4c. **Whether the rewritten H2s still sound like the same site.** 36 headings moved from brand voice to topic on 2026-08-11. The reasoning is sound and the kickers still carry the rhythm, but that is a judgement about tone and it has not been read on a screen.
 6. **The company page** top to bottom — it reuses eight existing interior-page components in a combination none of them have been seen in.
 7. **The header at 1361px and 1360px**, where the compact band now starts, and at 1201px, the last desktop width.
 
@@ -118,6 +125,20 @@ Checked properly — every rendered title on all eight boards, uppercased as `te
 GitHub reports the repository has moved to `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, but `origin` still points at `https://github.com/ArxnAlley/BluegridLandSolutions.git`.
 Pushes currently succeed **via GitHub's redirect only.** That redirect stops working the moment anyone creates a new repository under the old name, at which point pushes would fail or — worse — land somewhere unintended.
 **Fix:** `git remote set-url origin https://github.com/ArxnAlley/client_BluegridLandSolutions.git`. Requested on 2026-08-07 and then superseded by other work before it ran.
+
+### 10i. The validator toolchain lives outside the repository
+Ten suites, the guarded assemblers, the font-metric models and now the copy-rewrite tables and the SEO intent checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
+`projectState.md` tells the next session to locate it first, which is a mitigation rather than a fix. The reason it is out of the repo is item 17's decision not to ship half a generator; that reasoning covers the assemblers and does **not** obviously cover the validators.
+**Fix: commit the validators.** They are read-only over the site, they have no dependencies, and they would make the repository self-checking.
+
+### 10j. Structured data duplicates rendered copy with nothing enforcing the match
+FAQ answers and service descriptions exist twice on the same page: once rendered, once inside `application/ld+json`. Google requires `FAQPage` questions and answers to match the visible text.
+Three questions had already drifted before 2026-08-11 and were fixed; the copy sweep briefly broke the rest before the schema pass caught up. `validateSeo` now compares **questions**, and nothing yet compares **answers**.
+**Fix: extend `validateSeo` to diff answer text too**, or generate both from one source.
+
+### 10k. `Service` schema restates the provider instead of referencing it
+`seoPlan.md` specifies `provider` as an `@id` reference to the homepage `LocalBusiness`. What ships is an inline stub (`name`, `telephone`, `url`) on 13 pages. It is valid and does not create competing entities, so it was left alone.
+**Deliberately deferred to the domain sweep:** an `@id` is a URL, and adding 13 more production-domain-dependent values before the domain is settled would mean writing them twice. Do this in the same pass as item 1.
 
 ### 11. `robots.txt` and `sitemap.xml` do not exist
 Deferred by instruction. Both depend on item 1. The sitemap needs **24 URLs**.
@@ -263,6 +284,13 @@ Recorded so future sessions do not "fix" them:
 | GBP marketing assets appearing as untracked noise | 2026-08-07 | Repository's first `.gitignore`, one rule: `graphics/GBP - Services/`. Folder stays local and intact. |
 | Process sequence reset and replayed the whole board forever | 2026-08-09 | Two phases as explicit forward-only states. `resetBoard()` deleted; the assembler guards it did not survive. Verified over 120s of virtual time: 5 reveals, none repeated, **0 un-reveals**, 0 step events after the reveal. |
 | Phase B read as a point chasing along the row | 2026-08-09 | Rebuilt as a cumulative sweep: highlights accumulate to all four, hold, then clear together. `lightArrow()` is its own beat — reusing Phase A's `flashArrow()` would have dimmed each arrow on the way across. 25 passes verified, each peaking at four. |
+| FORESTRV misspelling on every page | 2026-08-11 | Primary mark migrated to `bluegridMark290.png`, which has no arc text. Still open for print/signage — see item 2. |
+| Copy read as machine-written (447 em dashes) | 2026-08-11 | 440 rewritten by hand through 215 context-anchored rules; only the `1–2 day` numeric en dash remains, deliberately. |
+| Schema and rendered FAQ copy disagreed | 2026-08-11 | Three pre-existing mismatches fixed; `validateSeo` now fails the build if a schema question is not rendered. |
+| Service page H2s were design elements, not search intents | 2026-08-11 | 36 rewritten. The site's own Content Guideline 2 had required this since the plan was written. |
+| Homepage H1 was duplicated and carried no intent | 2026-08-11 | "Take Back Take back your property." → "Take Back your property. Forestry mulching and land clearing in Southern Ohio and Eastern Kentucky." |
+| Company page was a content orphan | 2026-08-11 | Three editorial inbound links; `validateSeo` counts body links only, so chrome does not mask it. |
+| British and American spellings mixed | 2026-08-11 | Normalised to American on a US local business site. |
 | Site had no About page of any kind | 2026-08-09 | `company/index.html`, 24th page, built from the `faq/` donor with chrome carried byte for byte. 865 words, **zero new CSS**, `AboutPage` schema, verified claims only. |
 | Fifth nav item did not fit the header | 2026-08-09 | Switch 1150→1200px, compact band 1280→1360px. Nothing shrunk. See item 20. |
 | The header model carried its own copy of the nav | 2026-08-09 | `measureHeader` reads `index.html`. It had been describing a four-item bar. |

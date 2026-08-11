@@ -1,12 +1,12 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-11
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
-**Last content commit:** `e4579e6` — Our Company mega menu, company page, two-phase process animation
-**HEAD:** this session's docs commit, sitting one above `e4579e6`
+**Last content commit:** `0dac40f` — on-page SEO: search-intent headings, H1 fixes, schema alignment
+**HEAD:** this session's docs commit, sitting one above `0dac40f`
 **Remote:** `origin` → `https://github.com/ArxnAlley/BluegridLandSolutions.git` — **stale, see Waiting on Aron**
-**Sync:** `main` is **3 ahead of** `origin/main` — nothing from 2026-08-07's closeout or this session has been pushed.
+**Sync:** `main` is **7 ahead of** `origin/main` — nothing since 2026-08-07 has been pushed.
 **Working tree:** clean
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
@@ -39,6 +39,9 @@
 | **Company page (`company/index.html`)** | **Complete** |
 | **Process animation — two-phase (reveal once, arrows loop)** | **Complete** |
 | **Process responsive handover + header breakpoints** | **Complete** |
+| **Primary logo migration** | **Complete** |
+| **Site-wide copy cleanup (dashes, spelling)** | **Complete** |
+| **On-page SEO sweep (headings, intent map, schema)** | **Complete** |
 
 **The production domain is the only outright launch blocker.**
 
@@ -112,11 +115,12 @@ Every header dimension is a `:root` custom property overridden in the two header
 
 ---
 
-## Verification State — all green at `e4579e6`
+## Verification State — all green at `0dac40f`
 
 | Check | Result |
 |---|---|
-| Internal links & assets | **24 pages, 2,696 links, zero broken** |
+| Internal links & assets | **24 pages, zero broken** |
+| **On-page SEO** (`validateSeo`, new) | PASS — 24 pages: exactly one non-empty H1 each, no skipped heading levels, 24 unique titles and descriptions within budget, canonicals and breadcrumbs present, per-page-kind schema, **every FAQ schema question rendered on its page**, alt coverage, descriptive anchors, no content orphans, **zero H1 intent collisions** |
 | Navigation / mobile drawer / FAQ hub / Insights | PASS on all 24 pages |
 | **Mega menu system** | PASS — 24 pages × 4 panels: one shell, every row on `.megaRow`, links resolving with the right relative form per depth, no duplicate ids, `aria-controls` intact, fit 1201–1600px, height spread **24%** against a 45% gate |
 | **Process sequence** | PASS — 8 pages, two-phase: Phase A exact 13-beat order, max 1 arrow bright, **5 reveals in 120s with none repeated**, **0 un-reveals ever**; Phase B **25 passes each filling 1 → 1+2 → 1+2+3 → 1+2+3+4**, peaking at all four, holding 1400ms, clearing on one tick, **0 step events throughout**, fresh pass at arrow 1 on resume; reduced motion registers nothing |
@@ -205,6 +209,46 @@ Phase A is deliberately **uninterruptible** once started — seven seconds, once
 
 **Responsive:** horizontal five-across down to **1168px**, vertical below. That number is `1120px` (board `max-width`) + `2 × 1.5rem` (section padding) — the narrowest viewport at which the board can be the size it was designed at. See the note in `technicalDebt.md` on why the reported clipping never reproduced.
 
+### Primary logo — migrated 2026-08-11
+
+The header badge is **`graphics/logos/web/bluegridMark290.png`**, derived from the client's `circleBG_logo.png`. Chosen on measurement:
+
+| Asset | Measured | Verdict |
+|---|---|---|
+| `circleBG_logo.png` | 290×290, **alpha mean 0.785** — that is π/4, a circle inscribed in a square, the same silhouette as the badge it replaces, transparent outside the circle | **Primary site logo.** Legible at 50–69px because it carries no arc tagline |
+| `newBG_logo.png` | 1200×1200, **alpha mean 1.0 — fully opaque**, white corners, content only in the middle band | **Not the header.** It would render as a white box, and its tagline would land near 4px. Kept for white-background contexts: Open Graph, GBP, print |
+
+76 references across 24 pages. Every rendered size is covered (header 50–69px, footer 120px, Facebook fallback 76px, post avatar 38px). Both marks are 1:1 and the rendered sizes are CSS-driven, so **the migration cannot shift layout**. One 45KB file replaces 215KB + 57KB.
+
+**This retires the FORESTRV misspelling from the website** (was `technicalDebt` item 2). The typo exists only on the old badge's arc text, which the new mark does not have. The client's original badge files stay on disk. **Favicons are a different mark entirely** — a simplified tree circle, not the badge — and were correctly left alone.
+
+### Copy cleanup — 2026-08-11
+
+**447 em dashes across 24 pages** was the specific thing making the writing read as machine-generated. 440 rewritten by hand through 215 context-anchored rules, each replaced with the punctuation the sentence actually wanted: a period where the clause stands alone, a comma for an aside, a colon before a list. Sentences were rewritten where removing the dash left the grammar awkward.
+
+**Deliberately preserved:** compound words (`owner-operated`, `side-by-side`, `right-of-way`, `two-track`), numeric ranges, and the single en dash in the `1–2 day` statistic, which is correct typography for a range. That en dash is the only one left on the site and its survival is a decision, not an oversight.
+
+**The structured data had to move with the copy.** The FAQ answers and service descriptions exist twice — rendered and inside `application/ld+json`. The first pass protected every `<script>` block, which left schema disagreeing with visible copy, and **Google requires FAQPage answers to match the rendered text**. 61 further replacements were applied there, with every block re-parsed and its key set compared before writing.
+
+Also corrected: **British spellings mixed inconsistently with American ones** on a US local business site (`organisation`, `mobilisation`, `favourite`, `neighbour`, `destabilising`, `tyres`, `smouldering`).
+
+### On-page SEO — 2026-08-11
+
+**The intent map now lives in `seoPlan.md`** and is the anti-cannibalisation contract: one page per intent, with terms deliberately assigned or deliberately unowned. `validateSeo` enforces it by stripping brand and geography from every H1 and failing if two pages collide.
+
+**36 H2s** moved from brand flourishes to real topics, because the site's own Content Guideline 2 required it and the service pages were not following it. The voice was not lost: every one of those sections already carries a `.sectionKicker` above the heading, so the topic could move into the H2 without flattening the page.
+
+**Four H1s fixed:**
+
+- **Homepage.** The crawlable H1 was `Take Back` (the visible fixed word) plus `Take back your property.` (the screen-reader fallback) — duplicated, and carrying no service or geography. The fallback now completes the visible phrase rather than repeating it. **`aria-hidden` was tried first and rejected**: it removes text from the accessibility tree but *not* from indexing, so it fixed the wrong problem.
+- **FAQ hub** — `Frequently Asked Questions` → `Forestry Mulching & Land Clearing FAQs`.
+- **Company** — the brand line moved out of the H1 and stays where it earns its keep, in the Our Company mega panel.
+- **Property Cleanup** — "Across the Ohio River Corridor" is a place, not a search.
+
+**Three FAQPage schema questions did not match the rendered copy.** In all three the schema wording was the better search phrasing, so the rendered question moved to match the schema rather than the reverse.
+
+**The company page was a content orphan** — reachable only from nav and footer, which passes no topical relevance. Three editorial links added from the homepage owner section, the FAQ hub intro, and the Insights lede.
+
 ### Merge, push, and housekeeping
 `phase2a-lead-capture` merged into `main` as a clean **fast-forward** (`8108f94..bc4021d`), 17 commits, 42 files, 52,050 insertions, **zero deletions**; the single rename is the Phase 2C `hero_after.JPG → after.JPG` casing fix. Full validation re-run on `main` after the merge — 12/12. Pushed `main → origin/main`. The feature branch was **not deleted** and still exists at `bc4021d`, 8 ahead of `origin/phase2a-lead-capture`. Then the GBP housekeeping commit `9237e53`.
 
@@ -283,6 +327,6 @@ The highest-value work available is in *Remaining Launch Work*, and item 1 gates
 
 1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. The 2026-08-09 session found two things in these docs that were simply wrong (the line-ending split, and the "MAINTENANCE at 143px against 147px" figure); assume there are others.
 2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main`, remote URL, working tree, page count. Expect `main`, clean, **24 pages**, and **3 ahead of `origin/main`**. Nothing has been pushed since `9237e53`.
-3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `heroLoopHarness`, `measureHeader`, `measureProcessFit`, plus the guarded assemblers. **Locate it before starting work, and re-run all nine suites to establish a baseline before changing anything.**
+3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `heroLoopHarness`, `measureHeader`, `measureProcessFit`, plus the guarded assemblers and the copy-rewrite tables. **Locate it before starting work, and re-run all ten suites to establish a baseline before changing anything.** This is the single most fragile thing about the project's process — see `technicalDebt.md`.
 4. **Aron's browser QA list** is at the end of `technicalDebt.md` item 4 and is the largest untested surface on the project. The 2026-08-09 additions — the Our Company panel, the company page, and the process handover at 1168px — are all things static analysis cannot judge.
 5. **Do not start *Remaining Launch Work* items 2–5 until the domain is settled** — they would all be done twice.

@@ -104,6 +104,51 @@ Enforced rules:
 4. No page ships without an inbound link from the mega menu or a parent page (no orphans — checked in Phase 9).
 5. Anchor text is always descriptive (`forestry mulching in Ashland, KY`), never `click here` / `learn more` alone.
 
+
+---
+
+## Intent Map — which page owns which query
+
+Added 2026-08-11, after the on-page sweep. **This is the anti-cannibalisation
+contract.** One page per intent; if a new page would target something already in
+this table, it belongs as a section on the page that owns it.
+
+`validateSeo` enforces the boundary mechanically: it strips brand and geography
+from every H1 and fails the build if two pages resolve to the same intent.
+
+| Page | Primary intent | H1 | Supporting topics |
+|---|---|---|---|
+| `index.html` | forestry mulching + land clearing, region-wide | Take Back your property. Forestry mulching and land clearing in Southern Ohio and Eastern Kentucky. | services overview, owner, process, coverage, proof, reviews, FAQs |
+| `services/forestryMulching.html` | **forestry mulching** (the money term) | Forestry Mulching in Southern Ohio & Eastern Kentucky | vs bulldozing, how it works, before/after, by town, cost |
+| `services/landClearing.html` | **land clearing** for build sites | Land Clearing in Southern Ohio & Eastern Kentucky | buildable ground, stumps and root mat, step by step, cost per acre |
+| `services/brushRemoval.html` | **brush removal / brush clearing** | Brush Removal Across Southern Ohio & Eastern Kentucky | fence rows, field edges, honeysuckle, what stays standing |
+| `services/trailCutting.html` | **trail cutting**, ATV/UTV access | Trail Cutting Through Kentucky & Ohio Timber | trail width, drainage, hillsides, cost per mile |
+| `services/stormCleanup.html` | **storm cleanup / storm damage** | Storm Cleanup in Southern Ohio & Eastern Kentucky | triage, access first, insurance paperwork, limits |
+| `services/propertyCleanup.html` | **overgrown / neglected property cleanup** | Property Cleanup in Southern Ohio & Eastern Kentucky | inherited land, selling, staged work, junk and scrap |
+| `services/huntingPropertyPrep.html` | **hunting property prep**, food plots, shooting lanes | Hunting Property Prep in Eastern Kentucky & Southern Ohio | plots, lanes, bedding, access, timing before season |
+| `locations/forestry-mulching-{city}-{st}.html` (×6) | **forestry mulching in {City}** | Forestry Mulching in {City}, {ST} | county terrain, local job types, all 7 services localised, local FAQs |
+| `faq/index.html` | general **forestry mulching / land clearing questions** | Forestry Mulching & Land Clearing FAQs | pricing, scheduling, insurance, access, aftercare, payment |
+| `company/index.html` | **who BlueGrid is**, owner-operated, trust | Owner-Operated Land Clearing in Southern Ohio & Eastern Kentucky | services, why choose, how we work, territory, proof |
+| `insights/index.html` | **land management advice** hub | Land Management Insights | article index |
+| `insights/*` (×7) | one long-tail question each | e.g. Brush Hogging vs Forestry Mulching: Which One Do You Need? | see each article |
+
+### Terms deliberately assigned
+
+| Term | Owned by | Why not elsewhere |
+|---|---|---|
+| brush hogging | `insights/brush-hogging-vs-forestry-mulching.html` | Comparison intent, not a service we sell. The service pages reference it, never target it. |
+| tree removal | *unassigned* | We do storm and clearing work, not climbing removals. `stormCleanup` states the limit rather than competing for the term. |
+| driveway reclaim | `services/trailCutting.html` (access lanes) | Covered as access work; no separate page until search volume justifies one. |
+| land management | `insights/` hub | Editorial term, not a service line. |
+| Tri-State | *unassigned* | The site names counties and towns instead, which is what people actually type. |
+
+### Heading rule, restated
+
+Content Guideline 2 already said it and the service pages were not following it:
+**an H2 that is not searchable is a design element, not an H2.** Thirty-six were
+rewritten on 2026-08-11. The voice lives in `.sectionKicker` above each heading,
+which is why the topic can sit in the H2 without flattening the page.
+
 ---
 
 ## Content Guidelines

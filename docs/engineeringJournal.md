@@ -4,6 +4,94 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-11 — LOGO MIGRATION, COPY CLEANUP, ON-PAGE SEO SWEEP
+
+### Brief
+
+Three passes in one session: retire the old primary logo for one of two newer assets, strip the dashes that were making the copy read as machine-written, and audit every indexable page for search intent.
+
+### The logo decision was made by measurement, not by looking
+
+Two candidates. The one with the fuller lockup lost on a single number.
+
+```
+  circleBG_logo.png    290x290    alpha mean 0.785
+  newBG_logo.png      1200x1200   alpha mean 1.000
+```
+
+**0.785 is π/4** — the alpha coverage of a circle inscribed in a square. `circleBG_logo.png` is a transparent circular badge with exactly the silhouette of the asset it replaces, which made it a drop-in. **1.000 means fully opaque**: `newBG_logo.png` has white corners and would render as a white box on the header. Its content also occupies only the middle band of a 1200px square, so at the header's 69px slot its tagline would land near 4px.
+
+Rendered at the real header size, the old badge's arc text is an unreadable smear and the new mark is clean. That arc is also where the **FORESTRV** misspelling lives, so the migration retires a debt item that had been open since 2026-08-02 without anyone touching the artwork.
+
+76 references, 24 pages, one 45KB file replacing 215KB + 57KB. Both marks are 1:1 and every rendered size is CSS-driven, so layout could not shift. `newBG_logo.png` is kept for Open Graph, GBP and print, where a white background and room for the tagline are exactly what it wants.
+
+Favicons were checked and left alone: they are a **different mark entirely**, a simplified tree circle, not a small badge.
+
+### 447 em dashes
+
+That was the tell. Not the word choice — the punctuation. The site leaned on the em dash for asides, appositives, definitions, and dramatic pauses, several times per paragraph.
+
+Surveying first was worth it. Of 447, only **213 were unique strings**, because the shared chrome repeats across 24 pages. That turned an intractable edit into 215 hand-written rules.
+
+**Two things the survey got wrong before it got them right:**
+
+- The first extractor split text nodes on newlines, so a sentence that wrapped across three source lines arrived as three fragments and half the rules matched nothing. Rewritten to normalise whole text nodes and re-wrap them at their original indentation afterwards.
+- My first `MAINTENANCE`-style measurement mistake repeated in a new form: an unanchored `href="..."` match read `data-confighref="phoneHref"` as a link and reported nine broken files.
+
+**The structured data was the real trap.** The copy pass protected every `<script>` block, which is correct for JavaScript and wrong for `application/ld+json` — the FAQ answers and service descriptions live there too. Protecting them left schema disagreeing with the visible copy, and Google requires FAQPage answers to match the rendered text. 61 further replacements, every block re-parsed and its key set compared before writing.
+
+Kept deliberately: compound words, numeric ranges, and one en dash in `1–2 day`. It is the only dash left in prose on the site.
+
+Also found while reading every sentence: **British spellings mixed with American ones**, sometimes in neighbouring paragraphs, on an Ohio/Kentucky local business site.
+
+### The site was already good at SEO, and failing its own rule
+
+The audit found 24 of 24 pages with exactly one non-empty H1, no skipped heading levels, unique titles and descriptions, descriptive anchor text, and zero intent collisions. The location pages in particular are strong: exact-match H1s over genuinely local content.
+
+What it also found: the **service pages were breaking the site's own Content Guideline 2** — "Every H2 is a real search intent. If it isn't searchable, it's a design element, not an H2." Their H2s were `Marked, Cleared, Walked`, `Thickets Back to Clean Ground`, `Precise Where It Has to Be`. Good writing sitting exactly where a topic needed to be.
+
+The fix was available because of how the pages are already built: **every section carries a `.sectionKicker` above its heading** ("How It Runs", "Real Jobs", "Straight Answers"). The voice lives there. So the topic could move into the H2 without flattening anything. 36 headings rewritten, each page's set covering distinct subtopics rather than the repetitive "X Services / Best X Services" pattern that a keyword pass produces.
+
+### The homepage H1 was broken in a way only a crawler would see
+
+```html
+<span class="heroHeadlineFixed">Take Back</span>
+<span class="heroTypedWrap"> ...animated, aria-hidden... </span>
+<span class="visuallyHidden">Take back your property.</span>
+```
+
+Rendered: "Take Back" plus a typed phrase. Crawled: **"Take Back Take back your property."** Duplicated, and carrying no service and no geography on the most important page of the site.
+
+**The first fix was wrong.** I added `aria-hidden="true"` to the fixed span, which cleaned the accessibility tree and changed nothing about indexing — `aria-hidden` is not `display: none`. Reverted. The correct fix was to make the hidden fallback *complete* the visible phrase instead of repeating it:
+
+```
+Take Back your property. Forestry mulching and land clearing in
+Southern Ohio and Eastern Kentucky.
+```
+
+Which is now what both a screen reader and a crawler get, and it matches what a sighted visitor sees.
+
+### Three FAQ schema mismatches, all pre-existing
+
+`validateSeo` compares every `FAQPage` question against the rendered text. Three did not match, on three different service pages. In all three the schema carried the longer, better-targeted phrasing and the page carried a shortened version, so the **rendered question moved to match the schema** rather than the reverse. That fixes a guidelines violation and improves the heading at the same time.
+
+### Files touched
+
+- `graphics/logos/web/bluegridMark290.png` — new, plus the two client source assets committed
+- **24 HTML pages** — logo references, 440 copy rewrites, 61 schema rewrites, 36 H2s, 4 H1s, 4 metadata fixes, 3 editorial links
+- `docs/seoPlan.md` — the intent map
+- `docs/` — the other three
+
+### Validation
+
+Ten suites green, plus `node --check` and CSS brace balance. **New: `validateSeo`** — one H1 per page, heading hierarchy, title and description uniqueness and budget, canonicals, breadcrumbs, per-page-kind schema, FAQ schema matching rendered questions, alt coverage, anchor text quality, content-level inbound links (chrome links do not count), and H1 intent collision.
+
+### Left for a browser
+
+The new header mark at every breakpoint, and the footer badge at 120px where a 290px source is doing the most work. Whether the rewritten H2s still read like the same site — that is a judgement about voice, and 36 of them changed.
+
+---
+
 ## 2026-08-09 — OUR COMPANY MEGA MENU, COMPANY PAGE, TWO-PHASE PROCESS ANIMATION
 
 ### Brief
