@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-11 (estimate CTA arrival fix + notification config restore)
+**Last updated:** 2026-08-11 (estimate CTAs open the modal directly, superseding the arrival-focus fix)
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -48,7 +48,9 @@ Before launch: open the homepage on a real phone and confirm the hero photo ends
 
 4c. **Whether the rewritten H2s still sound like the same site.** 36 headings moved from brand voice to topic on 2026-08-11. The reasoning is sound and the kickers still carry the rhythm, but that is a judgement about tone and it has not been read on a screen.
 
-4e. **"Get My Free Estimate" on the homepage, at a real desktop width.** Click it and confirm `#fullName` visibly receives focus — a focus ring, or the caret in "Full Name" — even though the scroll itself is short or imperceptible (the hero and the mini form share one `100svh` section by design; see the 2026-08-11 journal entry). Then click it from an interior page, where the scroll is large, and confirm focus lands the same way. Then check that browser back-navigation after either still returns to the exact prior scroll position.
+4e. ~~"Get My Free Estimate" arrival focus~~ — **superseded.** The scroll-and-focus fix this item described was replaced the same day: estimate CTAs now open the modal directly (see below), so there is no scroll to confirm. See 4f.
+
+4f. **Every "Get My Free Estimate" CTA, opening the modal directly.** Click one from the header, then the hero, then the mobile floating bar, then a footer/mega-menu link, on both the homepage and an interior page. Confirm: no visible scroll or page movement before the modal appears; Step 1 shows all five fields (Name, Phone, Service, Address, Acres) under the heading "Where's the property?" — check whether that heading reads oddly now that it asks for more than the property, since it was deliberately left unedited; close and reopen the modal mid-fill and confirm it resumes rather than resets; and that the mini-form's own Continue button (still on the page, now feeding the modal instead of asking twice) carries its three fields into Step 1 pre-filled, not blank.
 
 6. **The company page** top to bottom — it reuses eight existing interior-page components in a combination none of them have been seen in.
 7. **The header at 1361px and 1360px**, where the compact band now starts, and at 1201px, the last desktop width.
@@ -140,6 +142,10 @@ Eleven suites, the guarded assemblers, the font-metric models, the copy-rewrite 
 Found 2026-08-11: the working tree held `DEFAULT_NOTIFICATION_EMAIL = 'admin@nulostudio.com'` in `appsScript/config.gs`, an **uncommitted** change — `git log --all -p` shows only `'Bluegridls@gmail.com'` was ever committed. `appsScript/localTestRunner.js` already asserts `no recipient anywhere is admin@nulostudio.com`, and running it against the corrupted file failed that exact check, proving the drift rather than merely suspecting it. Reverted; the file now matches `HEAD` byte for byte.
 Real exposure was narrow — `notifications.gs` only reaches this constant when the Sheet's `config.notificationEmail` cell is blank or missing — but the failure mode if it had shipped is serious: customer lead notifications routing to Nulo Studio instead of the client, which `notifications.gs`'s own header comment says must never happen.
 **Nothing would have caught this before a commit.** The harness that proves it wrong only runs when someone remembers to run it; there is no pre-commit hook, and the validator toolchain itself lives outside the repo (item 10i) so there is nothing to point a hook at yet. Worth a look once 10i is addressed: run `appsScript/localTestRunner.js` as part of whatever makes the validators self-checking.
+
+### 10m. Modal Step 1's heading undersells what it asks for
+`data-step="1"`'s heading still reads **"Where's the property?"**, unchanged since it was written for a step that asked only for address and acres. As of 2026-08-11 the same step also collects Full Name, Phone, and Service Needed — three fields the heading gives no hint of.
+**Left as-is deliberately**, per explicit instruction not to touch copy while fixing the CTA behavior. A landowner mid-form is unlikely to be confused (the labels are self-explanatory), but the heading is now doing less work than it should. **Fix, next time copy is in scope:** something like "Tell us about you and the property" — a two-line change, no validation or field impact.
 
 ### 10j. Structured data duplicates rendered copy with nothing enforcing the match
 FAQ answers and service descriptions exist twice on the same page: once rendered, once inside `application/ld+json`. Google requires `FAQPage` questions and answers to match the visible text.
@@ -306,5 +312,7 @@ Recorded so future sessions do not "fix" them:
 | Fifth nav item did not fit the header | 2026-08-09 | Switch 1150→1200px, compact band 1280→1360px. Nothing shrunk. See item 20. |
 | The header model carried its own copy of the nav | 2026-08-09 | `measureHeader` reads `index.html`. It had been describing a four-item bar. |
 | Mega-menu row rules were services-branded | 2026-08-09 | Company classes joined the existing selector groups rather than copying declarations — one block, two names, so the panels cannot drift. |
-| "Get My Free Estimate" read as broken on the homepage | 2026-08-11 | Not a routing bug — audited 227 estimate/quote anchors on 24 pages, all bare `#estimateForm` fragments, no cross-page or path issue anywhere. Root cause: `.heroSection` is `min-height: 100svh` and `.estimateFormCard` sits inside that same section beside `.heroContent`, so the CTA and its target can already share one screen and the native scroll is a few pixels or zero. Fixed by focusing `#fullName` on click (`preventScroll: true`, no `preventDefault`), giving unambiguous arrival regardless of scroll distance. |
+| "Get My Free Estimate" read as broken on the homepage | 2026-08-11, **superseded same day** | Not a routing bug — audited 227 estimate/quote anchors on 24 pages, all bare `#estimateForm` fragments, no cross-page or path issue. First fix: focus `#fullName` on click, giving unambiguous arrival regardless of scroll distance. **Real browser QA showed this wasn't what was wanted** — see the next row. |
 | `DEFAULT_NOTIFICATION_EMAIL` held an uncommitted, wrong value | 2026-08-11 | Working tree had `admin@nulostudio.com`; only `Bluegridls@gmail.com` was ever committed. `localTestRunner.js`'s own guard caught it (`to=admin@nulostudio.com`) once run. Reverted to match `HEAD`. See item 10l for the recurrence risk. |
+| Estimate CTAs scrolled to the mini-form instead of opening the modal | 2026-08-11 | Every `a[href="#estimateForm"]` now calls `preventDefault()` and `openEstimateModal()` directly. Required adding Name/Phone/Service to the modal's Step 1 first — see the next row — because opening the modal without them would have silently rejected every submission server-side. |
+| The modal could not be opened on its own (missing Name/Phone/Service) | 2026-08-11 | Modal Step 1 gained `modalFullName`/`modalPhone`/`modalServiceNeeded`, same copy and enum order as the mini-form. `buildEstimatePayload()`, `validateModalStep(1)`, `buildReviewSummary()`, and `showSubmissionError()` repointed at the new ids — verified twice, once by static check and once by actually running the real script against a mocked DOM and inspecting the captured submission payload (`simulateEstimateFlow.js`), both proven to catch the defect by injecting it first. |

@@ -4,6 +4,58 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-11 — ESTIMATE CTAs OPEN THE MODAL DIRECTLY  (supersedes the arrival-focus fix)
+
+### Brief
+
+The previous fix (scroll to the mini-form, focus its first field) did not solve the reported problem — real browser QA confirmed the page still scrolls and repositions. The actual requirement, stated plainly this time: every true estimate CTA should open the existing multi-step modal directly, starting at Step 1, with no anchor jump at all.
+
+### What "open the modal directly" actually required
+
+Audited `openEstimateModal()` and the modal's markup before touching anything, per instruction. Finding: **the modal's 5 steps never ask for Full Name, Phone, or Service Needed.** Step 1 is "Where's the property?" (address, acres). Step 3 is "How do we reach you?" (email, contact preference, best time). Those three fields exist in exactly one place — the hero mini-form (`#estimateForm`) — and `buildEstimatePayload()` read them straight from that form's DOM elements.
+
+`appsScript/config.gs` hard-requires all three server-side (`REQUIRED_CREATE_FIELDS`). Traced `showSubmissionError()`'s field-mapping too: a server rejection on `fullName`/`phone`/`serviceNeeded` reveals the error on `#fullNameError`/`#phoneError`/`#serviceNeededError` — elements that live in the mini-form, not anywhere inside the modal. So the literal implementation of "open the modal directly, skip the mini-form" produced a specific, verifiable failure mode: a visitor completes all 5 steps, clicks Submit, and gets "please check the highlighted details" pointing at nothing they can see, every single time. No lead is created through any CTA that took this path.
+
+That is a direct conflict between two things both explicitly required — "open the modal directly" and "preserve all existing modal validation/submission behavior" / "do not redesign anything." Rather than guess which one gives, surfaced the finding and three concrete resolutions (add the fields to the modal; keep the scroll-focus architecture; ship it broken as literally specified) and asked. The chosen path: add the three fields to the modal.
+
+### What changed
+
+Modal Step 1 gained three fields — same labels, same copy, same validators, same `serviceNeeded` enum order as the mini-form (verified against `appsScript/config.gs` programmatically before writing anything) — at new ids: `modalFullName`, `modalPhone`, `modalServiceNeeded`. The step heading, "Where's the property?", was left exactly as it reads today, per instruction not to touch copy — it now describes only two of the step's five fields. Recorded as a known, deliberate trade-off, not an oversight.
+
+The mini-form is completely untouched: same three fields at their original ids, same `validateMiniForm()`, Continue is still a plain `type="submit"` button. It now calls one new function, `copyMiniFormIntoModal()`, immediately before `openEstimateModal()` — copying whatever was just typed into the modal's new fields, so "Continue... with the entered data" is literally true rather than asking twice.
+
+Every `a[href="#estimateForm"]` — 131 of them, wired once in the shared script — now has a click handler that calls `preventDefault()` and `openEstimateModal()`. The mini-form's Continue button was never one of these anchors (it is a `<button>` inside the form, not an `<a>`), so it needed no change to stay excluded.
+
+**The change that mattered most:** `buildEstimatePayload()`, `validateModalStep(1)`, `buildReviewSummary()`, and `showSubmissionError()` all had to be repointed at the modal's own fields. Leaving even one of them reading the mini-form's ids would have shipped a silent, hard-to-notice defect — the modal would look and behave correctly right up until the payload left the browser with a blank `fullName` or `phone` for anyone who used a direct CTA. This is exactly the failure class the whole investigation started by ruling out; the fix had to not reintroduce it through a missed reference.
+
+`openEstimateModal()` itself was deliberately left alone. `currentModalStep` already starts at 1, so a first-time visitor lands on Step 1 regardless of which CTA opened it — the requirement is satisfied without touching the function. The existing "closing and reopening keeps every value and the current step" behavior (an intentional, documented feature — "nothing is ever re-entered") was preserved rather than force-reset, since resetting it on every CTA click would have discarded a visitor's in-progress fill the moment they clicked a second CTA by mistake.
+
+### Validation had to prove behavior, not just presence
+
+The static validator from the previous session (`validateEstimateCtas.js`) asserted the *opposite* of the new architecture — no `preventDefault`, focus the mini-form — and would have reported a green build on a completely broken implementation if left as-is. Rewrote it: mini-form untouched, modal Step 1 carries the three fields with the right enum order, no duplicate ids anywhere, the CTA listener calls `preventDefault()` + `openEstimateModal()`, and — the load-bearing checks — `buildEstimatePayload()` reads `fullName`/`phone`/`serviceNeeded` from the modal's ids and explicitly does *not* read them from the mini-form's.
+
+Static checks confirm the right strings are in the right functions; they don't prove the code actually behaves correctly when run. Built `simulateEstimateFlow.js` to close that gap: it loads the real `js/indexJS.js` into a hand-built DOM mock (no new dependency — same `vm.runInContext` pattern `localTestRunner.js` and `validateProcessSequence.js` already use) and actually drives both real paths:
+
+- **Direct CTA** — dispatch a click on a mocked header/hero/footer anchor, confirm `preventDefault` fired and the modal opened with the mini-form untouched, confirm Step 1 genuinely rejects an empty submission (not just that error markup exists), fill all five fields, submit, and inspect the captured (never sent) network payload.
+- **Mini-form Continue** — fill the three mini-form fields, confirm `validateMiniForm()` passes, call the same handoff the real submit event triggers, confirm Step 1 arrives pre-filled with exactly those values and still correctly blocks on the two fields Continue can't know (address, acres), complete it, submit, and inspect that payload too.
+
+25 functional assertions, all passing against the real script. Both this harness and the rewritten static validator were proven to have teeth the same way: reverted `buildEstimatePayload()`'s `fullName` read to the mini-form's id, confirmed each caught it independently with a precise failure message, then restored the file.
+
+### Files touched
+
+- `js/indexJS.js` — CTA listener, `copyMiniFormIntoModal()` (new), `validateModalStep(1)`, `buildEstimatePayload()`, `buildReviewSummary()`, `showSubmissionError()`
+- **24 HTML pages** — three new fields in modal Step 1, by one guarded assembler that matched the existing Step 1 markup byte-for-byte on every page before writing
+
+### Validation
+
+12 suites green (the eleven standing plus the new `simulateEstimateFlow`), Apps Script harness 64/64 — unchanged, since nothing on the backend was touched — `node --check`, CSS brace balance.
+
+### Left for a browser
+
+The actual click-through: does Step 1 read reasonably with five fields under a heading that only names one of them? Does the modal feel like it opened *instead of* the page moving, with no visible scroll or flash of the old anchor behavior? Confirm close/reopen still resumes correctly, and that the mini-form's Continue path — now carrying data across into a modal step that was blank before — doesn't feel like a jump.
+
+---
+
 ## 2026-08-11 — ESTIMATE CTA ARRIVAL FIX + NOTIFICATION CONFIG RESTORE
 
 ### Brief
