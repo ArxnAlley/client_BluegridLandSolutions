@@ -3,8 +3,8 @@
 **Last updated:** 2026-08-13 (lead pipeline finalization)
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
-**Last content commit:** this session's lead-pipeline commit — photo storage and the identifier split
-**HEAD:** that commit, two above `afb7868` (the previous closeout)
+**Last content commit:** `18c8845` — lead pipeline: photo storage in Drive, `leadId` split from `referenceId`
+**HEAD:** `18c8845`, one above `afb7868` (the previous session's closeout)
 **Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git` — **current, verified via `git remote -v`.** The old stale-URL debt (item 10h) is resolved; someone corrected it outside any session recorded here.
 **Sync:** `main` was **1 ahead / 0 behind** at the start of this session (the previous closeout commit, `afb7868`, unpushed). This session adds one more, so `main` is now **2 ahead**. Nothing has been pushed, per instruction. Verify with `git rev-list --left-right --count origin/main...HEAD` rather than trusting this line — `origin/main` has moved without a session recording it before.
 **Working tree:** clean
