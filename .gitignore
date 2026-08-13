@@ -16,3 +16,10 @@
 # Kept locally so the owner has them to hand; not uploaded.
 
 graphics/GBP - Services/
+
+# ── Local session-closeout SOP ──
+#
+# A workflow instruction file for Claude sessions, not project content.
+# Stays local; never tracked, never committed.
+
+docs/sessionCloseout.md

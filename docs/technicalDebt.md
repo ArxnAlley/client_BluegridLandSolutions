@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-11 (estimate CTAs open the modal directly, superseding the arrival-focus fix)
+**Last updated:** 2026-08-13 (session closeout — live lead test findings, remote-URL fix confirmed, lead-pipeline gaps promoted to high priority)
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -128,10 +128,8 @@ Checked properly — every rendered title on all eight boards, uppercased as `te
 
 **If Aron still sees clipping after this, the mechanism is genuinely outside the box model** — browser zoom, a device pixel ratio effect, or something the static model cannot represent — and the next session should get a real browser on it rather than re-deriving the arithmetic, which is now known to be clean.
 
-### 10h. The Git remote URL is stale
-GitHub reports the repository has moved to `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, but `origin` still points at `https://github.com/ArxnAlley/BluegridLandSolutions.git`.
-Pushes currently succeed **via GitHub's redirect only.** That redirect stops working the moment anyone creates a new repository under the old name, at which point pushes would fail or — worse — land somewhere unintended.
-**Fix:** `git remote set-url origin https://github.com/ArxnAlley/client_BluegridLandSolutions.git`. Requested on 2026-08-07 and then superseded by other work before it ran.
+### 10h. ~~The Git remote URL is stale~~ — RESOLVED, confirmed at 2026-08-13 closeout
+`origin` now points at `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, verified via `git remote -v`. No session recorded here ran the fix, and `origin/main` was also found to have moved ahead by a push this repository's history doesn't show — both point to activity happening outside these sessions, which is fine, just worth knowing the working tree isn't the only place this project changes.
 
 ### 10i. The validator toolchain lives outside the repository
 Eleven suites, the guarded assemblers, the font-metric models, the copy-rewrite tables, the SEO intent checks, and now the estimate-CTA checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
@@ -217,8 +215,14 @@ Harmless but it ships to visitors' hosting. Left in place because it is the clie
 ### 23. `dashboardMetrics` tab is created empty
 `setupSpreadsheet()` creates the tab but writes no formulas. The formula set is specified in `docs/googleSheetArchitecture.md` but must be entered by hand. The dashboard SPA (Phase 2) computes its own numbers and does not read this tab, so nothing is blocked.
 
-### 24. Photo upload not implemented
-Phase 1 records `photoCount` and `photoNames` only; no bytes are uploaded and `photoUrls` stays `[]`. The owner email says so explicitly. `leads.addPhotos` is specced in `phase11PhotoUploadService.md`; `routes.gs` is the extension point.
+### 24. Photo upload not implemented — **PROMOTED TO HIGH PRIORITY, 2026-08-13**
+Phase 1 records `photoCount` and `photoNames` only; no bytes are uploaded and `photoUrls` stays `[]` (`appsScript/leads.gs`). The owner email says so explicitly (`appsScript/notifications.gs`). `leads.addPhotos` is specced in `phase11PhotoUploadService.md`; `routes.gs` is the extension point.
+**Was low priority; a real live lead test on 2026-08-13 made it a felt problem rather than a documented gap** — the owner received a notification naming a photo he could not open. This is the exact behavior the code has always guaranteed, but "known limitation" and "the owner just hit this" carry different urgency. **Now the next session's resume task** — see `projectState.md`'s *High-Priority Resume Task* section. The phase-11 spec predates the current single-repo layout (it references separate `BlueGridAPI`/`BlueGridDashboard` folders) and assumes today's `leadId` format for its dedupe key — reconcile both rather than following it blindly; see item 24a, which is entangled with this one.
+
+### 24a. Lead identifier has no internal/customer-facing split
+`leadId` is a single field today: client-generated, `'BG-' + Date.now()` (millisecond timestamp), and it is the *only* dedupe key — `handleCreateLead()` takes a `LockService` lock, then checks `findLeadById()` on this value before writing, so a retry with the same id collapses into the existing row. That is the entire idempotency mechanism.
+**Desired, from the 2026-08-13 session:** a short sequential `leadId` for internal use (`BG-0001`, `BG-0002`, ...) and the current long id repurposed as a customer-facing `referenceId`, both present in the Sheet, sequential assignment concurrency-safe, retries never consuming an id or duplicating a row, no destructive change to existing rows.
+**Why it's not a quick rename:** a client cannot safely generate race-free sequential numbers — assignment has to move inside the server's existing lock-protected section. `LEADS_HEADERS`' own comment in `leads.gs` forbids renaming columns or inserting mid-contract, which should drive whichever schema migration gets chosen. **Not started.** Entangled with item 24 because the photo spec's dedupe assumption is written against today's id format. Full requirements in `projectState.md`'s *High-Priority Resume Task* section — deliberately not designed here, since the safest migration path needs to be determined with the actual implementation in front of it, not guessed at closeout.
 
 ### 25. No Lighthouse / performance pass yet
 Deferred until the higher-priority items clear. Known candidates: hero images are full-resolution `2048×1536` with no responsive `srcset`; Google Fonts loads render-blocking.
@@ -316,3 +320,5 @@ Recorded so future sessions do not "fix" them:
 | `DEFAULT_NOTIFICATION_EMAIL` held an uncommitted, wrong value | 2026-08-11 | Working tree had `admin@nulostudio.com`; only `Bluegridls@gmail.com` was ever committed. `localTestRunner.js`'s own guard caught it (`to=admin@nulostudio.com`) once run. Reverted to match `HEAD`. See item 10l for the recurrence risk. |
 | Estimate CTAs scrolled to the mini-form instead of opening the modal | 2026-08-11 | Every `a[href="#estimateForm"]` now calls `preventDefault()` and `openEstimateModal()` directly. Required adding Name/Phone/Service to the modal's Step 1 first — see the next row — because opening the modal without them would have silently rejected every submission server-side. |
 | The modal could not be opened on its own (missing Name/Phone/Service) | 2026-08-11 | Modal Step 1 gained `modalFullName`/`modalPhone`/`modalServiceNeeded`, same copy and enum order as the mini-form. `buildEstimatePayload()`, `validateModalStep(1)`, `buildReviewSummary()`, and `showSubmissionError()` repointed at the new ids — verified twice, once by static check and once by actually running the real script against a mocked DOM and inspecting the captured submission payload (`simulateEstimateFlow.js`), both proven to catch the defect by injecting it first. |
+| Git remote pointed at the old repository name | confirmed resolved 2026-08-13 | `origin` now reads `.../client_BluegridLandSolutions.git`. Fixed outside any session recorded here — worth knowing this repo isn't the only place things change. |
+| Whether the estimate pipeline actually works end to end | reported 2026-08-13 by Aron, not independently verified | A real submission reached the Sheet; the owner notification reached a test recipient with correct field data. Surfaced, not resolved: the photo attached to that lead was not actually accessible — see item 24, promoted to high priority the same day. |

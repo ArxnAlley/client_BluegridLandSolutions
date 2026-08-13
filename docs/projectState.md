@@ -1,15 +1,13 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-13 (session closeout)
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
 **Last content commit:** `5e559d9` — estimate CTAs open the modal directly instead of scrolling to it
-**HEAD:** this session's docs commit, sitting one above `5e559d9`
-**Remote:** `origin` → `https://github.com/ArxnAlley/BluegridLandSolutions.git` — **stale, see Waiting on Aron**
-**Sync:** `main` is **11 ahead of** `origin/main` — nothing since 2026-08-07 has been pushed.
+**HEAD:** this session's closeout commit, two above `5e559d9` (after `ab802b9`, docs-only)
+**Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git` — **current, verified via `git remote -v`.** The old stale-URL debt (item 10h) is resolved; someone corrected it outside any session recorded here.
+**Sync:** `origin/main` was found equal to local `HEAD` (`ab802b9`) at the start of this session — **0 ahead / 0 behind**, verified with `git rev-list --left-right --count`. A push happened since the last session's close (which had `main` 12 ahead); nothing in this repo's history shows who ran it. This closeout's own commit will put `main` **1 ahead** again, and per instruction is not being pushed.
 **Working tree:** clean
-
-**Note on this header:** the previous entry (pointing at `0dac40f`) had gone stale within its own commit — `6580de8` (the mobile floating CTA fix) updated the other two docs but not this line. Corrected here rather than carried forward; the repository's actual commit graph is always the authority, not this file.
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
 > Read this file first. `engineeringJournal.md` has the reasoning; `technicalDebt.md` has what is knowingly deferred.
@@ -21,7 +19,7 @@
 
 ## Current Phase
 
-**Between phases. Nothing is half-finished and the working tree is clean.** All content work is merged into `main` and pushed; only this closeout's docs commit is unpushed.
+**Between phases. Nothing is half-finished and the working tree is clean.** All work through `ab802b9` is on `origin/main`; only this closeout's own commit is unpushed, per instruction.
 
 | Phase | State |
 |---|---|
@@ -47,6 +45,8 @@
 | **Mobile floating CTA — bottom edge clipping** | **Complete** |
 | **Estimate CTA arrival fix + notification config restore** | Complete, **superseded same day** — see below |
 | **Estimate CTAs open the modal directly** | **Complete** |
+| **Live end-to-end lead test** (Aron, test recipient) | Partial — see *Completed Work* below and the high-priority resume task |
+| **Session closeout SOP** (`docs/sessionCloseout.md`, gitignored) | **Complete** |
 
 **The production domain is the only outright launch blocker.**
 
@@ -298,6 +298,20 @@ Every `a[href="#estimateForm"]` (131 anchors, one shared script) now calls `prev
 
 **Validated two ways.** `validateEstimateCtas.js` was rewritten (its prior version asserted the opposite architecture and would have passed a broken build). New `simulateEstimateFlow.js` goes further: it loads the real `js/indexJS.js` into a hand-built DOM mock and actually drives both the direct-CTA path and the mini-form-Continue path through to a captured, never-sent submission payload — 25 assertions against real execution, not string matching. Both were proven to have teeth by injecting the payload-source regression and confirming each caught it independently before restoring the file.
 
+### Live lead test — reported by Aron, 2026-08-13
+
+**Not independently verified by this session** — this repository has no access to the live Google Sheet, the test inbox, or the Apps Script execution log. Recorded as Aron reported it, because it is real project truth and drives the next session's priority, but flagged clearly as unverified-by-repo rather than confirmed.
+
+Aron reports:
+- A real submission through the live site reached the `BlueGrid Leads` Sheet.
+- The owner notification reached the temporary test recipient (the Sheet's `config!notificationEmail` was pointed at a test address for this — see *Waiting on Aron* below for restoring it to Chase's address before any further real submissions).
+- Lead field data (name, phone, service, etc.) arrived correctly in that notification.
+- A photo was attached to the submission and its **filename** was recognized and reported in the notification — matching exactly what the code guarantees today (`appsScript/notifications.gs`: *"photos are not uploaded yet — reply or text the customer to request them"*). **The owner could not actually access the photo.** This is not a new defect; `photoUrls` has always stayed `[]` (`technicalDebt.md` item 24, pre-existing since Phase 1). The live test is what makes it a felt, urgent gap rather than a documented theoretical one — see the resume task below.
+
+### Session closeout SOP
+
+Created `docs/sessionCloseout.md` — a local, gitignored workflow document instructing any future session how to close out cleanly (inspect real repo state, update the three continuity docs, run validation, commit locally, never push automatically, hand off a compact summary). Verified four ways before writing anything else: `git status --short` does not list it, `git ls-files --error-unmatch` confirms it was never tracked, `git check-ignore -v` resolves it to the new `.gitignore` rule, and `git status --ignored` shows it with the `!!` (ignored) marker. Nothing needed removing from tracking — it was never added.
+
 ### Merge, push, and housekeeping
 `phase2a-lead-capture` merged into `main` as a clean **fast-forward** (`8108f94..bc4021d`), 17 commits, 42 files, 52,050 insertions, **zero deletions**; the single rename is the Phase 2C `hero_after.JPG → after.JPG` casing fix. Full validation re-run on `main` after the merge — 12/12. Pushed `main → origin/main`. The feature branch was **not deleted** and still exists at `bc4021d`, 8 ahead of `origin/phase2a-lead-capture`. Then the GBP housekeeping commit `9237e53`.
 
@@ -305,24 +319,29 @@ Every `a[href="#estimateForm"]` (131 anchors, one shared script) now calls `prev
 
 ## Currently In Progress
 
-**Nothing.** Working tree clean, all validators pass. `main` is 11 ahead of `origin/main` and nothing has been pushed since `9237e53`.
+**Nothing.** Working tree clean, all validators pass. `origin/main` matched local `HEAD` (`ab802b9`) at the start of this session; this closeout commit puts `main` 1 ahead again and is not being pushed, per instruction.
 
 ---
 
 ## Remaining Launch Work (priority order)
 
-1. **Settle the production domain** — blocks 2–5. Canonicals say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`.
-2. **`robots.txt`** — does not exist.
-3. **`sitemap.xml`** — does not exist. Needs **24 URLs** today, 29 once location rows 7–11 ship.
-4. **Canonical URL finalization** — 24 pages, every one `TODO:`-marked so a single sweep catches them.
-5. **Open Graph finalization** — same 24 pages; `og:url` and `og:image` must become absolute.
-6. **One real end-to-end lead submission** from the live site. Never run by this project — that path writes a row and emails both the owner and the customer.
-7. **Visual browser QA.** No session has ever had a browser. Largest untested-by-eye items: the three mega panels side by side, the process section, the hero typing, the process board on tablet.
-8. **Search Console** — property verification and sitemap submission, after 1–3.
-9. **Lighthouse mobile + desktop** — hero images are full-resolution `2048×1536` with no `srcset`; Google Fonts loads render-blocking.
-10. **Location pages rows 7–11** — Jackson OH, Gallipolis OH, Waverly OH, Greenup KY, Louisa KY. Build to the shipped six, not a template.
-11. **Decide West Union, OH and Flatwoods, KY** — advertised in the nav but absent from `seoPlan.md`'s 11-city table.
-12. **Google Business Profile** — none exists. `docs/phasePrompts/phase6GoogleBusinessProfile.md` holds the playbook. Marketing artwork is already being staged locally in `graphics/GBP - Services/`.
+1. **Finalize the lead pipeline — HIGH PRIORITY, the next session's resume task.** Photo accessibility (owner cannot open submitted photos, only see the filename) and lead-id architecture (split the current long generated id into an internal sequential `leadId` and a customer-facing `referenceId`). Full detail in *Waiting on Aron* and the dedicated section below. **Not started — deliberately left for next session.**
+2. **Restore `config!notificationEmail` to Chase's address.** Temporarily pointed at a test recipient for the live test above; no repo-level record of whether it has been restored. Verify before any further real submissions.
+3. **Settle the production domain** — blocks 5–8 below. Canonicals say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`.
+4. **Page-by-page copy and browser QA.** No session has ever had a browser. Largest untested-by-eye items: the three mega panels side by side, the process section, the hero typing, the process board on tablet, the estimate modal's new Step 1 (five fields under a heading that still says "Where's the property?" — `technicalDebt.md` item 10m).
+5. **`robots.txt`** — does not exist.
+6. **`sitemap.xml`** — does not exist. Needs **24 URLs** today, 29 once location rows 7–11 ship.
+7. **Canonical URL finalization** — 24 pages, every one `TODO:`-marked so a single sweep catches them.
+8. **Open Graph finalization** — same 24 pages; `og:url` and `og:image` must become absolute.
+9. **Competitor and search-intent research**, feeding into **final SEO implementation** on top of the intent map already in `seoPlan.md`.
+10. **Chase review / major revision pass** — the first time the client sees the site as a whole, after the pipeline and copy are solid. Expect a real round of change requests, not a formality.
+11. **Search Console** — property verification and sitemap submission, after 3, 5, 6.
+12. **Lighthouse mobile + desktop** — hero images are full-resolution `2048×1536` with no `srcset`; Google Fonts loads render-blocking.
+13. **Production deployment**, then **production performance / analytics / Search Console testing** against the live domain.
+14. **Final production lead test, with Chase restored as the recipient** — the real go-live confirmation, after everything above.
+15. **Location pages rows 7–11** — Jackson OH, Gallipolis OH, Waverly OH, Greenup KY, Louisa KY. Build to the shipped six, not a template.
+16. **Decide West Union, OH and Flatwoods, KY** — advertised in the nav but absent from `seoPlan.md`'s 11-city table.
+17. **Google Business Profile** — none exists. `docs/phasePrompts/phase6GoogleBusinessProfile.md` holds the playbook. Marketing artwork is already being staged locally in `graphics/GBP - Services/`.
 
 ---
 
@@ -330,8 +349,39 @@ Every `a[href="#estimateForm"]` (131 anchors, one shared script) now calls `prev
 
 | # | Blocker | Impact |
 |---|---|---|
-| 1 | **Production domain undecided** | The only outright launch blocker. Gates `robots.txt`, `sitemap.xml`, canonicals, OG URLs across 24 pages, and Search Console. |
-| 2 | `MODULE_API_KEY` state unknown | Cannot be checked from outside — `leads.list` returns `UNAUTHORIZED` whether the key is unset or merely not supplied. Blocks only a future dashboard, never the public form. |
+| 1 | **Lead pipeline not finalized** | Photos are collected but not accessible to the owner; the lead identifier is not yet split into internal/customer-facing forms. Blocks a real production launch even once the domain is settled. See the dedicated section below. |
+| 2 | **`config!notificationEmail` may still point at a test address** | Unverifiable from this repo. If not restored, a real customer submission would not reach Chase. |
+| 3 | **Production domain undecided** | Gates `robots.txt`, `sitemap.xml`, canonicals, OG URLs across 24 pages, and Search Console. |
+| 4 | `MODULE_API_KEY` state unknown | Cannot be checked from outside — `leads.list` returns `UNAUTHORIZED` whether the key is unset or merely not supplied. Blocks only a future dashboard, never the public form. |
+
+---
+
+## High-Priority Resume Task — Lead Pipeline Finalization
+
+**Not started. This is deliberately the first work item for the next session, not something to begin now.**
+
+### A. Photo accessibility
+
+The live test confirmed the exact gap `technicalDebt.md` item 24 already documented: a submitted photo's **filename** reaches the owner notification; the photo itself does not. `appsScript/leads.gs` hard-codes `photoUrls: []`, and `notifications.gs` says so explicitly in the owner email.
+
+Trace the full path — website → Apps Script → photo storage → Sheet → owner notification — and implement real access, preferably persistent storage (Drive is the existing pattern elsewhere in this client's stack) with usable links in the notification and the Sheet. `docs/phasePrompts/phase11PhotoUploadService.md` specs this in detail but predates the current single-repo layout (it references separate `BlueGridAPI`/`BlueGridDashboard` folders that no longer exist as such) — reconcile paths, don't follow them blindly. It also assumes the current `leadId` format for its dedupe key (`^BG-\d{13}$`), which is the other half of this task and will need to change together with it.
+
+### B. Lead id / reference id separation
+
+**Current state, verified in `appsScript/leads.gs`:** `leadId: 'BG-' + Date.now()` — a client-generated, millisecond-timestamp id. It is the sole dedupe key: `handleCreateLead()` takes a global `LockService` lock, then checks `findLeadById(sheet, leadId)` before writing, so a retry with the same id collapses into the existing row. This is the entire idempotency mechanism today.
+
+**Desired end state:**
+- `leadId` (internal) becomes sequential — `BG-0001`, `BG-0002`, ...
+- The current long generated id becomes `referenceId` — the customer-facing confirmation number
+- Both columns exist in the Sheet
+- Sequential assignment is concurrency-safe
+- Retries/duplicates never consume a sequential id or create a duplicate row
+- Idempotency is preserved
+- No destructive change to existing Sheet data
+
+**Why this is real design work, not a rename:** the client currently generates the dedupe key, and a client cannot safely hand out race-free sequential numbers — that assignment has to move inside the server's existing `LockService`-protected section, which already serializes writes for exactly this reason. `LEADS_HEADERS`' own header comment in `leads.gs` says columns are "append-only once deployed... renames are forbidden" — that constraint should drive the schema choice (most likely: keep the dedupe key working exactly as it does today under whatever column ends up holding it, and add rather than rename). The next session should determine the safest migration, not assume one.
+
+**Also required:** update `setupSpreadsheet()` / migration logic as needed, update the Apps Script test harness and any relevant validator, determine the exact Apps Script update/redeployment procedure (the live deployment is a separately pasted copy — see `appsScript/README.md`), and run one more real end-to-end submission afterward.
 
 ---
 
@@ -341,42 +391,38 @@ Every `a[href="#estimateForm"]` (131 anchors, one shared script) now calls `prev
 - **Confirm Rowan County / Morehead coverage.** If Chase does not work Rowan County, the Morehead page and all four data entries come back out.
 - **Real project photos** — ideally before/after pairs per service, tagged by location. Would unlock galleries on all 6 location pages and replace the Insights placeholders.
 - **Owner introduction video** — section is built and video-ready; two config fields.
-- **Badge artwork typo** — the official badge reads **"FORESTRV"**, not "FORESTRY". Appears on every page.
+- **Badge artwork typo** — the official badge reads **"FORESTRV"**, not "FORESTRY". Off the website since 2026-08-11 (`technicalDebt.md` item 2); still wrong on any print/signage that uses the old artwork.
 - **Confirm phone** `(740) 464-2526` and **business email** `estimates@bluegridlandsolutions.com` — both placeholders.
 - **Confirm the Facebook page renders in the Page Plugin** → flip `facebookPageConfigured`.
 - **Google Business Profile** — does not exist; the footer icon is hidden at runtime.
 - **May we name Chase on the site?** Copy says "the owner" throughout.
-- **Company facts worth adding, now that there is a page to hold them.** `company/index.html` ships using only claims that already appear elsewhere on the site. **Nothing about history, credentials, awards, certifications, years in business, or crew size is on it, and none may be added without Chase confirming it.** If he will confirm any of them, that page is where they belong.
+- **Company facts worth adding, now that there is a page to hold them.** `company/index.html` ships using only claims that already appear elsewhere on the site. **Nothing about history, credentials, awards, certifications, years in business, or crew size is on it, and none may be added without Chase confirming it.**
 - **Copy review** of the 6 location pages and 7 Insights articles.
+- **The Chase review / major revision pass itself** — see *Remaining Launch Work* item 10. Expect this to generate its own list.
 
 ## Waiting on Aron
 
-- **Domain decision** — blocker 1.
-- **Update the Git remote URL.** GitHub reports the repository has moved to `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`. Pushes currently succeed **via redirect only**, which breaks if anyone creates a new repo under the old name. One command: `git remote set-url origin https://github.com/ArxnAlley/client_BluegridLandSolutions.git`. This was requested and then superseded by other work; it is still outstanding.
-- **A browser pass** on phone / tablet / desktop.
-- **One real end-to-end lead submission** from the live site.
-- **Confirm the nav decision.** The 2026-08-04 brief spelled the resulting order out as four items, which excluded *Before & After*, so it was removed from the primary nav. It stays reachable from the homepage hero CTA and the footer Quick Links. **If a five-item nav was intended, restoring it is a one-line change** — and note the "Our Company" work below adds a fifth item of its own.
+- **Restore `config!notificationEmail` to Chase's address** and confirm it — see Blocker 2.
+- **The lead pipeline resume task above** — photo accessibility and the leadId/referenceId split are design decisions as much as implementation; the next session will need direction on the Sheet migration approach if it isn't obvious once real options are laid out.
+- **Domain decision** — Blocker 3.
+- **A browser pass** on phone / tablet / desktop — see *Remaining Launch Work* item 4.
+- **Confirm the nav decision.** The 2026-08-04 brief spelled the resulting order out as four items, which excluded *Before & After*, so it was removed from the primary nav. It stays reachable from the homepage hero CTA and the footer Quick Links. **If a five-item nav was intended, restoring it is a one-line change** — the "Our Company" item already added a fifth.
 - **Decide whether to delete `phase2a-lead-capture`.** It is fully merged into `main`; it was kept deliberately.
-- **Redeploy discipline:** always *Deploy → Manage deployments → edit → New version*. A **new deployment** mints a different URL and silently breaks all 23 forms.
+- **Redeploy discipline:** always *Deploy → Manage deployments → edit → New version*. A **new deployment** mints a different URL and silently breaks all 24 forms.
 
 ---
 
 ## Planned Next Session
 
-Nothing is specified and waiting. The two items that sat here — the *Our Company* menu and the two-phase process animation — both shipped on 2026-08-09 and are recorded under *Completed Work* above.
+**The lead pipeline finalization above (A + B) is the plan.** It was deliberately not started this session — closeout documents it, it does not implement it.
 
-The highest-value work available is in *Remaining Launch Work*, and item 1 gates most of it.
-
-**Two smaller things worth knowing about:**
-
-- **Current-page highlighting in the mega menus** (`technicalDebt.md` item 19) was *not* done alongside the Our Company work, though the debt note suggested it. It was left out deliberately to keep this pass to its two stated objectives. It remains one rule and one small routine for all four panels.
-- **The company page is the natural home for anything Chase confirms** about the business — see *Waiting on Client*.
+**One smaller thing still worth knowing about:** current-page highlighting in the mega menus (`technicalDebt.md` item 19) remains undone, one rule and one small routine for all four panels, and has no urgency attached.
 
 # NEXT SESSION SHOULD START HERE
 
-1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. The 2026-08-09 session found two things in these docs that were simply wrong (the line-ending split, and the "MAINTENANCE at 143px against 147px" figure); assume there are others.
-2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main`, remote URL, working tree, page count. Expect `main`, clean, **24 pages**, and **11 ahead of `origin/main`**. Nothing has been pushed since `9237e53`. **Also run `git status` before trusting any hardcoded config value in `appsScript/`** — item 10l found one file with an uncommitted, undocumented edit sitting in the working tree; `git diff` against `HEAD` is the way to catch that class of drift.
-3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `validateEstimateCtas`, `simulateEstimateFlow`, `heroLoopHarness` — **twelve suites**, named so the count in this line can be checked against the list rather than trusted on its own — plus `measureHeader`, `measureProcessFit`, the guarded assemblers, and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, 64 checks) is committed and separate from all of this. **Locate the scratchpad toolchain before starting work, and re-run all twelve suites plus the Apps Script harness to establish a baseline before changing anything.** This is the single most fragile thing about the project's process — see `technicalDebt.md` item 10i, and item 10l for what happens when a change bypasses that harness.
-4. **`validateEstimateCtas` was rewritten 2026-08-11 and now asserts the opposite of an earlier version of itself.** If a memory, a cached instruction, or an old habit says estimate CTAs should scroll and focus the mini-form — that was true for about a day and is no longer the architecture. They open the modal directly; see the engineering journal entry "ESTIMATE CTAs OPEN THE MODAL DIRECTLY" before touching anything in this area.
-4. **Aron's browser QA list** is at the end of `technicalDebt.md` item 4 and is the largest untested surface on the project. The 2026-08-09 additions — the Our Company panel, the company page, and the process handover at 1168px — are all things static analysis cannot judge.
-5. **Do not start *Remaining Launch Work* items 2–5 until the domain is settled** — they would all be done twice.
+1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. Multiple prior sessions have found this file's own header stale (commit hash, ahead/behind count, remote URL) within a day of being written; verify everything in the header block against `git` directly rather than trusting it.
+2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main` (check both directions; `origin/main` moved without a session recording it once already), remote URL, working tree, page count. Expect `main`, clean, **24 pages**. **Also run `git status` before trusting any hardcoded config value in `appsScript/`** — item 10l found one file with an uncommitted, undocumented edit sitting in the working tree.
+3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `validateEstimateCtas`, `simulateEstimateFlow`, `heroLoopHarness` — **twelve suites**, named so the count in this line can be checked against the list rather than trusted on its own — plus `measureHeader`, `measureProcessFit`, the guarded assemblers, and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, 64 checks) is committed and separate from all of this. **Locate the scratchpad toolchain before starting work, and re-run all twelve suites plus the Apps Script harness to establish a baseline before changing anything.**
+4. **Start the lead pipeline resume task** — read the *High-Priority Resume Task* section above in full before writing any code. Photo accessibility and the leadId/referenceId split are connected (the photo spec's dedupe assumption depends on the id format).
+5. **`docs/sessionCloseout.md` exists locally and is gitignored — do not commit it, and do not recreate it if it's already there.**
+6. **Do not start Remaining Launch Work items below the resume task until the domain is settled** — several would be done twice otherwise.

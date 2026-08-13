@@ -4,6 +4,53 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-13 — SESSION CLOSEOUT SOP + CLOSEOUT
+
+### Brief
+
+Two things: create a permanent, local, gitignored SOP (`docs/sessionCloseout.md`) that any future session can execute on request without needing the full instructions re-typed, then immediately use it to close out this session.
+
+### The SOP itself
+
+Written to `docs/sessionCloseout.md`, opening with the exact sentence requested so a future session recognizes it as self-executing on request rather than needing re-briefing. Core discipline it encodes: inspect the actual repository before writing anything, never trust a prior session's docs over `git` output, keep the three continuity files' responsibilities distinct (state / history / debt), never claim something is verified when it wasn't checked, and never push a closeout commit without being asked.
+
+**Verified four independent ways before touching anything else**, because "add to `.gitignore`" is exactly the kind of thing that's easy to get wrong silently: `git status --short` doesn't list the file, `git ls-files --error-unmatch` confirms it was never tracked (so there was nothing to `git rm --cached`), `git check-ignore -v` resolves it to the new rule by name and line number, and `git status --ignored` shows it with the `!!` marker. All four agreed.
+
+### What "inspect before trusting the docs" caught immediately
+
+The previous session's closeout left `projectState.md` saying `main` was 12 ahead of `origin/main`, with explicit instructions across several sessions not to push. Running `git status -sb` at the start of this session showed **no ahead/behind at all** — `git rev-list --left-right --count origin/main...HEAD` returned `0 0`. `origin/main` had moved to match local `HEAD` (`ab802b9`) since the last session closed. Nothing in this repository's history explains who pushed or when; it happened outside every session recorded here.
+
+Same pattern, second instance: `git remote -v` showed `origin` already pointing at `https://github.com/ArxnAlley/client_BluegridLandSolutions.git` — the corrected URL `technicalDebt.md` item 10h had been asking for since 2026-08-07. Also fixed outside any recorded session.
+
+Neither of these was hard to check. The point of writing them up is that a closeout that trusted the carried-forward numbers instead of running two `git` commands would have shipped a wrong header for a second time in a row — which is exactly the failure mode the SOP exists to prevent, demonstrated on itself on the first run.
+
+### The live lead test — recorded, not verified
+
+Aron reported a real end-to-end submission: reached the Sheet, owner notification reached a temporary test recipient, field data arrived correctly. This session has no access to the Sheet, the inbox, or the Apps Script execution log, so none of that is independently confirmed here — it's recorded as reported, attributed, per the SOP's own rule about claims this repository cannot check.
+
+One part of it *is* checkable, and checking it changed the project's priorities: the notification named an uploaded photo's filename, and the owner could not open the photo. That is not a new defect — `appsScript/leads.gs` has hard-coded `photoUrls: []` since Phase 1, and the owner email says outright that photos aren't uploaded yet. What changed is that a real person just hit it in a real test, which is why it moved from `technicalDebt.md`'s Low Priority section to the top of the next session's queue rather than staying a documented-but-quiet gap.
+
+### Lead id / reference id — captured as a design problem, not implemented
+
+Read `handleCreateLead()` in full to understand exactly what "split the id" would touch, since the brief was explicit that this is next-session work and closeout should describe it accurately rather than start it. The current `leadId` (`'BG-' + Date.now()`) is client-generated and is the *entire* idempotency mechanism — `LockService` serializes the critical section, then `findLeadById()` checks for that exact value before writing. Moving to a sequential internal id means moving generation server-side, inside that same lock, which is a real design decision (how far to scan, whether to use a Script Property counter, what happens to a lock timeout mid-assignment) — not something to sketch in a documentation pass. `LEADS_HEADERS`' own comment forbids renaming columns or inserting mid-contract, which narrows the safe migration shape without picking it. Wrote this up in both `technicalDebt.md` (new item 24a) and `projectState.md` in enough detail that the next session can start designing immediately rather than re-deriving the constraints.
+
+### Files touched
+
+- `docs/sessionCloseout.md` — new, gitignored, never committed
+- `.gitignore` — one rule added
+- `docs/projectState.md`, `docs/technicalDebt.md` — this entry's findings, plus stale header/remote/sync corrections
+- No site or Apps Script code touched this session
+
+### Validation
+
+Twelve suites green (`validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `validateEstimateCtas`, `heroLoopHarness`, `simulateEstimateFlow`), Apps Script harness 64/64, `node --check` clean. Run in full despite no code changing this session, because "nothing changed" is exactly the kind of claim the SOP says to verify rather than assume.
+
+### Left for next session
+
+The lead pipeline finalization — photo accessibility and the leadId/referenceId split — is the resume task, detailed in `projectState.md`. Confirm whether `config!notificationEmail` has been restored to Chase's address before treating the pipeline as production-safe.
+
+---
+
 ## 2026-08-11 — ESTIMATE CTAs OPEN THE MODAL DIRECTLY  (supersedes the arrival-focus fix)
 
 ### Brief
