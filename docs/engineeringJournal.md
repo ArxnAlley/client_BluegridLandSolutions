@@ -4,6 +4,63 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-13 — PROJECT PHOTOS RENAMED WITH LOCATIONS; ASSET REFERENCES REPAIRED
+
+### Brief
+
+Aron renamed the real project photos in `graphics/images/` to carry their confirmed locations, which broke references across the site. Repair every one. Do not redesign, do not move imagery, do not rename anything again.
+
+### Establishing the mapping by content, not by name
+
+The obvious approach — match `work.jpg` to `workJacksonOH.jpg` because the names look alike — is exactly what the brief warned against, and it would have been wrong at least once: `after.JPG`, `hero_after.jpg` and `afterForestryMulching_minfordOH.jpg` are three different photographs whose names all contain "after".
+
+So the mapping came from bytes. `git ls-tree HEAD` gives the ten filenames the repository knew about; hashing each blob with `git cat-file blob HEAD:<path> | sha256sum` and comparing against a hash of every file now on disk produced ten exact matches and no ambiguity at all. Sizes agreed too. **Every replacement is provably the same physical image**, which is the only basis on which this task could be done without a human eyeballing eighteen photographs.
+
+That also separated the renames from the additions: four files on disk match no blob in `HEAD`, so they are new photos Aron dropped in rather than anything that needed repointing.
+
+| Renamed (content-verified) | | New, unreferenced |
+|---|---|---|
+| `after.JPG` → `after_minfordOH.JPG` | `overGrowth.JPG` → `overGrowth_minfordOH.JPG` | `B4MulchingJob_minfordOH.jpg` |
+| `cleanCut.JPG` → `cleanCut_minfordOH.JPG` | `overGrowthCleanedup.JPG` → `overGrowthCleanedup_minfordOH.JPG` | `mulchingJob_minfordOH.jpg` |
+| `excavator2.jpg` → `excavator2_PiketonOH.jpg` | `work.jpg` → `workJacksonOH.jpg` | `b4ForestryMulch_minfordOH.jpg` |
+| `freshMulching.JPG` → `freshMulching_minfordOH.JPG` | `work2.jpg` → `work2JacksonOH.jpg` | `afterForestryMulching_minfordOH.jpg` |
+| `hero_after.jpg` → `hero_after_minfordOH.jpg` | `hero_b4.JPG` → `hero_b4_minfordOH.JPG` | |
+
+`BeforeandAfter.jpg`, `excavator.jpg`, `whatTheyDo.jpg` and `whatTheyDo2.jpg` were not renamed and were left alone.
+
+### The repair
+
+**75 references across 24 files.** Only basenames were replaced, so the two relative-path forms this site uses — `graphics/images/…` from root pages and `../graphics/images/…` from every one-level folder — were preserved without the script needing to know about either.
+
+The replacement script refused to write unless its guards passed: every target had to exist on disk, and no old name could survive in a file it had rewritten. It also checked that no old name was a substring of any other old *or new* name, since a plain replace would corrupt a neighbouring reference.
+
+**That guard had a gap worth recording.** `after.JPG` *is* a substring of `hero_after.JPG` — but `hero_after.JPG` was not in the map (the tracked file was lowercase `hero_after.jpg`), so the guard never compared them. It happened to be harmless: had an uppercase `hero_after.JPG` existed anywhere, the `after.JPG` rule would have rewritten it to `hero_after_minfordOH.JPG`, which is the correct name anyway. Harmless by luck, not by design. What actually caught it was resolving every reference against the filesystem afterwards, which is the check that does not depend on reasoning about string overlap being right.
+
+Docs were treated differently on purpose. `heroSpecification.md` names the two source plates used to manufacture the hero, and `technicalDebt.md` item 22 names the orphan file — both operational, both updated, both carrying a short "renamed from" note so the provenance survives. **`engineeringJournal.md` and `projectState.md` were deliberately left alone**: their mentions are narrative about past renames ("the single rename is the Phase 2C `hero_after.JPG → after.JPG` casing fix"), and rewriting those would falsify the record of what happened.
+
+### `validateAssets.js` — and what validateSite was missing
+
+Verification found the repair clean, but writing the check exposed that the existing coverage was thinner than the phrase "24 pages, zero broken" in `projectState.md` suggested. `validateSite` reads `href=` and `src=` only, and it resolves with `fs.existsSync`. Two consequences:
+
+- **Every location page points `og:image` and `twitter:image` at a relative path inside a `content=` attribute.** Ten such references existed and nothing had ever checked them.
+- **`fs.existsSync` is case-insensitive on Windows.** A reference to `hero_b4.jpg` when the file is `hero_b4.JPG` passes locally and 404s on GitHub Pages. **This project has already shipped that exact bug once** — see the entry below about `hero_after.JPG` arriving on disk as `hero_after.jpg` while git kept tracking the uppercase name.
+
+So `validateAssets.js` compares against the real directory listing rather than asking the filesystem, and reports a case-only difference as its own distinct failure with the actual casing named. It covers `src`/`href`, meta image `content` in both attribute orders, `srcset` and inline `url()` (neither exists today — they are there so that adding one cannot escape the check), CSS `url()`, and the asset paths held in `js/indexJS.js`. **284 references checked**, against the ~90 the old sweep saw.
+
+Proven by injection, one at a time: a missing file in an `og:image`, a case-only mismatch, and a stale old filename in an `img src`. The new validator caught all three; `validateSite` caught only the third.
+
+It also reports orphans. That found six unreferenced project photos — the four new ones, the long-known `after_minfordOH.JPG`, and **`whatTheyDo.jpg`, which nothing has ever referenced** and which no previous session had noticed. `whatTheyDo2.jpg` is on the site; its sibling never was. Reported, not fixed: which photo belongs on which page is an editorial call, and this project deliberately does not put every image it owns onto the site.
+
+### One note the validator emits rather than fails on
+
+`js/indexJS.js` holds `introVideoPoster: 'graphics/images/excavator2_PiketonOH.jpg'`. That is a page-relative path in a script shared by all 24 pages, so it resolves on root pages and would 404 from any one-level folder. It is correct today because the intro-video section exists only on `index.html` and is gated off by `introVideoConfigured: false`. Left exactly as it was — pre-existing, inert, and outside a brief that said not to redesign — but the validator now says so out loud every run instead of leaving it to be rediscovered.
+
+### Validation
+
+**13/13 validator suites** (twelve existing plus the new one), 116/116 Apps Script harness, `node --check` clean. Zero stale references in any HTML, CSS or JS; every one of the 284 asset references resolves with exact casing.
+
+---
+
 ## 2026-08-13 — LEAD PIPELINE FINALIZATION: PHOTO STORAGE + IDENTIFIER SPLIT
 
 ### Brief

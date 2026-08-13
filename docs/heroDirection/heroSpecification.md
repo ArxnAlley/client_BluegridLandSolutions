@@ -6,7 +6,7 @@ Technical Director's unified direction, synthesized from the Art Direction repor
 
 ## 1. The verdict
 
-**Imagery:** No stock pair passes as the same Appalachian property before and after mulching — the best pure-stock pair capped at 7.5/10, and its "after" is portrait-orientation (unusable wide). The winning move is the Art Director's Workflow #1: **manufacture the hero from the client's own utility-corridor pair** (`work.jpg` → `work2.jpg`), which contain **the same transmission tower in both frames** — a truth cue no stock combination can offer. The tower is the registration pin of the entire illusion.
+**Imagery:** No stock pair passes as the same Appalachian property before and after mulching — the best pure-stock pair capped at 7.5/10, and its "after" is portrait-orientation (unusable wide). The winning move is the Art Director's Workflow #1: **manufacture the hero from the client's own utility-corridor pair** (`workJacksonOH.jpg` → `work2JacksonOH.jpg`), which contain **the same transmission tower in both frames** — a truth cue no stock combination can offer. The tower is the registration pin of the entire illusion.
 
 **Motion:** The UX Director's **Duet Hero** pattern (*Claim & Clear*) is adopted in full: line 1 "TAKE BACK" fixed forever; line 2 a human-typed rotating claim; image transformations ride the deletion beats; the estimate mini-form is a protected, permanently still conversion anchor.
 
@@ -16,7 +16,7 @@ Technical Director's unified direction, synthesized from the Art Direction repor
 
 ## 2. Image production workflow (exact steps)
 
-Source plates: `graphics/images/work.jpg` (BEFORE — overgrown corridor) and `graphics/images/work2.jpg` (AFTER — cleared corridor), both 2048×1536.
+Source plates: `graphics/images/workJacksonOH.jpg` (BEFORE — overgrown corridor) and `graphics/images/work2JacksonOH.jpg` (AFTER — cleared corridor), both 2048×1536. *(Renamed from `work.jpg` / `work2.jpg` on 2026-08-13 when the project photos gained their location suffixes; same files, byte for byte.)*
 
 1. **Register.** Crop both to 16:9-safe frames (target 4096×2304 after upscale) with the transmission tower at the **same x-position (~38% from left)** and the horizon on the **same line (upper third)**. The tower must not move a pixel between states.
 2. **One sky.** Copy the AFTER frame's cleaner sky into BOTH frames. A shared sky is the strongest "same day, same place" cue.

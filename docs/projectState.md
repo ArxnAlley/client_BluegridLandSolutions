@@ -1,6 +1,6 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-13 (lead pipeline finalization)
+**Last updated:** 2026-08-13 (project photo rename + asset reference repair)
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
 **Last content commit:** `18c8845` — lead pipeline: photo storage in Drive, `leadId` split from `referenceId`
@@ -47,6 +47,7 @@
 | **Mobile floating CTA — bottom edge clipping** | **Complete** |
 | **Estimate CTA arrival fix + notification config restore** | Complete, **superseded same day** — see below |
 | **Estimate CTAs open the modal directly** | **Complete** |
+| **Project photos renamed with locations + references repaired** | **Complete** |
 | **Live end-to-end lead test** (Aron, test recipient) | Partial — surfaced the photo defect; needs rerunning after the redeploy |
 | **Session closeout SOP** (`docs/sessionCloseout.md`, gitignored) | **Complete** |
 | **Photo storage — Drive upload, links in the Sheet and owner email** | **Complete in repo, not deployed** |
@@ -129,7 +130,8 @@ Every header dimension is a `:root` custom property overridden in the two header
 
 | Check | Result |
 |---|---|
-| Internal links & assets | **24 pages, zero broken** |
+| Internal links & assets (`validateSite`) | **24 pages, zero broken** |
+| **Local assets** (`validateAssets`, new 2026-08-13) | PASS — **284 references** resolve with **exact casing**: src/href, og:image and twitter:image `content`, srcset, inline and CSS `url()`, and the asset paths in `js/indexJS.js`. Catches case-only mismatches that `fs.existsSync` hides on Windows and that 404 on GitHub Pages |
 | **Mobile floating CTA** (`validateFloatingCta`) | PASS — bar sizes to content at both breakpoints (61.44px / 59.44px), touch targets 46px and 44px, `env(safe-area-inset-*)` on all three insets, bar outside `<main>` and `<footer>` on 24 pages |
 | **Estimate CTA routing** (`validateEstimateCtas`, rewritten) | PASS — 131 `a[href="#estimateForm"]` anchors all call `preventDefault()` + `openEstimateModal()`; modal Step 1 carries `modalFullName`/`modalPhone`/`modalServiceNeeded` on all 24 pages with the config.gs enum order; **`buildEstimatePayload()` verified to read from the modal's fields, not the mini-form's**; mini-form untouched; no duplicate ids |
 | **Estimate flow, functionally** (`simulateEstimateFlow`, new) | PASS — real `js/indexJS.js` loaded into a mocked DOM and actually driven: a direct-CTA click opens the modal with `preventDefault` observed, Step 1 genuinely rejects an empty submission, a completed flow's captured (unsent) payload matches what was typed; a mini-form Continue pre-fills Step 1 and its payload matches the mini-form's values. 25 assertions; both this and the static check proven to catch the payload-source regression by injecting it first |
@@ -315,6 +317,18 @@ Aron reports:
 - Lead field data (name, phone, service, etc.) arrived correctly in that notification.
 - A photo was attached to the submission and its **filename** was recognized and reported in the notification — matching exactly what the code guarantees today (`appsScript/notifications.gs`: *"photos are not uploaded yet — reply or text the customer to request them"*). **The owner could not actually access the photo.** This is not a new defect; `photoUrls` has always stayed `[]` (`technicalDebt.md` item 24, pre-existing since Phase 1). The live test is what makes it a felt, urgent gap rather than a documented theoretical one — see the resume task below.
 
+### Project photos renamed with locations — 2026-08-13
+
+Aron renamed ten project photos in `graphics/images/` to carry their confirmed locations (Minford OH, Piketon OH, Jackson OH), which broke **75 references across 24 files**. All repaired.
+
+**The mapping was established by content hash, not by name similarity** — each old name's blob in `HEAD` was hashed and matched byte-for-byte against a file on disk. All ten matched exactly. That mattered: `after.JPG`, `hero_after.jpg` and `afterForestryMulching_minfordOH.jpg` are three different photographs whose names all contain "after", and name-matching would eventually have repointed a reference at the wrong image.
+
+Four files on disk match no blob in `HEAD` — they are **new photos**, not renames, and nothing references them. Documented as orphans in `technicalDebt.md` item 22 rather than placed on pages, since which photo belongs where is an editorial decision.
+
+**Doc references were split by kind.** `heroSpecification.md` (names the hero source plates) and `technicalDebt.md` item 22 (names the orphan) are operational and were updated with a "renamed from" note. `engineeringJournal.md` and this file's own merge history describe *past* renames as narrative and were deliberately left alone — rewriting them would falsify the record.
+
+**A new validator came out of it.** `validateAssets` covers three blind spots in `validateSite`: meta `content` image references (every location page's `og:image` is relative and was never checked), CSS/inline `url()`, and — the important one — **case-only mismatches**, which `fs.existsSync` hides on Windows and which 404 on GitHub Pages. This project has shipped that exact bug once before. 284 references now checked, up from roughly 90.
+
 ### Lead pipeline finalization — 2026-08-13
 
 **Both defects the live test exposed are fixed in the repository. Neither is live.**
@@ -442,7 +456,7 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. Multiple prior sessions have found this file's own header stale (commit hash, ahead/behind count, remote URL) within a day of being written; verify everything in the header block against `git` directly rather than trusting it.
 2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main` (check both directions; `origin/main` moved without a session recording it once already), remote URL, working tree, page count. Expect `main`, clean, **24 pages**. **Also run `git status` before trusting any hardcoded config value in `appsScript/`** — item 10l found one file with an uncommitted, undocumented edit sitting in the working tree.
-3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `validateEstimateCtas`, `simulateEstimateFlow`, `heroLoopHarness` — **twelve suites**, named so the count in this line can be checked against the list rather than trusted on its own — plus `measureHeader`, `measureProcessFit`, the guarded assemblers, and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, **116 checks**) is committed and separate from all of this. **Locate the scratchpad toolchain before starting work, and re-run all twelve suites plus the Apps Script harness to establish a baseline before changing anything.** `validateLeadFlow` and `simulateEstimateFlow` were both rewritten on 2026-08-13 for the new contract; an older copy would assert the pre-split architecture and pass a broken build.
+3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `validateEstimateCtas`, `simulateEstimateFlow`, `heroLoopHarness`, `validateAssets` — **thirteen suites**, named so the count in this line can be checked against the list rather than trusted on its own — plus `measureHeader`, `measureProcessFit`, the guarded assemblers, and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, **116 checks**) is committed and separate from all of this. **Locate the scratchpad toolchain before starting work, and re-run all thirteen suites plus the Apps Script harness to establish a baseline before changing anything.** `validateLeadFlow` and `simulateEstimateFlow` were both rewritten on 2026-08-13 for the new contract; an older copy would assert the pre-split architecture and pass a broken build.
 4. **Ask whether the Apps Script has been deployed** before planning anything that touches the pipeline. The repo and production genuinely disagree until it has, and *Planned Next Session* above branches on the answer.
 5. **`docs/sessionCloseout.md` exists locally and is gitignored — do not commit it, and do not recreate it if it's already there.**
 6. **Do not start Remaining Launch Work items below the deployment until the domain is settled** — several would be done twice otherwise.

@@ -60,7 +60,7 @@ const businessConfig = {
     introVideoConfigured: false,
 
     // Poster frame used by the self-hosted player and the placeholder.
-    introVideoPoster: 'graphics/images/excavator2.jpg'
+    introVideoPoster: 'graphics/images/excavator2_PiketonOH.jpg'
 
 };
 

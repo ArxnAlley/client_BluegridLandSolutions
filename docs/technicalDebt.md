@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-13 (lead pipeline finalization — photo storage built, identifiers split; items 24 and 24a resolved, new photo-related debt recorded)
+**Last updated:** 2026-08-13 (project photos renamed with locations; asset references repaired, asset validator added) (earlier same day: lead pipeline finalization — photo storage built, identifiers split; items 24 and 24a resolved, new photo-related debt recorded)
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -137,9 +137,11 @@ Checked properly — every rendered title on all eight boards, uppercased as `te
 `origin` now points at `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, verified via `git remote -v`. No session recorded here ran the fix, and `origin/main` was also found to have moved ahead by a push this repository's history doesn't show — both point to activity happening outside these sessions, which is fine, just worth knowing the working tree isn't the only place this project changes.
 
 ### 10i. The validator toolchain lives outside the repository
-Twelve suites, the guarded assemblers, the font-metric models, the copy-rewrite tables, the SEO intent checks, and now the estimate-CTA checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
+Thirteen suites, the guarded assemblers, the font-metric models, the copy-rewrite tables, the SEO intent checks, and now the estimate-CTA checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
 `projectState.md` tells the next session to locate it first, which is a mitigation rather than a fix. The reason it is out of the repo is item 17's decision not to ship half a generator; that reasoning covers the assemblers and does **not** obviously cover the validators.
 **Fix: commit the validators.** They are read-only over the site, they have no dependencies, and they would make the repository self-checking.
+
+**2026-08-13 made this worse and more urgent.** `validateAssets` was written that day and is the only thing standing between the site and a class of bug that Windows actively hides — a reference whose casing differs from the file on disk passes `fs.existsSync` locally and 404s on GitHub Pages. That has already happened once on this project. It lives in the scratchpad like the rest, so the single safeguard against a silent production 404 is a file that exists nowhere in version control.
 
 ### 10l. `DEFAULT_NOTIFICATION_EMAIL` has no guard against being hand-edited wrong
 Found 2026-08-11: the working tree held `DEFAULT_NOTIFICATION_EMAIL = 'admin@nulostudio.com'` in `appsScript/config.gs`, an **uncommitted** change — `git log --all -p` shows only `'Bluegridls@gmail.com'` was ever committed. `appsScript/localTestRunner.js` already asserts `no recipient anywhere is admin@nulostudio.com`, and running it against the corrupted file failed that exact check, proving the drift rather than merely suspecting it. Reverted; the file now matches `HEAD` byte for byte.
@@ -213,9 +215,22 @@ Both breakpoints moved, and neither typography, the phone chip, the CTA nor any 
 `heroDuetConfig.forwardSweepMs` (1400) and `reverseDissolveMs` (1800) in `js/indexJS.js` must stay in lockstep with `transition: --heroSweepPos 1400ms` and `transition: opacity 1800ms` in `css/styleIndex.css`. Nothing enforces the pairing.
 They agree today, and the loop now awaits the dissolve so a drift would show as a visible gap rather than a desync — but it would still be wrong. Cleanest fix: read the durations from CSS custom properties via `getComputedStyle`.
 
-### 22. Orphan hero asset
-`graphics/images/after.JPG` (427KB) was committed in `fb15070` alongside the hero refresh. **Re-verified at closeout: still referenced nowhere** in any HTML, CSS, or JS. It appears to be the previous `hero_after` image kept as a backup.
+### 22. Six project photos are on disk but referenced nowhere
+`graphics/images/after_minfordOH.JPG` (427KB, renamed from `after.JPG` on 2026-08-13) was committed in `fb15070` alongside the hero refresh. **Re-verified 2026-08-13: still referenced nowhere** in any HTML, CSS, or JS. It appears to be the previous `hero_after` image kept as a backup.
 Harmless but it ships to visitors' hosting. Left in place because it is the client's asset, not one this project created — the 2026-08-07 GBP cleanup deliberately removed only the asset Aron named.
+
+**Widened 2026-08-13.** `validateAssets` now reports every unreferenced project photo rather than tracking this one by hand, and it found six:
+
+| File | Size | Status |
+|---|---|---|
+| `after_minfordOH.JPG` | 417KB | The original orphan above. |
+| `whatTheyDo.jpg` | 345KB | **Newly discovered.** `whatTheyDo2.jpg` is referenced; this one never was. Pre-existing, not caused by the rename. |
+| `B4MulchingJob_minfordOH.jpg` | 72KB | **New file, dropped in 2026-08-13.** Never referenced. |
+| `mulchingJob_minfordOH.jpg` | 59KB | **New file**, the "after" partner to the above. |
+| `b4ForestryMulch_minfordOH.jpg` | 65KB | **New file.** |
+| `afterForestryMulching_minfordOH.jpg` | 62KB | **New file**, the "after" partner to the above. |
+
+The four new ones are two before/after pairs and are the strongest candidates yet for the galleries item 8 says are missing — they are small, recent, and carry confirmed Minford provenance. **Deliberately not placed on any page:** which photo belongs where is an editorial decision, and the rename task was explicitly scoped to repairing references, not adding imagery.
 
 ### 23. `dashboardMetrics` tab is created empty
 `setupSpreadsheet()` creates the tab but writes no formulas. The formula set is specified in `docs/googleSheetArchitecture.md` but must be entered by hand. The dashboard SPA (Phase 2) computes its own numbers and does not read this tab, so nothing is blocked.
