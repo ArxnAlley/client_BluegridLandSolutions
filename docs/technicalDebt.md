@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-11 (estimate CTA arrival fix + notification config restore)
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -47,6 +47,9 @@ Before launch: open the homepage on a real phone and confirm the hero photo ends
 4d. **The floating CTA bar on a real handset**, ideally one with a home indicator so `env(safe-area-inset-bottom)` contributes something. Confirm both bottom corners render cleanly now and the bar keeps its breathing room above the indicator.
 
 4c. **Whether the rewritten H2s still sound like the same site.** 36 headings moved from brand voice to topic on 2026-08-11. The reasoning is sound and the kickers still carry the rhythm, but that is a judgement about tone and it has not been read on a screen.
+
+4e. **"Get My Free Estimate" on the homepage, at a real desktop width.** Click it and confirm `#fullName` visibly receives focus — a focus ring, or the caret in "Full Name" — even though the scroll itself is short or imperceptible (the hero and the mini form share one `100svh` section by design; see the 2026-08-11 journal entry). Then click it from an interior page, where the scroll is large, and confirm focus lands the same way. Then check that browser back-navigation after either still returns to the exact prior scroll position.
+
 6. **The company page** top to bottom — it reuses eight existing interior-page components in a combination none of them have been seen in.
 7. **The header at 1361px and 1360px**, where the compact band now starts, and at 1201px, the last desktop width.
 
@@ -129,9 +132,14 @@ Pushes currently succeed **via GitHub's redirect only.** That redirect stops wor
 **Fix:** `git remote set-url origin https://github.com/ArxnAlley/client_BluegridLandSolutions.git`. Requested on 2026-08-07 and then superseded by other work before it ran.
 
 ### 10i. The validator toolchain lives outside the repository
-Ten suites, the guarded assemblers, the font-metric models and now the copy-rewrite tables and the SEO intent checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
+Eleven suites, the guarded assemblers, the font-metric models, the copy-rewrite tables, the SEO intent checks, and now the estimate-CTA checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
 `projectState.md` tells the next session to locate it first, which is a mitigation rather than a fix. The reason it is out of the repo is item 17's decision not to ship half a generator; that reasoning covers the assemblers and does **not** obviously cover the validators.
 **Fix: commit the validators.** They are read-only over the site, they have no dependencies, and they would make the repository self-checking.
+
+### 10l. `DEFAULT_NOTIFICATION_EMAIL` has no guard against being hand-edited wrong
+Found 2026-08-11: the working tree held `DEFAULT_NOTIFICATION_EMAIL = 'admin@nulostudio.com'` in `appsScript/config.gs`, an **uncommitted** change — `git log --all -p` shows only `'Bluegridls@gmail.com'` was ever committed. `appsScript/localTestRunner.js` already asserts `no recipient anywhere is admin@nulostudio.com`, and running it against the corrupted file failed that exact check, proving the drift rather than merely suspecting it. Reverted; the file now matches `HEAD` byte for byte.
+Real exposure was narrow — `notifications.gs` only reaches this constant when the Sheet's `config.notificationEmail` cell is blank or missing — but the failure mode if it had shipped is serious: customer lead notifications routing to Nulo Studio instead of the client, which `notifications.gs`'s own header comment says must never happen.
+**Nothing would have caught this before a commit.** The harness that proves it wrong only runs when someone remembers to run it; there is no pre-commit hook, and the validator toolchain itself lives outside the repo (item 10i) so there is nothing to point a hook at yet. Worth a look once 10i is addressed: run `appsScript/localTestRunner.js` as part of whatever makes the validators self-checking.
 
 ### 10j. Structured data duplicates rendered copy with nothing enforcing the match
 FAQ answers and service descriptions exist twice on the same page: once rendered, once inside `application/ld+json`. Google requires `FAQPage` questions and answers to match the visible text.
@@ -298,3 +306,5 @@ Recorded so future sessions do not "fix" them:
 | Fifth nav item did not fit the header | 2026-08-09 | Switch 1150→1200px, compact band 1280→1360px. Nothing shrunk. See item 20. |
 | The header model carried its own copy of the nav | 2026-08-09 | `measureHeader` reads `index.html`. It had been describing a four-item bar. |
 | Mega-menu row rules were services-branded | 2026-08-09 | Company classes joined the existing selector groups rather than copying declarations — one block, two names, so the panels cannot drift. |
+| "Get My Free Estimate" read as broken on the homepage | 2026-08-11 | Not a routing bug — audited 227 estimate/quote anchors on 24 pages, all bare `#estimateForm` fragments, no cross-page or path issue anywhere. Root cause: `.heroSection` is `min-height: 100svh` and `.estimateFormCard` sits inside that same section beside `.heroContent`, so the CTA and its target can already share one screen and the native scroll is a few pixels or zero. Fixed by focusing `#fullName` on click (`preventScroll: true`, no `preventDefault`), giving unambiguous arrival regardless of scroll distance. |
+| `DEFAULT_NOTIFICATION_EMAIL` held an uncommitted, wrong value | 2026-08-11 | Working tree had `admin@nulostudio.com`; only `Bluegridls@gmail.com` was ever committed. `localTestRunner.js`'s own guard caught it (`to=admin@nulostudio.com`) once run. Reverted to match `HEAD`. See item 10l for the recurrence risk. |

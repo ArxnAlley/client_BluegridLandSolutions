@@ -4,6 +4,74 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-11 — ESTIMATE CTA ARRIVAL FIX + NOTIFICATION CONFIG RESTORE
+
+### Brief
+
+Two items from real browser QA. First: clicking "Get My Free Estimate" "only moves/slides slightly and leaves me around the hero area" — trace the actual estimate flow and fix the underlying cause, not the symptom. Second: reconcile a discrepancy between a previous session's report (`DEFAULT_NOTIFICATION_EMAIL = 'Bluegridls@gmail.com'`) and what the repository currently showed (`admin@nulostudio.com`).
+
+### There is no "estimateForm page" — and that's correct
+
+Audited every anchor on all 24 pages whose label matched `estimate|quote` (227 anchors). Every single "Free Estimate" / "Get My Free Estimate" / "Request Your Free Estimate" / "Get an Estimate" CTA resolves to the bare fragment `#estimateForm` — never a cross-page href, never a path-prefixed one. `id="estimateForm"` exists exactly once on every page: a self-contained mini-form (name, phone, service) embedded on that same page, which on submit opens the five-step `#estimateModal` for the rest. Interior pages carry it in a `pageFormSection` near the bottom; the homepage carries it inside the hero itself.
+
+**This means Issue 1, as originally framed — "make CTAs navigate there consistently using the correct relative path for each page depth" — describes a bug that does not exist.** There is nothing for page depth to get wrong: a same-page fragment needs no prefix at any depth, and none of the 227 anchors had one. The architecture is already exactly what a self-contained, no-orphan-pages site should look like.
+
+### The real cause: the CTA and its target already share one screen
+
+`.heroSection` is `min-height: 100svh` — the whole hero, including both grid columns, is designed to fit in one viewport. `.heroInner` is a two-column grid (`1.15fr 0.85fr`) holding `.heroContent` (kicker, headline, lede, the "Get My Free Estimate" button, then stats) beside `.estimateFormCard` (`align-self: end`, so its bottom pins to the bottom of that same row — landing it low, near where the CTA button and stats already sit).
+
+On a typical desktop viewport, that means the click origin and the anchor target are **both already on screen at the same time**. The browser's anchor navigation is completely correct — it scrolls exactly as far as `scroll-padding-top` requires, which on the homepage is often a handful of pixels. Under `prefers-reduced-motion` (`scroll-behavior: auto` in that block, confirmed at `styleIndex.css:7602`) that handful of pixels happens as an instant jump with no animation at all. Either condition reads, correctly, as "nothing happened."
+
+Interior pages don't have this problem — their mini form sits in a `pageFormSection` far down a long page, so the scroll is large and obvious. The symptom is specific to the homepage hero, which is also the first place anyone testing the site would click "Get My Free Estimate."
+
+### The fix adds arrival, not distance
+
+Rewriting the hero to force a bigger scroll would be a redesign of an intentional, already-approved layout, for a problem that isn't really about distance — it's that a correct, tiny scroll gives no confirmation that anything happened. So `js/indexJS.js` (single file, shared by all 24 pages, confirmed via script-tag audit at both `js/indexJS.js` and `../js/indexJS.js` depths) now wires every `a[href="#estimateForm"]` — 131 of them — to focus `#fullName` on click:
+
+```js
+estimateFormCtas.forEach(function (cta)
+{
+    cta.addEventListener('click', function ()
+    {
+        const firstField = document.getElementById('fullName');
+        if (firstField) { firstField.focus({ preventScroll: true }); }
+    });
+});
+```
+
+No `preventDefault()` — the native anchor navigation, its scroll, and its history entry are completely untouched, so back-navigation behaves exactly as it always has. `preventScroll: true` on the `focus()` call stops the focus itself from triggering a second, competing scroll; the anchor's own navigation remains the only thing that moves the viewport. `#fullName` was confirmed to lead every mini form on every page, ahead of `#phone`, with the honeypot excluded from the tab order it precedes it in.
+
+This resolves the actual complaint — arrival is now unmistakable, keyboard caret lands in the form, mobile keyboards open ready to type — without touching layout, without redesigning the hero, and without changing what the CTA has always correctly done.
+
+### Issue 2: the discrepancy was real, and the test suite already knew
+
+`appsScript/config.gs` currently read `DEFAULT_NOTIFICATION_EMAIL = 'admin@nulostudio.com'` in the working tree. `git log --all -p` on that file shows only one value was ever committed: `'Bluegridls@gmail.com'`, from the original commit. `git diff` confirmed the `admin@nulostudio.com` value was **uncommitted, working-tree-only drift** — not a change I or any prior recorded session made, and not reflected in any documentation (`googleSheetArchitecture.md`, `appsScript/README.md`, and the Sheet itself, per the user, all agree on `Bluegridls@gmail.com`).
+
+`appsScript/localTestRunner.js` — the project's own committed test harness — already asserts `no recipient anywhere is admin@nulostudio.com` in its self-test. Running it against the corrupted file **failed exactly that check**: `owner email goes to Bluegridls@gmail.com  ->  to=admin@nulostudio.com`. Concrete, reproducible proof, not a guess. Since `notifications.gs` only reaches this constant when the Sheet's `config.notificationEmail` is blank or missing, the practical exposure was narrow but real — a blank config cell would have sent lead notifications to Nulo Studio, which `notifications.gs`'s own header comment says must never happen ("the studio must not sit in the customer's email thread").
+
+Reverted the single line to the committed, documented value. `git diff` on the file is now empty — it matches `HEAD` exactly, so there is nothing new to commit for it; the fix is a cleanup of stray local drift, not a shipped change. Apps Script harness returns to 64/64.
+
+**Important caveat, stated plainly:** the live Apps Script deployment is a manually pasted copy (`appsScript/README.md`: "this folder is not itself deployed"). This fix corrects the repository, which is the source of truth for the *next* deployment or copy-paste — it does not and cannot reach whatever is currently pasted into the Apps Script editor. Because the Sheet's `notificationEmail` value takes precedence whenever it is present, and the user confirmed it currently reads `Bluegridls@gmail.com`, normal live submissions are unaffected by whatever the live deployment's own fallback constant currently says. The fallback only matters if that Sheet cell goes blank.
+
+### New validator
+
+`validateEstimateCtas` (scratchpad, not committed — see `technicalDebt.md` item 10i) encodes what this investigation established, so none of it can silently regress: every page owns exactly one `#estimateForm` with `#fullName` leading it; every CTA resolves to the bare `#estimateForm` fragment at any depth; the shared script's click listener targets `#fullName`, passes `preventScroll: true`, and never calls `preventDefault`; the script tag resolves at the correct depth on all 24 pages; and the two facts the root-cause explanation depends on (`.heroSection { min-height: 100svh }`, `.estimateFormCard { align-self: end }`) are still true, so a future layout change doesn't leave this journal entry describing a hero that no longer exists. Verified the `preventDefault` and wrong-target guards by injecting each defect and confirming the validator caught it before restoring the file.
+
+### Files touched
+
+- `js/indexJS.js` — one selector, one listener block, 42 lines
+- `appsScript/config.gs` — one line, reverted to match `HEAD`
+
+### Validation
+
+11 suites green (the ten standing suites plus the new `validateEstimateCtas`), Apps Script harness 64/64, `node --check`, CSS brace balance.
+
+### Left for a browser
+
+Click "Get My Free Estimate" on the homepage at a real desktop width and confirm the field visibly receives focus (a focus ring, or the caret blinking in "Full Name") even though the scroll is short. Then confirm the same on an interior page, where the scroll is large — focus should land the same way, just less noticeably needed. And confirm back-navigation after either still returns to the exact prior scroll position, unchanged from before this fix.
+
+---
+
 ## 2026-08-11 — LOGO MIGRATION, COPY CLEANUP, ON-PAGE SEO SWEEP
 
 ### Brief

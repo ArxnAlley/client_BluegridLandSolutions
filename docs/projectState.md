@@ -3,11 +3,13 @@
 **Last updated:** 2026-08-11
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
-**Last content commit:** `0dac40f` — on-page SEO: search-intent headings, H1 fixes, schema alignment
-**HEAD:** this session's docs commit, sitting one above `0dac40f`
+**Last content commit:** `8f7b70a` — fix "Get My Free Estimate" reading as broken on the homepage
+**HEAD:** this session's docs commit, sitting one above `8f7b70a`
 **Remote:** `origin` → `https://github.com/ArxnAlley/BluegridLandSolutions.git` — **stale, see Waiting on Aron**
-**Sync:** `main` is **7 ahead of** `origin/main` — nothing since 2026-08-07 has been pushed.
+**Sync:** `main` is **9 ahead of** `origin/main` — nothing since 2026-08-07 has been pushed.
 **Working tree:** clean
+
+**Note on this header:** the previous entry (pointing at `0dac40f`) had gone stale within its own commit — `6580de8` (the mobile floating CTA fix) updated the other two docs but not this line. Corrected here rather than carried forward; the repository's actual commit graph is always the authority, not this file.
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
 > Read this file first. `engineeringJournal.md` has the reasoning; `technicalDebt.md` has what is knowingly deferred.
@@ -43,6 +45,7 @@
 | **Site-wide copy cleanup (dashes, spelling)** | **Complete** |
 | **On-page SEO sweep (headings, intent map, schema)** | **Complete** |
 | **Mobile floating CTA — bottom edge clipping** | **Complete** |
+| **Estimate CTA arrival fix + notification config restore** | **Complete** |
 
 **The production domain is the only outright launch blocker.**
 
@@ -116,12 +119,13 @@ Every header dimension is a `:root` custom property overridden in the two header
 
 ---
 
-## Verification State — all green at `0dac40f`
+## Verification State — all green at `8f7b70a`
 
 | Check | Result |
 |---|---|
 | Internal links & assets | **24 pages, zero broken** |
-| **Mobile floating CTA** (`validateFloatingCta`, new) | PASS — bar sizes to content at both breakpoints (61.44px / 59.44px), touch targets 46px and 44px, `env(safe-area-inset-*)` on all three insets, bar outside `<main>` and `<footer>` on 24 pages |
+| **Mobile floating CTA** (`validateFloatingCta`) | PASS — bar sizes to content at both breakpoints (61.44px / 59.44px), touch targets 46px and 44px, `env(safe-area-inset-*)` on all three insets, bar outside `<main>` and `<footer>` on 24 pages |
+| **Estimate CTA routing** (`validateEstimateCtas`, new) | PASS — 24 pages, 131 `a[href="#estimateForm"]` anchors, all bare same-page fragments (227 estimate/quote-labeled anchors audited, zero cross-page or path-prefixed); `#fullName` leads every mini form; shared script focuses it on click with no `preventDefault`; script tag resolves at the correct depth on all 24 pages |
 | **On-page SEO** (`validateSeo`, new) | PASS — 24 pages: exactly one non-empty H1 each, no skipped heading levels, 24 unique titles and descriptions within budget, canonicals and breadcrumbs present, per-page-kind schema, **every FAQ schema question rendered on its page**, alt coverage, descriptive anchors, no content orphans, **zero H1 intent collisions** |
 | Navigation / mobile drawer / FAQ hub / Insights | PASS on all 24 pages |
 | **Mega menu system** | PASS — 24 pages × 4 panels: one shell, every row on `.megaRow`, links resolving with the right relative form per depth, no duplicate ids, `aria-controls` intact, fit 1201–1600px, height spread **24%** against a 45% gate |
@@ -268,6 +272,18 @@ With `align-items: center` the surplus splits evenly, so each button sat **0.72p
 
 **Deliberately unchanged:** the radius, the shadow, the colours, the scroll trigger, and the insets — `bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px))` and `left`/`right: max(1rem, env(safe-area-inset-*, 0px))` were already correct, which is why an arbitrary pixel offset would have hidden the real bug. Touch targets stay at 46px and 44px, both at or above the 44px minimum.
 
+### Estimate CTA arrival + notification config restore — 2026-08-11
+
+**"Get My Free Estimate" was reported as reading broken on the homepage — clicking it "only moves/slides slightly."** Audited all 227 estimate/quote-labeled anchors on 24 pages: every one resolves to the bare `#estimateForm` fragment, never cross-page, never path-prefixed. **This ruled out the routing bug the report assumed.** There is no separate "estimate page" — each page carries its own self-contained mini-form (`id="estimateForm"`) that opens the five-step modal on submit, which is the correct, already-consistent architecture.
+
+**Root cause: the CTA and its target can already share one screen.** `.heroSection` is `min-height: 100svh`; `.estimateFormCard` sits inside that same section beside `.heroContent` in a two-column grid (`align-self: end` pins it low, near the CTA and the hero stats). On a typical desktop viewport both are already visible, so the browser's anchor scroll — completely correct — is a few pixels or zero. Under `prefers-reduced-motion` (`scroll-behavior: auto` at that breakpoint) that's an instant, unanimated jump. Interior pages don't have this problem; their mini form sits far down a much longer page.
+
+**Fix: arrival feedback, not a redesign.** Every `a[href="#estimateForm"]` (131 of them, wired once in the shared `js/indexJS.js`) now focuses `#fullName` on click — `preventScroll: true` so it can't introduce a competing scroll, no `preventDefault` so native navigation, scrolling, and browser history are completely untouched. Verified `#fullName` leads every mini form on all 24 pages, ahead of the honeypot and `#phone`.
+
+**Separately: `appsScript/config.gs` held an uncommitted `DEFAULT_NOTIFICATION_EMAIL = 'admin@nulostudio.com'`.** `git log --all -p` shows only `Bluegridls@gmail.com` was ever committed — this was working-tree drift, not a shipped regression. `appsScript/localTestRunner.js`'s own guard (`no recipient anywhere is admin@nulostudio.com`) caught it the moment the harness ran. Reverted; the file now matches `HEAD` exactly, so there was nothing new to commit for it. **The live Apps Script deployment is a separately pasted copy** (per `appsScript/README.md`) and is unaffected either way by this repo-side fix; normal submissions are governed by the Sheet's `notificationEmail`, confirmed at `Bluegridls@gmail.com`.
+
+Debt recorded: `technicalDebt.md` item 10l — nothing currently stops this class of drift from being committed, since the toolchain that catches it (item 10i) lives outside the repo and has no pre-commit hook to run it.
+
 ### Merge, push, and housekeeping
 `phase2a-lead-capture` merged into `main` as a clean **fast-forward** (`8108f94..bc4021d`), 17 commits, 42 files, 52,050 insertions, **zero deletions**; the single rename is the Phase 2C `hero_after.JPG → after.JPG` casing fix. Full validation re-run on `main` after the merge — 12/12. Pushed `main → origin/main`. The feature branch was **not deleted** and still exists at `bc4021d`, 8 ahead of `origin/phase2a-lead-capture`. Then the GBP housekeeping commit `9237e53`.
 
@@ -275,7 +291,7 @@ With `align-items: center` the surplus splits evenly, so each button sat **0.72p
 
 ## Currently In Progress
 
-**Nothing.** Working tree clean, all validators pass. `main` is 3 ahead of `origin/main` and nothing has been pushed.
+**Nothing.** Working tree clean, all validators pass. `main` is 9 ahead of `origin/main` and nothing has been pushed since `9237e53`.
 
 ---
 
@@ -345,7 +361,7 @@ The highest-value work available is in *Remaining Launch Work*, and item 1 gates
 # NEXT SESSION SHOULD START HERE
 
 1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. The 2026-08-09 session found two things in these docs that were simply wrong (the line-ending split, and the "MAINTENANCE at 143px against 147px" figure); assume there are others.
-2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main`, remote URL, working tree, page count. Expect `main`, clean, **24 pages**, and **3 ahead of `origin/main`**. Nothing has been pushed since `9237e53`.
-3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `heroLoopHarness`, `measureHeader`, `measureProcessFit`, plus the guarded assemblers and the copy-rewrite tables. **Locate it before starting work, and re-run all eleven suites to establish a baseline before changing anything.** This is the single most fragile thing about the project's process — see `technicalDebt.md`.
+2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main`, remote URL, working tree, page count. Expect `main`, clean, **24 pages**, and **9 ahead of `origin/main`**. Nothing has been pushed since `9237e53`. **Also run `git status` before trusting any hardcoded config value in `appsScript/`** — item 10l found one file with an uncommitted, undocumented edit sitting in the working tree; `git diff` against `HEAD` is the way to catch that class of drift.
+3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `validateEstimateCtas`, `heroLoopHarness` — **eleven suites**, named so the count in this line can be checked against the list rather than trusted on its own — plus `measureHeader`, `measureProcessFit`, the guarded assemblers, and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, 64 checks) is committed and separate from all of this. **Locate the scratchpad toolchain before starting work, and re-run all eleven suites plus the Apps Script harness to establish a baseline before changing anything.** This is the single most fragile thing about the project's process — see `technicalDebt.md` item 10i, and item 10l for what happens when a change bypasses that harness.
 4. **Aron's browser QA list** is at the end of `technicalDebt.md` item 4 and is the largest untested surface on the project. The 2026-08-09 additions — the Our Company panel, the company page, and the process handover at 1168px — are all things static analysis cannot judge.
 5. **Do not start *Remaining Launch Work* items 2–5 until the domain is settled** — they would all be done twice.
