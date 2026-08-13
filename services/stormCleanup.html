@@ -1563,6 +1563,68 @@
 
                     <div class="formField">
 
+                        <label class="formLabel" for="modalFullName">Full Name</label>
+
+                        <input
+                            class="formInput"
+                            type="text"
+                            id="modalFullName"
+                            name="fullName"
+                            autocomplete="name"
+                            required
+                            aria-describedby="modalFullNameError"
+                        >
+
+                        <p class="fieldError" id="modalFullNameError" hidden>Please enter your name.</p>
+
+                    </div>
+
+                    <div class="formField">
+
+                        <label class="formLabel" for="modalPhone">Phone</label>
+
+                        <input
+                            class="formInput"
+                            type="tel"
+                            id="modalPhone"
+                            name="phone"
+                            autocomplete="tel"
+                            required
+                            aria-describedby="modalPhoneError"
+                        >
+
+                        <p class="fieldError" id="modalPhoneError" hidden>Please enter a valid phone number.</p>
+
+                    </div>
+
+                    <div class="formField">
+
+                        <label class="formLabel" for="modalServiceNeeded">Service Needed</label>
+
+                        <select
+                            class="formInput formSelect"
+                            id="modalServiceNeeded"
+                            name="serviceNeeded"
+                            required
+                            aria-describedby="modalServiceNeededError"
+                        >
+                            <option value="" selected disabled>Select a service&hellip;</option>
+                            <option value="Forestry Mulching">Forestry Mulching</option>
+                            <option value="Land Clearing">Land Clearing</option>
+                            <option value="Brush Removal">Brush Removal</option>
+                            <option value="Trail Cutting">Trail Cutting</option>
+                            <option value="Storm Cleanup">Storm Cleanup</option>
+                            <option value="Property Cleanup">Property Cleanup</option>
+                            <option value="Hunting Property Prep">Hunting Property Prep</option>
+                            <option value="Other">Other</option>
+                        </select>
+
+                        <p class="fieldError" id="modalServiceNeededError" hidden>Please choose a service.</p>
+
+                    </div>
+
+                    <div class="formField">
+
                         <label class="formLabel" for="propertyAddress">Property Address</label>
 
                         <input

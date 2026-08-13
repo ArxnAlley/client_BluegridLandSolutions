@@ -2562,17 +2562,64 @@ function validateMiniForm()
 
 }
 
+/* The modal carries its own Full Name / Phone / Service Needed fields
+   (modalFullName / modalPhone / modalServiceNeeded) so it can produce
+   a complete lead on its own when a CTA opens it directly — the mini
+   form keeps its original fullName / phone / serviceNeeded ids so it
+   keeps working exactly as it always has. This is the one place the
+   two are connected: called right before the mini form hands off to
+   the modal, so "Continue" carries what was just typed forward instead
+   of asking for it twice. */
+
+function copyMiniFormIntoModal()
+{
+
+    const modalFullName = document.getElementById('modalFullName');
+
+    const modalPhone = document.getElementById('modalPhone');
+
+    const modalServiceNeeded = document.getElementById('modalServiceNeeded');
+
+    if (modalFullName)
+    {
+
+        modalFullName.value = document.getElementById('fullName').value;
+
+    }
+
+    if (modalPhone)
+    {
+
+        modalPhone.value = document.getElementById('phone').value;
+
+    }
+
+    if (modalServiceNeeded)
+    {
+
+        modalServiceNeeded.value = document.getElementById('serviceNeeded').value;
+
+    }
+
+}
+
 function validateModalStep(stepNumber)
 {
 
     if (stepNumber === 1)
     {
 
+        const nameValid = validateRequiredText(document.getElementById('modalFullName'), 'modalFullNameError');
+
+        const phoneValid = validatePhoneField(document.getElementById('modalPhone'), 'modalPhoneError');
+
+        const serviceValid = validateRequiredText(document.getElementById('modalServiceNeeded'), 'modalServiceNeededError');
+
         const addressValid = validateRequiredText(document.getElementById('propertyAddress'), 'propertyAddressError');
 
         const acresValid = validateAcresField(document.getElementById('estimatedAcres'), 'estimatedAcresError');
 
-        return addressValid && acresValid;
+        return nameValid && phoneValid && serviceValid && addressValid && acresValid;
 
     }
 
@@ -2782,11 +2829,11 @@ function buildReviewSummary()
 
     const contactMethod = estimateModalForm.querySelector('input[name="preferredContactMethod"]:checked');
 
-    addReviewRow('Name', document.getElementById('fullName').value.trim(), null, 'fullName');
+    addReviewRow('Name', document.getElementById('modalFullName').value.trim(), 1, null);
 
-    addReviewRow('Phone', document.getElementById('phone').value.trim(), null, 'phone');
+    addReviewRow('Phone', document.getElementById('modalPhone').value.trim(), 1, null);
 
-    addReviewRow('Service', document.getElementById('serviceNeeded').value, null, 'serviceNeeded');
+    addReviewRow('Service', document.getElementById('modalServiceNeeded').value, 1, null);
 
     addReviewRow('Address', document.getElementById('propertyAddress').value.trim(), 1, null);
 
@@ -2824,9 +2871,9 @@ function buildEstimatePayload()
 
         submittedAt: new Date().toISOString(),
 
-        fullName: document.getElementById('fullName').value.trim(),
+        fullName: document.getElementById('modalFullName').value.trim(),
 
-        phone: document.getElementById('phone').value.trim(),
+        phone: document.getElementById('modalPhone').value.trim(),
 
         email: document.getElementById('email').value.trim(),
 
@@ -2834,7 +2881,7 @@ function buildEstimatePayload()
 
         estimatedAcres: document.getElementById('estimatedAcres').value.trim(),
 
-        serviceNeeded: document.getElementById('serviceNeeded').value,
+        serviceNeeded: document.getElementById('modalServiceNeeded').value,
 
         projectDescription: document.getElementById('projectDescription').value.trim(),
 
@@ -3040,15 +3087,19 @@ function showSubmissionError(apiError)
     if (apiError.code === 'VALIDATION_ERROR' && apiError.fields)
     {
 
+        /* This fires from the modal's own submit — the visitor is
+           looking at the modal, not the mini-form, so the highlighted
+           field has to be the one they can actually see. */
+
         const fieldErrorIds = {
 
-            fullName: 'fullNameError',
+            fullName: 'modalFullNameError',
 
-            phone: 'phoneError',
+            phone: 'modalPhoneError',
 
             email: 'emailError',
 
-            serviceNeeded: 'serviceNeededError',
+            serviceNeeded: 'modalServiceNeededError',
 
             propertyAddress: 'propertyAddressError',
 
@@ -3905,39 +3956,35 @@ if (backToTopButton)
 }
 
 /* ── "Get My Free Estimate"-style CTAs ──
-   Every page carries its own #estimateForm, so this is always a
-   same-page anchor and the browser already does the scrolling and the
-   history entry; nothing here touches navigation or preventDefault.
+   These are every a[href="#estimateForm"] on the page — header,
+   hero, mobile floating bar, footer, mega menu, and their equivalents
+   on every service/location/FAQ/company/Insights page. The mini-form's
+   own Continue button is never one of these: it is a <button
+   type="submit"> inside #estimateForm, not an anchor, so it keeps its
+   existing submit-handler behaviour below untouched.
 
-   On the homepage the mini form and the CTA that opens it can already
-   share the same one-screen hero (.heroSection is min-height: 100svh,
-   and .estimateFormCard sits inside that same section beside
-   .heroContent), so the resulting scroll can be a few pixels or none
-   at all. Under prefers-reduced-motion the jump is instant rather than
-   smooth on top of that. Either way, a click that correctly lands on
-   an already-visible target still needs to look like it did something.
-
-   Focusing the first empty field is that signal: unambiguous
-   regardless of scroll distance, useful on every page rather than only
-   the ones where the scroll happens to be short, and preventScroll
-   keeps it from fighting the anchor's own scroll target. */
+   Previously this scrolled to the mini-form and focused its first
+   field. That was itself a fix for the anchor jump reading as broken
+   (.heroSection and .estimateFormCard can share one screen, so the
+   native scroll was a few pixels or none) — but scrolling to the mini
+   form at all was the wrong destination: these CTAs are meant to start
+   the estimate flow, not point at one entry into it. They now open the
+   modal directly, at whatever step it is already on (step 1 for a
+   first-time visitor, since currentModalStep starts there and nothing
+   here resets it — reopening after a partial fill still resumes where
+   the visitor left off, same as it always has). */
 
 estimateFormCtas.forEach(function (cta)
 {
 
     cta.addEventListener(
         'click',
-        function ()
+        function (event)
         {
 
-            const firstField = document.getElementById('fullName');
+            event.preventDefault();
 
-            if (firstField)
-            {
-
-                firstField.focus({ preventScroll: true });
-
-            }
+            openEstimateModal();
 
         }
     );
@@ -3969,6 +4016,8 @@ if (estimateMiniForm)
                 formSuccessPanel.hidden = false;
 
             }
+
+            copyMiniFormIntoModal();
 
             openEstimateModal();
 
