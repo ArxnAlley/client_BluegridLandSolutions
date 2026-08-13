@@ -110,6 +110,8 @@ const heroTypedGhost = document.getElementById('heroTypedGhost');
 
 const estimateMiniForm = document.getElementById('estimateForm');
 
+const estimateFormCtas = document.querySelectorAll('a[href="#estimateForm"]');
+
 const estimateModal = document.getElementById('estimateModal');
 
 const estimateModalForm = document.getElementById('estimateModalForm');
@@ -3901,6 +3903,46 @@ if (backToTopButton)
     );
 
 }
+
+/* ── "Get My Free Estimate"-style CTAs ──
+   Every page carries its own #estimateForm, so this is always a
+   same-page anchor and the browser already does the scrolling and the
+   history entry; nothing here touches navigation or preventDefault.
+
+   On the homepage the mini form and the CTA that opens it can already
+   share the same one-screen hero (.heroSection is min-height: 100svh,
+   and .estimateFormCard sits inside that same section beside
+   .heroContent), so the resulting scroll can be a few pixels or none
+   at all. Under prefers-reduced-motion the jump is instant rather than
+   smooth on top of that. Either way, a click that correctly lands on
+   an already-visible target still needs to look like it did something.
+
+   Focusing the first empty field is that signal: unambiguous
+   regardless of scroll distance, useful on every page rather than only
+   the ones where the scroll happens to be short, and preventScroll
+   keeps it from fighting the anchor's own scroll target. */
+
+estimateFormCtas.forEach(function (cta)
+{
+
+    cta.addEventListener(
+        'click',
+        function ()
+        {
+
+            const firstField = document.getElementById('fullName');
+
+            if (firstField)
+            {
+
+                firstField.focus({ preventScroll: true });
+
+            }
+
+        }
+    );
+
+});
 
 if (estimateMiniForm)
 {
