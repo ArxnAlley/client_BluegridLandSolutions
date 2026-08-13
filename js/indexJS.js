@@ -178,19 +178,24 @@ let currentModalStep = 1;
 
 let modalHasBeenSubmitted = false;
 
-/* One request at a time, and one leadId for the whole page load.
+/* One request at a time, and one referenceId for the whole page load.
 
-   The API dedupes on leadId, so holding it steady lets that dedupe
-   collapse a retry into the original row — minting a fresh id per
-   attempt would defeat it. Holding it for the page load is right
+   The API dedupes on referenceId, so holding it steady lets that
+   dedupe collapse a retry into the original row — minting a fresh one
+   per attempt would defeat it. Holding it for the page load is right
    because the flow allows exactly one submission per load: once the
    success panel is showing, reopening the modal shows the panel
    again rather than a blank form. A second request means a reload,
-   which resets this anyway. */
+   which resets this anyway.
+
+   It is also the key photo uploads are filed under, which is why it
+   is minted on demand rather than at submit time — the photos go up
+   before the lead is created and need somewhere to go. The internal
+   sequential leadId is assigned by the server and never seen here. */
 
 let estimateSubmissionInFlight = false;
 
-let currentEstimateLeadId = null;
+let currentEstimateReferenceId = null;
 
 let photoFiles = [];
 
@@ -2853,21 +2858,32 @@ function buildReviewSummary()
 
 /* ── Payload & submission ── */
 
+/* Minted once per page load, on first use. Photo uploads need it
+   before the lead exists, so this is deliberately not tied to the
+   moment of submission. */
+
+function getEstimateReferenceId()
+{
+
+    if (!currentEstimateReferenceId)
+    {
+
+        currentEstimateReferenceId = 'BG-' + Date.now();
+
+    }
+
+    return currentEstimateReferenceId;
+
+}
+
 function buildEstimatePayload()
 {
 
     const contactMethod = estimateModalForm.querySelector('input[name="preferredContactMethod"]:checked');
 
-    if (!currentEstimateLeadId)
-    {
-
-        currentEstimateLeadId = 'BG-' + Date.now();
-
-    }
-
     return {
 
-        leadId: currentEstimateLeadId,
+        referenceId: getEstimateReferenceId(),
 
         submittedAt: new Date().toISOString(),
 
@@ -2949,9 +2965,9 @@ function submitEstimateRequest()
 {
 
     /* A double-tap on the submit button would otherwise fire two
-       requests. Each carried its own leadId, so the API's dedupe could
-       not collapse them: one visitor, two rows in the sheet, two owner
-       emails, two auto-replies, and double the MailApp quota. */
+       requests. Each carried its own referenceId, so the API's dedupe
+       could not collapse them: one visitor, two rows in the sheet, two
+       owner emails, two auto-replies, and double the MailApp quota. */
 
     if (estimateSubmissionInFlight)
     {
@@ -3005,23 +3021,35 @@ function submitEstimateRequest()
 
     }
 
-    /* Content-Type is text/plain on purpose: Apps Script web apps
-       cannot answer a CORS preflight, and text/plain keeps the
-       request "simple" so no preflight is sent. The body is still
-       JSON and the API parses it as such. */
+    /* Photos go up before the lead is created, so the owner's
+       notification can carry links instead of filenames. The lead is
+       created either way: uploadPendingPhotos never rejects, and the
+       API records what actually reached storage rather than what the
+       browser claimed to be sending. */
 
-    fetch(
-        businessConfig.estimateEndpoint + '?action=leads.create',
+    uploadPendingPhotos()
+        .then(function ()
         {
 
-            method: 'POST',
+            /* Content-Type is text/plain on purpose: Apps Script web
+               apps cannot answer a CORS preflight, and text/plain
+               keeps the request "simple" so no preflight is sent. The
+               body is still JSON and the API parses it as such. */
 
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            return fetch(
+                businessConfig.estimateEndpoint + '?action=leads.create',
+                {
 
-            body: JSON.stringify(payload)
+                    method: 'POST',
 
-        }
-    )
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+
+                    body: JSON.stringify(payload)
+
+                }
+            );
+
+        })
         .then(function (response)
         {
 
@@ -3138,6 +3166,20 @@ function showSubmissionError(apiError)
    PHOTO UPLOADER  (reusable drag-and-drop with previews)
 ============================================================ */
 
+function describePhotoEntry(entry)
+{
+
+    if (entry.failed)
+    {
+
+        return entry.file.name + ' · could not upload';
+
+    }
+
+    return entry.file.name + ' · ' + (entry.file.size / 1024 / 1024).toFixed(1) + ' MB';
+
+}
+
 function renderPhotoPreviews()
 {
 
@@ -3172,7 +3214,7 @@ function renderPhotoPreviews()
 
         meta.className = 'photoPreviewMeta';
 
-        meta.textContent = entry.file.name + ' · ' + (entry.file.size / 1024 / 1024).toFixed(1) + ' MB';
+        meta.textContent = describePhotoEntry(entry);
 
         const removeButton = document.createElement('button');
 
@@ -3188,6 +3230,16 @@ function renderPhotoPreviews()
             'click',
             function ()
             {
+
+                /* Removing a photo mid-submission would renumber the
+                   uploads already queued behind it. */
+
+                if (estimateSubmissionInFlight)
+                {
+
+                    return;
+
+                }
 
                 URL.revokeObjectURL(entry.previewUrl);
 
@@ -3212,36 +3264,415 @@ function renderPhotoPreviews()
 
 }
 
-function simulateUploadProgress(entry)
+/* ── Upload ──
+
+   Progress is driven by the upload itself. It used to be a timer that
+   filled every bar to 100% in about a second whether or not anything
+   was being sent, which is how the first real lead reached the owner
+   naming photos he could not open, from a visitor who had watched
+   them "upload". */
+
+function setPhotoProgress(entry, percent)
 {
 
-    const interval = window.setInterval(
-        function ()
+    entry.progress = percent;
+
+    entry.failed = false;
+
+    paintPhotoProgress(entry);
+
+}
+
+function markPhotoFailed(entry)
+{
+
+    entry.progress = 100;
+
+    entry.failed = true;
+
+    paintPhotoProgress(entry);
+
+}
+
+function paintPhotoProgress(entry)
+{
+
+    const index = photoFiles.indexOf(entry);
+
+    if (index === -1)
+    {
+
+        return;
+
+    }
+
+    const item = photoPreviewGrid.children[index];
+
+    if (!item)
+    {
+
+        return;
+
+    }
+
+    const fill = item.querySelector('.photoProgressFill');
+
+    if (fill)
+    {
+
+        fill.style.width = entry.progress + '%';
+
+    }
+
+    const meta = item.querySelector('.photoPreviewMeta');
+
+    if (meta)
+    {
+
+        meta.textContent = describePhotoEntry(entry);
+
+    }
+
+}
+
+/* Sequential rather than parallel on purpose. This is a rural trade
+   whose customers are regularly on one bar of signal, where twelve
+   simultaneous uploads finish slower than twelve consecutive ones and
+   fail far less gracefully.
+
+   Never rejects. A photo that will not upload must not cost the lead:
+   the API records what actually arrived, and the owner's email says
+   plainly when something did not. */
+
+function uploadPendingPhotos()
+{
+
+    let chain = Promise.resolve();
+
+    photoFiles.forEach(function (entry, index)
+    {
+
+        if (entry.uploaded)
         {
 
-            entry.progress = Math.min(entry.progress + 12 + Math.random() * 18, 100);
+            return;
 
-            const fills = photoPreviewGrid.querySelectorAll('.photoProgressFill');
+        }
 
-            const index = photoFiles.indexOf(entry);
+        chain = chain.then(function ()
+        {
 
-            if (fills[index])
+            return uploadOnePhoto(entry, index + 1);
+
+        });
+
+    });
+
+    return chain;
+
+}
+
+function uploadOnePhoto(entry, position)
+{
+
+    setPhotoProgress(entry, 8);
+
+    return preparePhotoForUpload(entry.file)
+        .then(function (prepared)
+        {
+
+            setPhotoProgress(entry, 40);
+
+            return fetch(
+                businessConfig.estimateEndpoint + '?action=leads.addPhotos',
+                {
+
+                    method: 'POST',
+
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+
+                    body: JSON.stringify({
+
+                        referenceId: getEstimateReferenceId(),
+
+                        index: position,
+
+                        fileName: entry.file.name,
+
+                        mimeType: prepared.mimeType,
+
+                        dataBase64: prepared.dataBase64
+
+                    })
+
+                }
+            );
+
+        })
+        .then(function (response)
+        {
+
+            return response.json();
+
+        })
+        .then(function (result)
+        {
+
+            if (result && result.success)
             {
 
-                fills[index].style.width = entry.progress + '%';
+                /* Marked here so a retry after a failed submission
+                   skips the photos that already landed, rather than
+                   sending every one again. */
+
+                entry.uploaded = true;
+
+                setPhotoProgress(entry, 100);
+
+                return;
 
             }
 
-            if (entry.progress >= 100)
+            markPhotoFailed(entry);
+
+        })
+        .catch(function (uploadError)
+        {
+
+            console.warn('BlueGrid: a photo could not be uploaded.', uploadError);
+
+            markPhotoFailed(entry);
+
+        });
+
+}
+
+/* Downscaled before upload for three reasons: a modern phone photo is
+   several megabytes and this is a weak-signal trade; Apps Script has
+   to hold the decoded bytes in memory; and base64 adds a third again
+   on the wire. 1600px on the long edge is far more than enough to
+   read brush, stumps and terrain.
+
+   Falls back to the original file whenever the canvas path is
+   unavailable or fails. A larger upload is much better than no
+   photo. */
+
+function preparePhotoForUpload(file)
+{
+
+    return downscaleImage(file)
+        .catch(function ()
+        {
+
+            return file;
+
+        })
+        .then(function (blob)
+        {
+
+            return readBlobAsBase64(blob).then(function (dataBase64)
             {
 
-                window.clearInterval(interval);
+                return {
 
-            }
+                    dataBase64: dataBase64,
 
-        },
-        160
-    );
+                    mimeType: blob.type || file.type
+
+                };
+
+            });
+
+        });
+
+}
+
+function downscaleImage(file)
+{
+
+    const maxEdge = 1600;
+
+    return loadImageSource(file).then(function (source)
+    {
+
+        const width = imageWidth(source);
+
+        const height = imageHeight(source);
+
+        const scale = Math.min(1, maxEdge / Math.max(width, height));
+
+        /* Already small enough that re-encoding would cost quality
+           and gain nothing. */
+
+        if (scale === 1 && file.size <= 1200000)
+        {
+
+            releaseImageSource(source);
+
+            return file;
+
+        }
+
+        const canvas = document.createElement('canvas');
+
+        canvas.width = Math.round(width * scale);
+
+        canvas.height = Math.round(height * scale);
+
+        canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
+
+        releaseImageSource(source);
+
+        return new Promise(function (resolve, reject)
+        {
+
+            canvas.toBlob(
+                function (blob)
+                {
+
+                    if (blob)
+                    {
+
+                        resolve(blob);
+
+                        return;
+
+                    }
+
+                    reject(new Error('Canvas produced no image.'));
+
+                },
+                'image/jpeg',
+                0.82
+            );
+
+        });
+
+    });
+
+}
+
+/* createImageBitmap is asked for 'from-image' orientation because
+   phone photos are almost always rotated by EXIF metadata rather than
+   by their pixels, and a naive canvas draw would lay a portrait shot
+   of a treeline on its side. Modern browsers apply the same
+   correction to an <img> by default, which is what the fallback
+   relies on. */
+
+function loadImageSource(file)
+{
+
+    if (typeof window.createImageBitmap === 'function')
+    {
+
+        return window
+            .createImageBitmap(file, { imageOrientation: 'from-image' })
+            .catch(function ()
+            {
+
+                return loadImageElement(file);
+
+            });
+
+    }
+
+    return loadImageElement(file);
+
+}
+
+function loadImageElement(file)
+{
+
+    return new Promise(function (resolve, reject)
+    {
+
+        const image = new Image();
+
+        const objectUrl = URL.createObjectURL(file);
+
+        image.onload = function ()
+        {
+
+            URL.revokeObjectURL(objectUrl);
+
+            resolve(image);
+
+        };
+
+        image.onerror = function ()
+        {
+
+            URL.revokeObjectURL(objectUrl);
+
+            reject(new Error('That image could not be read.'));
+
+        };
+
+        image.src = objectUrl;
+
+    });
+
+}
+
+/* An ImageBitmap reports width/height; an <img> reports its rendered
+   size there and its real size on naturalWidth/naturalHeight. */
+
+function imageWidth(source)
+{
+
+    return source.naturalWidth || source.width;
+
+}
+
+function imageHeight(source)
+{
+
+    return source.naturalHeight || source.height;
+
+}
+
+function releaseImageSource(source)
+{
+
+    if (source && typeof source.close === 'function')
+    {
+
+        source.close();
+
+    }
+
+}
+
+function readBlobAsBase64(blob)
+{
+
+    return new Promise(function (resolve, reject)
+    {
+
+        const reader = new FileReader();
+
+        reader.onload = function ()
+        {
+
+            /* readAsDataURL yields "data:<mime>;base64,<payload>" and
+               the API wants the payload on its own. */
+
+            const result = String(reader.result);
+
+            resolve(result.slice(result.indexOf(',') + 1));
+
+        };
+
+        reader.onerror = function ()
+        {
+
+            reject(new Error('That image could not be read.'));
+
+        };
+
+        reader.readAsDataURL(blob);
+
+    });
 
 }
 
@@ -3270,13 +3701,15 @@ function addPhotoFiles(fileList)
 
             previewUrl: URL.createObjectURL(file),
 
-            progress: 0
+            progress: 0,
+
+            uploaded: false,
+
+            failed: false
 
         };
 
         photoFiles.push(entry);
-
-        simulateUploadProgress(entry);
 
     });
 

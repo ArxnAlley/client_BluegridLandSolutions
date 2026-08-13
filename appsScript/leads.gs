@@ -35,7 +35,16 @@ const LEADS_HEADERS = [
     'estimateAmount',
     'assignedTo',
     'internalNotes',
-    'lastUpdated'
+    'lastUpdated',
+
+    /* Added by the 2026-08-13 identifier split and photo storage work.
+       Appended rather than slotted next to leadId and photoUrls where
+       they belong logically, because the append-only rule above is
+       what keeps existing rows readable: every column an old row has
+       stays exactly where that row put it. */
+
+    'referenceId',
+    'photoFolderUrl'
 
 ];
 
@@ -56,7 +65,7 @@ function handleCreateLead(payload)
 
         return successResponse({
 
-            lead: { leadId: 'BG-' + Date.now() },
+            lead: { referenceId: LEAD_ID_PREFIX + Date.now() },
 
             honeypot: true
 
@@ -69,7 +78,7 @@ function handleCreateLead(payload)
     if (!validation.valid)
     {
 
-        logValidationFailure('handleCreateLead', validation.fields, validation.clean.leadId);
+        logValidationFailure('handleCreateLead', validation.fields, validation.clean.referenceId);
 
         return errorResponse(
             ERROR_CODES.validation,
@@ -78,6 +87,13 @@ function handleCreateLead(payload)
         );
 
     }
+
+    /* Photos are resolved before the lock rather than inside it. The
+       Drive reads do not need serialising, and holding the script lock
+       across them would make every other submission queue behind this
+       one's storage lookups. */
+
+    const photos = resolveLeadPhotos(validation.clean.referenceId);
 
     const lock = LockService.getScriptLock();
 
@@ -90,7 +106,7 @@ function handleCreateLead(payload)
     catch (lockError)
     {
 
-        logError('handleCreateLead:lockTimeout', lockError, validation.clean.leadId);
+        logError('handleCreateLead:lockTimeout', lockError, validation.clean.referenceId);
 
         return errorResponse(
             ERROR_CODES.lockTimeout,
@@ -105,14 +121,20 @@ function handleCreateLead(payload)
         const sheet = getOrCreateSheet(SHEET_NAMES.leads);
 
         /* ── Dedupe: create is idempotent, so a double-tap or a
-           mobile retry never produces two rows. ── */
+           mobile retry never produces two rows.
 
-        const existing = findLeadById(sheet, validation.clean.leadId);
+           Keyed on referenceId, the value the client minted and holds
+           for the page load. The sequential leadId cannot serve here
+           and is deliberately allocated *after* this check — a
+           duplicate must never consume a number, or the owner's lead
+           list would grow gaps every time somebody double-tapped. ── */
+
+        const existing = findLeadByReferenceId(sheet, validation.clean.referenceId);
 
         if (existing)
         {
 
-            logInfo('duplicateLead', validation.clean.leadId);
+            logInfo('duplicateLead', validation.clean.referenceId);
 
             return successResponse({
 
@@ -124,12 +146,20 @@ function handleCreateLead(payload)
 
         }
 
+        /* Allocated inside the lock that already serialises every
+           write to this sheet, so two simultaneous submissions cannot
+           read the same highest number and both add one to it. */
+
+        const leadId = allocateNextLeadId(sheet);
+
         /* ── Compose the row. Server-authoritative fields are set
            here and never accepted from the client. ── */
 
         const record = {
 
-            leadId: validation.clean.leadId,
+            leadId: leadId,
+
+            referenceId: validation.clean.referenceId,
 
             submittedAt: validation.clean.submittedAt,
 
@@ -153,9 +183,16 @@ function handleCreateLead(payload)
 
             photoCount: validation.clean.photoCount,
 
-            photoNames: validation.clean.photoNames,
+            /* What the storage folder actually holds, not what the
+               browser claimed to be sending. When nothing uploaded,
+               the client's own list is kept so the owner still knows
+               what the customer meant to attach. */
 
-            photoUrls: [],
+            photoNames: photos.names.length ? photos.names : validation.clean.photoNames,
+
+            photoUrls: photos.urls,
+
+            photoFolderUrl: photos.folderUrl,
 
             sourcePage: validation.clean.sourcePage,
 
@@ -196,7 +233,12 @@ function handleCreateLead(payload)
             .getRange(sheet.getLastRow(), 1, 1, LEADS_HEADERS.length)
             .setNumberFormat('@');
 
-        logInfo('leadCreated', record.leadId);
+        logInfo('leadCreated', record.leadId + ' :: ' + record.referenceId);
+
+        /* Now that the lead has a number, the upload folder can carry
+           it. Best-effort — the links on the row do not depend on it. */
+
+        labelPhotoFolder(photos.folderId, record.leadId, record.fullName, record.referenceId);
 
         /* Notifications are best-effort. The row is already committed,
            so this is wrapped independently: if anything in the mail
@@ -231,7 +273,7 @@ function handleCreateLead(payload)
            the one failure the errorLog exists to make impossible to
            miss. */
 
-        logError('handleCreateLead', createError, validation.clean.leadId);
+        logError('handleCreateLead', createError, validation.clean.referenceId);
 
         return errorResponse(
             ERROR_CODES.serverError,
@@ -387,13 +429,26 @@ function handleUpdateLead(payload)
 }
 
 /* ============================================================
-   LOOKUP
+   SEQUENTIAL ID ALLOCATION
+
+   The next number is derived from the sheet rather than kept in a
+   counter. That costs one column read — the same read dedupe already
+   pays — and buys two things worth more than the read: the numbering
+   can never drift out of step with the rows it describes, and
+   clearing the test rows before launch is the whole reset, with no
+   Script Property left holding a stale count.
+
+   Callers must already hold the script lock.
 ============================================================ */
 
-/* Scans only the leadId column rather than pulling every row, so
-   dedupe stays cheap as the sheet grows. */
+function allocateNextLeadId(sheet)
+{
 
-function findLeadById(sheet, leadId)
+    return LEAD_ID_PREFIX + padLeadNumber(findHighestLeadNumber(sheet) + 1);
+
+}
+
+function findHighestLeadNumber(sheet)
 {
 
     const lastRow = sheet.getLastRow();
@@ -401,7 +456,7 @@ function findLeadById(sheet, leadId)
     if (lastRow < 2)
     {
 
-        return null;
+        return 0;
 
     }
 
@@ -409,10 +464,119 @@ function findLeadById(sheet, leadId)
 
     const ids = sheet.getRange(2, idColumnIndex, lastRow - 1, 1).getValues();
 
+    let highest = 0;
+
     for (let index = 0; index < ids.length; index += 1)
     {
 
-        if (normalizeCellValue(ids[index][0]) === leadId)
+        const number = parseLeadNumber(normalizeCellValue(ids[index][0]));
+
+        if (number > highest)
+        {
+
+            highest = number;
+
+        }
+
+    }
+
+    return highest;
+
+}
+
+/* Returns 0 for anything that is not a sequential id — including the
+   long-form ids this column held before the split, which would
+   otherwise be read as a sequence number in the trillions and send
+   the very next lead to BG-1786635839699.
+
+   That guard is why an unmigrated sheet still numbers correctly
+   instead of silently exploding. */
+
+function parseLeadNumber(value)
+{
+
+    const match = /^BG-(\d+)$/.exec(String(value).trim());
+
+    if (!match)
+    {
+
+        return 0;
+
+    }
+
+    const number = Number(match[1]);
+
+    if (!isFinite(number) || number > MAX_SEQUENTIAL_LEAD_NUMBER)
+    {
+
+        return 0;
+
+    }
+
+    return number;
+
+}
+
+function padLeadNumber(number)
+{
+
+    let text = String(number);
+
+    while (text.length < LEAD_ID_PAD_LENGTH)
+    {
+
+        text = '0' + text;
+
+    }
+
+    return text;
+
+}
+
+/* ============================================================
+   LOOKUP
+============================================================ */
+
+/* Two identifiers, two lookups, each used where it means something:
+   create dedupes on referenceId because that is what a retry carries,
+   and the dashboard updates by leadId because that is what a human
+   reads off the sheet. Both scan a single column rather than pulling
+   every row, so they stay cheap as the sheet grows. */
+
+function findLeadById(sheet, leadId)
+{
+
+    return findLeadByColumn(sheet, 'leadId', leadId);
+
+}
+
+function findLeadByReferenceId(sheet, referenceId)
+{
+
+    return findLeadByColumn(sheet, 'referenceId', referenceId);
+
+}
+
+function findLeadByColumn(sheet, columnName, wantedValue)
+{
+
+    const lastRow = sheet.getLastRow();
+
+    if (lastRow < 2 || !wantedValue)
+    {
+
+        return null;
+
+    }
+
+    const idColumnIndex = LEADS_HEADERS.indexOf(columnName) + 1;
+
+    const ids = sheet.getRange(2, idColumnIndex, lastRow - 1, 1).getValues();
+
+    for (let index = 0; index < ids.length; index += 1)
+    {
+
+        if (normalizeCellValue(ids[index][0]) === wantedValue)
         {
 
             const rowNumber = index + 2;

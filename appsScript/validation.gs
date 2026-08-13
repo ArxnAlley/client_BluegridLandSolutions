@@ -91,10 +91,47 @@ function isValidPhone(value)
 
 }
 
-function isValidLeadId(value)
+/* The customer-facing confirmation number: BG- plus the millisecond
+   timestamp the browser minted it at. */
+
+function isValidReferenceId(value)
 {
 
     return /^BG-\d{13}$/.test(value);
+
+}
+
+/* The internal sequential number: BG-0001 upward. Deliberately capped
+   below thirteen digits so a legacy long-form id can never be mistaken
+   for a sequential one — that distinction is what lets the migration
+   and the allocator tell the two apart in a half-migrated sheet. */
+
+function isValidLeadId(value)
+{
+
+    return /^BG-\d{4,9}$/.test(value);
+
+}
+
+/* A referenceId encodes when it was created, so its age is checkable
+   without storing anything. Skew is allowed in both directions
+   because the timestamp comes from the visitor's own clock. */
+
+function isReferenceIdRecent(value)
+{
+
+    const match = /^BG-(\d{13})$/.exec(String(value));
+
+    if (!match)
+    {
+
+        return false;
+
+    }
+
+    const age = Date.now() - Number(match[1]);
+
+    return age <= PHOTO_REFERENCE_MAX_AGE_MS && age >= -PHOTO_REFERENCE_MAX_AGE_MS;
 
 }
 
@@ -276,14 +313,25 @@ function validateLeadPayload(payload)
 
     });
 
-    /* ── leadId: client value preferred so the visitor's on-screen
-       reference matches the sheet; server generates when absent. ── */
+    /* ── referenceId: the customer's confirmation number, and the key
+       create dedupes on. The client mints it and holds it for the page
+       load, so a retry after a dropped connection carries the same
+       value and collapses into the original row.
 
-    const providedLeadId = sanitizeText(payload.leadId, 40);
+       A malformed one is replaced rather than rejected — a bad
+       reference must never cost a lead.
 
-    clean.leadId = isValidLeadId(providedLeadId)
-        ? providedLeadId
-        : 'BG-' + Date.now();
+       `leadId` is read here only as a fallback, so that a browser
+       holding a cached copy of the pre-split site still dedupes
+       correctly during the window between the two deployments. The
+       internal sequential leadId is assigned by the server after this
+       runs and is never accepted from the client. ── */
+
+    const providedReferenceId = sanitizeText(payload.referenceId || payload.leadId, 40);
+
+    clean.referenceId = isValidReferenceId(providedReferenceId)
+        ? providedReferenceId
+        : LEAD_ID_PREFIX + Date.now();
 
     /* ── submittedAt: keep the client stamp when it parses ── */
 
@@ -313,6 +361,129 @@ function validateLeadPayload(payload)
         clean[field] = neutralizeFormula(clean[field]);
 
     });
+
+    return {
+
+        valid: Object.keys(fields).length === 0,
+
+        fields: fields,
+
+        clean: clean
+
+    };
+
+}
+
+/* ============================================================
+   PHOTO UPLOAD VALIDATION  (public — leads.addPhotos)
+============================================================ */
+
+/* Drive will happily accept a name containing slashes, control
+   characters, or a leading dot. The owner's Drive should not, so
+   anything outside that is replaced rather than dropped — dropping
+   characters could collapse two different uploads onto one name. */
+
+function sanitizePhotoFileName(value)
+{
+
+    let name = sanitizeText(value, 120);
+
+    name = name.replace(/[\\\/:*?"<>|]/g, '_');
+
+    name = name.replace(/^\.+/, '');
+
+    return name.trim();
+
+}
+
+/* Base64 inflates by four bytes for every three, so the decoded size
+   is checkable before spending memory on the decode itself. */
+
+function estimateBase64Bytes(base64)
+{
+
+    const padding = (String(base64).slice(-2).match(/=/g) || []).length;
+
+    return Math.floor(String(base64).length * 3 / 4) - padding;
+
+}
+
+/* This endpoint is public, so everything it trusts is checked here:
+   the reference must be well-formed and recent, the type must be an
+   image we expect, and the payload must be under the size cap before
+   anything touches Drive. */
+
+function validatePhotoPayload(payload)
+{
+
+    const fields = {};
+
+    const clean = {};
+
+    /* ── referenceId ── */
+
+    clean.referenceId = sanitizeText(payload.referenceId, 40);
+
+    if (!isValidReferenceId(clean.referenceId))
+    {
+
+        fields.referenceId = 'Invalid reference.';
+
+    }
+    else if (!isReferenceIdRecent(clean.referenceId))
+    {
+
+        fields.referenceId = 'This reference has expired.';
+
+    }
+
+    /* ── fileName ── */
+
+    clean.fileName = sanitizePhotoFileName(payload.fileName);
+
+    if (!clean.fileName)
+    {
+
+        fields.fileName = 'Required.';
+
+    }
+
+    /* ── mimeType ── */
+
+    clean.mimeType = sanitizeText(payload.mimeType, 100).toLowerCase();
+
+    if (ALLOWED_PHOTO_MIME_TYPES.indexOf(clean.mimeType) === -1)
+    {
+
+        fields.mimeType = 'Unsupported image type.';
+
+    }
+
+    /* ── index: position in the visitor's own list, used to keep the
+       stored order and to make a retry idempotent by name ── */
+
+    const index = Number(payload.index);
+
+    clean.index = (isNaN(index) || index < 1) ? 1 : Math.floor(index);
+
+    /* ── image data ── */
+
+    clean.dataBase64 = (typeof payload.dataBase64 === 'string')
+        ? payload.dataBase64.trim()
+        : '';
+
+    if (!clean.dataBase64)
+    {
+
+        fields.dataBase64 = 'Required.';
+
+    }
+    else if (estimateBase64Bytes(clean.dataBase64) > MAX_PHOTO_BYTES)
+    {
+
+        fields.dataBase64 = 'That image is too large.';
+
+    }
 
     return {
 

@@ -159,7 +159,7 @@ function sendCustomerAutoReply(record)
         '  Service requested : ' + record.serviceNeeded,
         '  Property address  : ' + record.propertyAddress,
         '  Approximate acres : ' + (record.estimatedAcres || 'Not specified'),
-        '  Reference number  : ' + record.leadId,
+        '  Reference number  : ' + record.referenceId,
         '',
         'If anything above is wrong, just reply to this email and we will fix it.',
         '',
@@ -231,21 +231,83 @@ function buildOwnerEmailBody(record)
         'Method     : ' + (record.preferredContactMethod || 'Not specified'),
         'Best time  : ' + (record.preferredTime || 'Not specified'),
         '',
-        '--- PHOTOS ---',
-        'Attached   : ' + record.photoCount + ' photo(s)',
-        'Names      : ' + (formatPhotoNames(record.photoNames) || 'none'),
-        'Note       : photos are not uploaded yet — reply or text the customer to request them.',
+        '--- PHOTOS ---'
+
+    ].concat(buildPhotoLines(record)).concat([
+
         '',
         '--- SOURCE ---',
         'Page       : ' + (record.sourcePage || 'unknown'),
         'Lead source: ' + (record.leadSource || 'website'),
         'UTM        : ' + formatAttribution(record),
         '',
-        'Reference  : ' + record.leadId,
+        'Reference  : ' + record.referenceId,
+        'Lead       : ' + record.leadId,
         '',
         'Reply directly to this email to reach the customer.'
 
-    ].join('\n');
+    ]).join('\n');
+
+}
+
+/* Photos used to be reported by filename alone, which is exactly what
+   the owner saw on the first real lead: names he could not open.
+   Links come first now.
+
+   The no-links case says plainly that the photos did not arrive,
+   rather than listing names and leaving the owner to guess whether
+   there is something to click. */
+
+function buildPhotoLines(record)
+{
+
+    const urls = safeParseArray(record.photoUrls);
+
+    const names = safeParseArray(record.photoNames);
+
+    const claimedCount = Number(record.photoCount) || 0;
+
+    if (urls.length === 0 && claimedCount === 0)
+    {
+
+        return ['Attached   : none'];
+
+    }
+
+    if (urls.length === 0)
+    {
+
+        return [
+
+            'Attached   : ' + claimedCount + ' photo(s) — UPLOAD DID NOT COMPLETE',
+            'Names      : ' + (formatPhotoNames(names) || 'unknown'),
+            'Note       : the photos never reached us. Reply or text the customer to ask for them.'
+
+        ];
+
+    }
+
+    const lines = ['Attached   : ' + urls.length + ' photo(s)'];
+
+    urls.forEach(function (url, index)
+    {
+
+        lines.push(
+            '  ' + (index + 1) + '. '
+            + displayPhotoName(names[index] || 'photo')
+            + '  ' + url
+        );
+
+    });
+
+    if (record.photoFolderUrl)
+    {
+
+        lines.push('All photos : ' + record.photoFolderUrl);
+
+    }
+
+    return lines;
 
 }
 
@@ -263,11 +325,12 @@ function buildOwnerEmailHtml(record)
         ['Acres', record.estimatedAcres || 'Not specified'],
         ['Contact method', record.preferredContactMethod || 'Not specified'],
         ['Best time', record.preferredTime || 'Not specified'],
-        ['Photos', record.photoCount + ' attached ' + (formatPhotoNames(record.photoNames) || '')],
+        ['Photos', buildPhotoHtml(record)],
         ['Source page', record.sourcePage || 'unknown'],
         ['Lead source', record.leadSource || 'website'],
         ['Attribution', formatAttribution(record)],
-        ['Reference', record.leadId]
+        ['Reference', escapeHtml(record.referenceId)],
+        ['Lead', escapeHtml(record.leadId)]
 
     ];
 
@@ -309,13 +372,63 @@ function buildOwnerEmailHtml(record)
         '</table>',
 
         '<div style="padding:14px 22px;background:#F7F9FB;color:#7C8894;font-size:12px;">',
-        'Photos are recorded by name only in this phase — reply or text the customer to request the actual images.',
-        '<br>Reply directly to this email to reach the customer.',
+        'Reply directly to this email to reach the customer.',
         '</div>',
 
         '</div>'
 
     ].join('');
+
+}
+
+/* The HTML counterpart of buildPhotoLines: a clickable list, or an
+   honest statement that nothing arrived. Names are escaped because
+   they come from a public form and land in the owner's inbox. */
+
+function buildPhotoHtml(record)
+{
+
+    const urls = safeParseArray(record.photoUrls);
+
+    const names = safeParseArray(record.photoNames);
+
+    const claimedCount = Number(record.photoCount) || 0;
+
+    if (urls.length === 0 && claimedCount === 0)
+    {
+
+        return 'None attached';
+
+    }
+
+    if (urls.length === 0)
+    {
+
+        return '<strong>' + claimedCount + ' attached, but the upload did not complete.</strong>'
+            + '<br>Reply or text the customer to ask for them.';
+
+    }
+
+    const links = urls.map(function (url, index)
+    {
+
+        return '<a href="' + encodeURI(url) + '" style="color:#3E7CB8;">'
+            + escapeHtml(displayPhotoName(names[index] || 'photo'))
+            + '</a>';
+
+    });
+
+    let html = urls.length + ' attached &nbsp;·&nbsp; ' + links.join(' &nbsp;·&nbsp; ');
+
+    if (record.photoFolderUrl)
+    {
+
+        html += '<br><a href="' + encodeURI(record.photoFolderUrl)
+            + '" style="color:#3E7CB8;font-weight:600;">Open all photos</a>';
+
+    }
+
+    return html;
 
 }
 

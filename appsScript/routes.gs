@@ -68,6 +68,30 @@ const ROUTES = {
 
     },
 
+    /* Public for the same reason leads.create is: the browser posting
+       photos cannot hold a secret either. Its gate is the referenceId
+       format and recency check, a per-file type and size cap, and a
+       per-lead file count — all in photoStorage.gs.
+
+       One photo per call. Each upload is its own small request so a
+       dropped connection on a rural mobile signal costs one photo and
+       a retry, rather than the whole submission. */
+
+    'leads.addPhotos': {
+
+        method: 'POST',
+
+        requiresAuth: false,
+
+        handler: function (payload)
+        {
+
+            return handleAddPhoto(payload);
+
+        }
+
+    },
+
     'leads.update': {
 
         method: 'POST',

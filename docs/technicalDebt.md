@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-13 (session closeout — live lead test findings, remote-URL fix confirmed, lead-pipeline gaps promoted to high priority)
+**Last updated:** 2026-08-13 (lead pipeline finalization — photo storage built, identifiers split; items 24 and 24a resolved, new photo-related debt recorded)
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -52,12 +52,17 @@ Before launch: open the homepage on a real phone and confirm the hero photo ends
 
 4f. **Every "Get My Free Estimate" CTA, opening the modal directly.** Click one from the header, then the hero, then the mobile floating bar, then a footer/mega-menu link, on both the homepage and an interior page. Confirm: no visible scroll or page movement before the modal appears; Step 1 shows all five fields (Name, Phone, Service, Address, Acres) under the heading "Where's the property?" — check whether that heading reads oddly now that it asks for more than the property, since it was deliberately left unedited; close and reopen the modal mid-fill and confirm it resumes rather than resets; and that the mini-form's own Continue button (still on the page, now feeding the modal instead of asking twice) carries its three fields into Step 1 pre-filled, not blank.
 
+4g. **The photo uploader, on a real phone, over a real mobile connection.** This is the largest untested-by-eye item on the site as of 2026-08-13, because the whole path is new and none of it can be proven from Node.
+   Attach two or three photos straight from a phone camera roll and watch the bars: each should sit at **zero until Submit is pressed**, then fill one at a time as its photo actually uploads. A bar that races to full the moment a file is chosen means the old fake-progress code is back.
+   Then confirm: **portrait photos arrive the right way up** (EXIF orientation is handled by `createImageBitmap(..., { imageOrientation: 'from-image' })` with an `<img>` fallback, and neither path has ever been run in a browser); a HEIC photo from an iPhone either uploads or fails cleanly rather than hanging; the submission still completes on a deliberately terrible connection; and the whole thing takes an acceptable amount of time with a dozen photos, since uploads are sequential by design.
+   Finally, open the owner email on a phone and confirm the photo links are tappable and open the image rather than a Drive permission wall — that is item 24d, and a real device is the only place it can be settled.
+
 6. **The company page** top to bottom — it reuses eight existing interior-page components in a combination none of them have been seen in.
 7. **The header at 1361px and 1360px**, where the compact band now starts, and at 1201px, the last desktop width.
 
-### 5. No real lead has been created from the live site
-The endpoint is wired and verified with read-only probes plus a honeypot POST that writes nothing. **A genuine submission has never been run by this project** — that path writes a row and emails both the owner and the customer, so it was not triggered unilaterally.
-Run one and confirm the five outcomes in `appsScript/README.md` step 10, then check `errorLog` is still empty.
+### 5. ~~No real lead has been created from the live site~~ — DONE 2026-08-13 (Aron), and now needs redoing
+A genuine submission reached the sheet and the owner notification reached a test recipient. That test is what surfaced the photo defect, which has since been fixed — **so the pipeline it validated is no longer the pipeline that is deployed.**
+**Rerun it after the Apps Script redeploy**, against the outcomes in `appsScript/README.md` step 10, which now include photos. The run that matters for launch is the final one with Chase restored as the recipient.
 
 ### 6. Service area pages: 6 of 13 cities have one
 The `seoPlan.md` first wave shipped — Ashland, Portsmouth, Ironton, Chillicothe, Grayson, and Morehead.
@@ -132,7 +137,7 @@ Checked properly — every rendered title on all eight boards, uppercased as `te
 `origin` now points at `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, verified via `git remote -v`. No session recorded here ran the fix, and `origin/main` was also found to have moved ahead by a push this repository's history doesn't show — both point to activity happening outside these sessions, which is fine, just worth knowing the working tree isn't the only place this project changes.
 
 ### 10i. The validator toolchain lives outside the repository
-Eleven suites, the guarded assemblers, the font-metric models, the copy-rewrite tables, the SEO intent checks, and now the estimate-CTA checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
+Twelve suites, the guarded assemblers, the font-metric models, the copy-rewrite tables, the SEO intent checks, and now the estimate-CTA checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
 `projectState.md` tells the next session to locate it first, which is a mitigation rather than a fix. The reason it is out of the repo is item 17's decision not to ship half a generator; that reasoning covers the assemblers and does **not** obviously cover the validators.
 **Fix: commit the validators.** They are read-only over the site, they have no dependencies, and they would make the repository self-checking.
 
@@ -215,14 +220,34 @@ Harmless but it ships to visitors' hosting. Left in place because it is the clie
 ### 23. `dashboardMetrics` tab is created empty
 `setupSpreadsheet()` creates the tab but writes no formulas. The formula set is specified in `docs/googleSheetArchitecture.md` but must be entered by hand. The dashboard SPA (Phase 2) computes its own numbers and does not read this tab, so nothing is blocked.
 
-### 24. Photo upload not implemented — **PROMOTED TO HIGH PRIORITY, 2026-08-13**
-Phase 1 records `photoCount` and `photoNames` only; no bytes are uploaded and `photoUrls` stays `[]` (`appsScript/leads.gs`). The owner email says so explicitly (`appsScript/notifications.gs`). `leads.addPhotos` is specced in `phase11PhotoUploadService.md`; `routes.gs` is the extension point.
-**Was low priority; a real live lead test on 2026-08-13 made it a felt problem rather than a documented gap** — the owner received a notification naming a photo he could not open. This is the exact behavior the code has always guaranteed, but "known limitation" and "the owner just hit this" carry different urgency. **Now the next session's resume task** — see `projectState.md`'s *High-Priority Resume Task* section. The phase-11 spec predates the current single-repo layout (it references separate `BlueGridAPI`/`BlueGridDashboard` folders) and assumes today's `leadId` format for its dedupe key — reconcile both rather than following it blindly; see item 24a, which is entangled with this one.
+### 24. ~~Photo upload not implemented~~ — **RESOLVED 2026-08-13**
+Photos now upload to Drive before the lead is created, and the owner's notification carries working links. See the journal entry and the *Resolved* table. What replaced it is items 24b–24f below, which are the real trade-offs the implementation chose rather than a restatement of the old gap.
 
-### 24a. Lead identifier has no internal/customer-facing split
-`leadId` is a single field today: client-generated, `'BG-' + Date.now()` (millisecond timestamp), and it is the *only* dedupe key — `handleCreateLead()` takes a `LockService` lock, then checks `findLeadById()` on this value before writing, so a retry with the same id collapses into the existing row. That is the entire idempotency mechanism.
-**Desired, from the 2026-08-13 session:** a short sequential `leadId` for internal use (`BG-0001`, `BG-0002`, ...) and the current long id repurposed as a customer-facing `referenceId`, both present in the Sheet, sequential assignment concurrency-safe, retries never consuming an id or duplicating a row, no destructive change to existing rows.
-**Why it's not a quick rename:** a client cannot safely generate race-free sequential numbers — assignment has to move inside the server's existing lock-protected section. `LEADS_HEADERS`' own comment in `leads.gs` forbids renaming columns or inserting mid-contract, which should drive whichever schema migration gets chosen. **Not started.** Entangled with item 24 because the photo spec's dedupe assumption is written against today's id format. Full requirements in `projectState.md`'s *High-Priority Resume Task* section — deliberately not designed here, since the safest migration path needs to be determined with the actual implementation in front of it, not guessed at closeout.
+### 24a. ~~Lead identifier has no internal/customer-facing split~~ — **RESOLVED 2026-08-13**
+`leadId` is now internal and sequential (`BG-0001`), server-assigned inside the existing `LockService` section and *after* the dedupe check; `referenceId` is the customer-facing long id the browser mints and the key create dedupes on. Both are columns in the sheet. See the journal entry.
+
+### 24b. `leads.addPhotos` is a public endpoint that writes to the owner's Drive
+Public for the same reason `leads.create` is: the browser posting photos cannot hold a secret. It is bounded — a well-formed `referenceId` no older than 24 hours, an allowed image MIME type, 8MB per file, 12 files per lead — but bounded is not the same as closed. A determined script can mint valid recent references and write up to 96MB per reference into `BlueGrid Lead Photos`.
+**Why it was accepted:** every alternative costs more than it saves. A shared secret in the page is not a secret; a server-issued upload token needs a round trip before the visitor can attach anything; a CAPTCHA on a rural contractor's estimate form costs real leads. The caps make abuse tedious and slow rather than free.
+**Watch for:** unexplained growth in `BlueGrid Lead Photos`, or folders whose `referenceId` matches no row in `leads`. If it ever happens, the cheapest fix is a scheduled trigger that deletes folders with no matching lead older than a few days.
+
+### 24c. Abandoned submissions leave orphan photo folders
+Photos upload before the lead row is written, which is what lets the owner's email carry links. A visitor who attaches photos, presses Submit, and then closes the tab mid-upload leaves a folder with no lead behind it.
+Rare, harmless, and cheap to clean by hand. Deliberately not automated: a routine that deletes Drive folders on a schedule is a routine that can delete a real customer's photos if its "has no lead" test is ever wrong. Worth building only alongside 24b, and with a dry-run mode.
+
+### 24d. `photoAccess` defaults assume the notification address can be granted Drive access
+The default `ownerEmail` shares each lead's folder, view-only, with whatever `config!notificationEmail` holds. That is the mode that works regardless of which Google account owns the script — but it has never been exercised against the real accounts.
+Two ways it can be wrong in practice: if the script owner and `notificationEmail` are the same account, `addViewer` throws (swallowed, and no grant was needed anyway); if the owner reads mail on an address that cannot be added as a Drive viewer, the links will open a permission wall.
+**Fix if it happens:** set `photoAccess` to `anyoneWithLink` in the config tab. No redeploy. Documented in `appsScript/README.md`.
+
+### 24e. The owner's HTML email interpolates some field values without escaping
+Pre-existing, found while adding the photo links. `buildOwnerEmailHtml()` builds its table rows as raw HTML and several cells — `fullName`, `propertyAddress`, `serviceNeeded`, `sourcePage` — go in unescaped, so a lead submitting `<b>` in their name gets bold text in the owner's inbox.
+Low severity: it lands in one mailbox, Gmail strips scripting from mail, and the sheet itself is protected separately by the formula-injection defence. **Not fixed here on purpose** — it is unrelated to photos or identifiers, and this session's brief was explicit about not changing unrelated functionality. The values added by this session (`referenceId`, `leadId`, photo names) *are* escaped, so the fix is now the only inconsistency in that function.
+**Fix:** wrap the plain-text cells in `escapeHtml()`. The cells that are deliberately HTML — `linkifyPhone`, `linkifyEmail`, `buildPhotoHtml` — must be left alone, which is exactly why the array mixes the two and why this was easy to get wrong in the first place.
+
+### 24f. `photoCount` can disagree with the number of stored photos
+`photoCount` is what the browser said it was attaching; `photoUrls` is what actually reached storage. They differ whenever an upload fails, and that difference is deliberate — it is how the owner's email knows to say "3 photos attached, upload did not complete" rather than silently reporting none.
+Recorded because a future dashboard reading `photoCount` as the number of viewable images would be wrong. **Use `photoUrls.length` for anything that counts images; use `photoCount` only to detect the shortfall.**
 
 ### 25. No Lighthouse / performance pass yet
 Deferred until the higher-priority items clear. Known candidates: hero images are full-resolution `2048×1536` with no responsive `srcset`; Google Fonts loads render-blocking.
@@ -241,7 +266,6 @@ Copy says "the owner" throughout because naming Chase publicly was never approve
 - **Dashboard SPA (Phase 2)** — `leads.list` / `leads.update` and `MODULE_API_KEY` already exist and are tested; nothing has been built against them.
 - **Weekly summary email** — `weeklySummaryDay` config key is seeded but unused; specced in `phase5Zapier.md`.
 - **SMS alerts** — the one notification Apps Script cannot do natively; needs an email-to-SMS gateway or a webhook.
-- **`leads.addPhotos`** (Phase 11) — client-side downscale, Drive upload, write URLs back.
 - **Location × service pages** — beyond forestry mulching, only where search volume justifies genuinely distinct content.
 - **`locations/` hub page** — the six location pages have no index of their own; the homepage `#serviceAreas` block and the Forestry Mulching "Where We Work" section stand in. Specced as part of Phase 13.
 - **Insights growth** — the section is built to scale. A new article needs only a record in the content data; the uniqueness gate and the no-dates check already apply.
@@ -258,7 +282,7 @@ Recorded so future sessions do not "fix" them:
 - **Nulo Studio is not copied on lead emails.** Deliberate client decision — the studio must not sit in the customer's email thread. Operational problems surface in `errorLog`.
 - **`leads.create` is a public endpoint.** Deliberate — a browser cannot hold a secret. The honeypot, validation, and dedupe are its gate.
 - **`Content-Type: text/plain` on form POSTs.** Deliberate — Apps Script web apps cannot answer a CORS preflight, so `application/json` would fail from the browser.
-- **The form's file input never uploads.** Deliberate Phase 1 scope; see item 24.
+- **The owner's photo links point at Drive rather than being email attachments.** Deliberate: attachments would multiply MailApp quota against a 12-photo cap, cannot be re-downloaded once the mail is deleted, and would bounce on size. Links are also what the sheet can hold.
 - **`leadId` is held for the whole page load, not per attempt.** Deliberate. The API dedupes on `leadId`, so a stable id lets a retry after a network failure collapse into the original row. The flow allows one submission per page load, so there is nothing to reset.
 - **The unconfigured-endpoint branch in `submitEstimateRequest()` is unreachable.** Kept on purpose: it makes a blanked or mistyped endpoint obvious in the console instead of silently failing, and costs four lines.
 - **Location pages do not link to each other.** Deliberate, per the Internal Linking Map in `seoPlan.md` — they pass authority up to the parent service page, not sideways. Nearby towns render as plain text pills, which is why `.nearbyList` styles `li` rather than `a`. Sitewide chrome *does* link to them; rule 4 allows that explicitly.
@@ -322,3 +346,7 @@ Recorded so future sessions do not "fix" them:
 | The modal could not be opened on its own (missing Name/Phone/Service) | 2026-08-11 | Modal Step 1 gained `modalFullName`/`modalPhone`/`modalServiceNeeded`, same copy and enum order as the mini-form. `buildEstimatePayload()`, `validateModalStep(1)`, `buildReviewSummary()`, and `showSubmissionError()` repointed at the new ids — verified twice, once by static check and once by actually running the real script against a mocked DOM and inspecting the captured submission payload (`simulateEstimateFlow.js`), both proven to catch the defect by injecting it first. |
 | Git remote pointed at the old repository name | confirmed resolved 2026-08-13 | `origin` now reads `.../client_BluegridLandSolutions.git`. Fixed outside any session recorded here — worth knowing this repo isn't the only place things change. |
 | Whether the estimate pipeline actually works end to end | reported 2026-08-13 by Aron, not independently verified | A real submission reached the Sheet; the owner notification reached a test recipient with correct field data. Surfaced, not resolved: the photo attached to that lead was not actually accessible — see item 24, promoted to high priority the same day. |
+| Submitted photos were never uploaded anywhere | 2026-08-13 | The browser held the files in memory, animated a progress bar off a timer, and dropped them on submit; `photoUrls` was hardcoded `[]`. Now each photo is downscaled client-side and POSTed to `leads.addPhotos` **before** `leads.create`, stored one folder per lead in Drive, and linked from both the sheet and the owner's email. `leads.create` reads the folder itself rather than accepting URLs from the client, so a forged POST cannot put an arbitrary link in the owner's inbox. |
+| The progress bar was a lie | 2026-08-13 | `simulateUploadProgress()` filled every bar to 100% on a 160ms timer whether or not anything was being sent — it is what let a visitor believe photos had uploaded when nothing had left the browser. Deleted; progress is now driven by the upload, and a failed photo says so in the preview. |
+| One identifier doing two incompatible jobs | 2026-08-13 | Split into an internal sequential `leadId` (`BG-0001`, server-assigned inside the existing lock, allocated *after* the dedupe check so a retry consumes nothing) and a customer-facing `referenceId` (the long client-minted id, now the sole dedupe key). Both columns appended per the append-only rule. Numbering derives from the sheet rather than a counter, so clearing test rows before launch is the whole reset. |
+| Legacy long ids would have poisoned the new sequence | 2026-08-13 | `parseLeadNumber()` ignores anything above `MAX_SEQUENTIAL_LEAD_NUMBER`, so a `BG-1786635839698` left in the `leadId` column cannot send the next lead to `BG-1786635839699`. Proven by injecting the missing guard and confirming four checks fail. |

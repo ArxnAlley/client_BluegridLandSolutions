@@ -4,6 +4,78 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-13 — LEAD PIPELINE FINALIZATION: PHOTO STORAGE + IDENTIFIER SPLIT
+
+### Brief
+
+Finalize the lead pipeline after the live test. Two defects: submitted photos were recognized but not accessible to the owner, and the single long lead identifier needed splitting into an internal `leadId` and a customer-facing `referenceId`. Explicitly: do not rebuild the working lead system, make the smallest robust changes, stop before touching the live deployment or Sheet.
+
+### Photo root cause — the bytes never left the browser
+
+The trace took one pass and the answer was worse than "the upload endpoint is missing".
+
+`addPhotoFiles()` put each `File` object into an in-memory `photoFiles` array and made a local `blob:` preview URL. `buildEstimatePayload()` then sent `photoCount` and `photoNames` — the filename strings, nothing else. Server-side, `handleCreateLead()` hardcoded `photoUrls: []` and `notifications.gs` told the owner in as many words that "photos are not uploaded yet". So the owner's email named a file that existed nowhere but on the customer's phone. That much was already documented as item 24.
+
+**What was not documented is the part that makes it a defect rather than a known limitation.** `simulateUploadProgress()` ran a 160ms timer that filled each preview's progress bar to 100%, with a random increment to make it look like network jitter. Nothing was being sent. The visitor watched their photos "upload", saw every bar complete, and submitted — which is precisely why the first real lead produced a confused owner rather than a shrug. A missing feature is a gap; a progress bar that lies about a missing feature is a defect, and it is the reason this was found by a person instead of by a checklist.
+
+### Photos: upload before create, and never trust the client for a URL
+
+The ordering question decided the architecture. The owner's notification is sent inside `handleCreateLead()`, so for it to carry links the photos have to already exist. Uploading afterwards would mean either a second "your photos arrived" email or delaying the notification until the browser says it is finished — and a lead notification that depends on the browser staying open is worse than one with no photo links. So: **photos upload first, one request each, then the lead is created.**
+
+One request per photo rather than one big payload, because this is a rural trade whose customers are regularly on one bar of signal. Twelve photos in a single 7MB POST is one thing to lose; twelve small ones are twelve things to retry, and only the failures need retrying. Sequential rather than parallel for the same reason.
+
+**`leads.create` does not accept photo URLs from the client.** It was tempting — the browser already has them back from `addPhotos` — and it would have been an injection hole straight into the owner's inbox: a hand-crafted POST could have put any link at all in front of him under his own website's name. Instead each photo is filed under the `referenceId`, and `resolveLeadPhotos()` reads that folder itself. The client sends nothing about photos except what it always sent. That also made the security question disappear rather than needing to be defended, which is the better kind of answer.
+
+Being public, `leads.addPhotos` is bounded by a well-formed `referenceId` no older than 24 hours, an allowed MIME type, 8MB per file, and 12 files per lead — the caps enforced server-side because the browser's own limits are a courtesy, not a control. Uploads are idempotent by filename, so a retry returns the stored file rather than a second copy. Recorded honestly as debt 24b: bounded is not closed.
+
+### Identifiers: only the client can dedupe, only the server can sequence
+
+The split fell out of one observation. A retry is only recognisable as a retry by the browser that sent both requests, so the dedupe key has to be client-minted — that is the long `referenceId`, and it keeps working exactly as the old `leadId` did. A sequential number cannot be handed out by a client without racing, so `leadId` has to be server-assigned, inside the `LockService` section that already serialises every write for exactly this reason.
+
+The ordering inside the lock is the part worth remembering: **dedupe first, allocate second.** Reversed, every double-tap would burn a lead number and the owner's list would grow gaps. There is a test for it, and the test survives because the design makes the property structural.
+
+Numbering derives from the sheet rather than a stored counter. That costs one column read — the read dedupe already pays — and buys two things: the numbering cannot drift out of step with the rows it describes, and **clearing the test rows before launch is the entire reset**, with no Script Property left holding a stale count. That directly serves the requirement that the first production lead be `BG-0001`.
+
+**The trap this created, and the guard for it.** Pre-split rows hold `BG-1786635839698` in the `leadId` column. Read naively as a sequence number that is 1.7 trillion, and the next real lead would be `BG-1786635839699` — permanently, for the life of the spreadsheet, from a single unmigrated row. `parseLeadNumber()` returns 0 for anything above `MAX_SEQUENTIAL_LEAD_NUMBER`, so an unmigrated sheet still numbers correctly instead of silently exploding. Verified by deleting the guard and confirming four checks fail, including the migration's own.
+
+Both new columns were **appended** after `lastUpdated` rather than slotted beside the fields they belong with. `referenceId` reads better next to `leadId` and sits in column AB instead; the append-only rule in `LEADS_HEADERS`' own header comment is what keeps every pre-existing row readable, and it was written down precisely so a later session would not talk itself out of it.
+
+### Migration: preview, then apply, and never invent a reference
+
+`migrateLeadIdentifiers()` moves each legacy long id into `referenceId` and assigns a sequential `leadId` in sheet order. It deletes no rows, removes no columns, touches no other cell, and is idempotent — someone will run it twice.
+
+`previewLeadIdentifierMigration()` reports the identical plan without writing, and both call one `planLeadIdentifierMigration()` so the preview and the run cannot disagree about what will happen. Rows it cannot interpret — a sequential id with no reference, say — are **reported rather than guessed at**: the customer was quoted some number, and this code does not know what it was.
+
+Nothing destructive is automated. The pre-launch reset is documented in `appsScript/README.md` as manual steps, because a function that deletes lead rows is a function that can delete the wrong lead rows.
+
+### What the tests are worth
+
+The harness went 64 → **116 checks**, which needed a DriveApp mock with real `hasNext()/next()` iterators rather than arrays, because the production code is written against that shape and a friendlier mock would not have proven anything.
+
+Nine regressions were injected one at a time and every one was caught: `photoUrls` reverted to `[]`; the dedupe check removed; dedupe keyed on the wrong column; the allocator ignoring the sheet; the legacy-id guard deleted; the email falling back to filenames; folder sharing skipped; uploads made non-idempotent; a column inserted mid-contract instead of appended. Three more on the client — photos never uploaded, `leadId` sent in the payload, `referenceId` minted per attempt — were caught by `simulateEstimateFlow` and `validateLeadFlow`.
+
+**One injection was not caught, and it turned out not to be a defect.** Allocating a lead number before the dedupe check changed nothing, because allocation is a pure function of the sheet: with no counter, there is nothing to consume. The test asserting "a duplicate consumes no sequence number" is still worth keeping — it is a real requirement — but the design is what makes it true, not the ordering.
+
+`simulateEstimateFlow` needed restructuring: `submitEstimateRequest()` now defers its request behind `uploadPendingPhotos()`, so reading the captured payload synchronously saw `null` and reported a submission that had simply not happened yet. Wrapped in an async main with a `settle()` drain, then given a third path that drives the real uploader against a mocked `File` and asserts the thing that was false before — that photo bytes are transmitted, and transmitted **before** the lead is created.
+
+`validateLeadFlow` had to be told the truth about two fetch call sites. The rule it was really protecting was never "one fetch" but "one endpoint constant", so it now asserts that every call site builds its URL from `businessConfig.estimateEndpoint` — which keeps a redeploy a one-line edit, the thing that actually matters.
+
+### Deliberately not done
+
+- **The owner's HTML email still interpolates several field values unescaped.** Pre-existing, found while adding the photo links, and genuinely unrelated to photos or identifiers — the brief said not to change unrelated functionality. Values added by this session are escaped. Recorded as item 24e with the reason the array mixes escaped and deliberately-HTML cells, since that is what makes the fix easy to get wrong.
+- **No orphan-folder cleanup.** A scheduled job that deletes Drive folders is a job that can delete a customer's photos when its "has no lead" test is wrong. Item 24c.
+- **Nothing deployed, nothing in the live Sheet touched.**
+
+### Files touched
+
+`appsScript/photoStorage.gs` (new), `leads.gs`, `validation.gs`, `config.gs`, `notifications.gs`, `routes.gs`, `Code.gs`, `localTestRunner.js`, `README.md`; `js/indexJS.js`; `docs/forestryModuleSchema.md`, `docs/googleSheetArchitecture.md`, and the three continuity docs. The scratchpad's `validateLeadFlow` and `simulateEstimateFlow` were updated in place and remain outside the repository (item 10i).
+
+### Validation
+
+**12/12 validator suites, 116/116 Apps Script harness, `node --check` clean on `indexJS.js` and `localTestRunner.js`, all eight `.gs` modules parse.** No behaviour is proven in a browser — see item 4g, which is now the largest untested-by-eye item on the site.
+
+---
+
 ## 2026-08-13 — SESSION CLOSEOUT SOP + CLOSEOUT
 
 ### Brief

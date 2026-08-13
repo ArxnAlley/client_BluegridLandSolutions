@@ -226,7 +226,8 @@ function setupSpreadsheet()
         ['notificationEmail', DEFAULT_NOTIFICATION_EMAIL],
         ['notificationsEnabled', 'true'],
         ['autoReplyEnabled', 'true'],
-        ['weeklySummaryDay', 'Monday']
+        ['weeklySummaryDay', 'Monday'],
+        ['photoAccess', DEFAULT_PHOTO_ACCESS]
     ];
 
     const existingKeys = configSheet.getLastRow() > 1
@@ -263,7 +264,7 @@ function setupSpreadsheet()
     /* ── named ranges ── */
 
     const namedRanges = [
-        ['leadsHeaders', SHEET_NAMES.leads + '!A1:AA1'],
+        ['leadsHeaders', SHEET_NAMES.leads + '!A1:AC1'],
         ['statusValues', SHEET_NAMES.dropdowns + '!A2:A8'],
         ['serviceValues', SHEET_NAMES.dropdowns + '!B2:B9'],
         ['contactMethodValues', SHEET_NAMES.dropdowns + '!C2:C4'],
@@ -353,6 +354,224 @@ function removeObsoleteConfigKeys(configSheet, obsoleteKeys)
 }
 
 /* ============================================================
+   LEAD IDENTIFIER MIGRATION  (run manually from the editor)
+
+   Rows written before the 2026-08-13 identifier split hold a long
+   client-generated id in the leadId column and nothing in
+   referenceId. This moves each one across into referenceId and gives
+   the row a sequential leadId, in sheet order, so the oldest lead
+   becomes BG-0001.
+
+   Non-destructive: no row is deleted, no column is removed, no other
+   cell is touched, and a row that already carries both identifiers is
+   left exactly as it is. Safe to run twice — the second run finds
+   nothing to do.
+
+   Run previewLeadIdentifierMigration() first. It reports the identical
+   plan without writing anything.
+============================================================ */
+
+function previewLeadIdentifierMigration()
+{
+
+    const plan = planLeadIdentifierMigration();
+
+    return describeMigrationPlan(plan, false);
+
+}
+
+function migrateLeadIdentifiers()
+{
+
+    const sheet = getOrCreateSheet(SHEET_NAMES.leads);
+
+    const plan = planLeadIdentifierMigration();
+
+    const leadIdColumn = LEADS_HEADERS.indexOf('leadId') + 1;
+
+    const referenceIdColumn = LEADS_HEADERS.indexOf('referenceId') + 1;
+
+    plan.changes.forEach(function (change)
+    {
+
+        sheet.getRange(change.rowNumber, leadIdColumn)
+            .setNumberFormat('@')
+            .setValue(change.leadId);
+
+        sheet.getRange(change.rowNumber, referenceIdColumn)
+            .setNumberFormat('@')
+            .setValue(change.referenceId);
+
+    });
+
+    logInfo('migrateLeadIdentifiers', plan.changes.length + ' row(s) migrated');
+
+    return describeMigrationPlan(plan, true);
+
+}
+
+/* Works out what needs to change without changing anything, so the
+   preview and the migration can never disagree about the plan. */
+
+function planLeadIdentifierMigration()
+{
+
+    const sheet = getOrCreateSheet(SHEET_NAMES.leads);
+
+    const plan = {
+
+        total: 0,
+
+        changes: [],
+
+        alreadyMigrated: 0,
+
+        needsAttention: []
+
+    };
+
+    const lastRow = sheet.getLastRow();
+
+    if (lastRow < 2)
+    {
+
+        return plan;
+
+    }
+
+    const leadIdColumn = LEADS_HEADERS.indexOf('leadId') + 1;
+
+    const referenceIdColumn = LEADS_HEADERS.indexOf('referenceId') + 1;
+
+    const rows = sheet.getRange(2, 1, lastRow - 1, LEADS_HEADERS.length).getValues();
+
+    /* Sequential numbering continues from the highest number already
+       present, so a partially migrated sheet never reissues one. */
+
+    let nextNumber = 0;
+
+    rows.forEach(function (row)
+    {
+
+        const existingNumber = parseLeadNumber(normalizeCellValue(row[leadIdColumn - 1]));
+
+        if (existingNumber > nextNumber)
+        {
+
+            nextNumber = existingNumber;
+
+        }
+
+    });
+
+    rows.forEach(function (row, index)
+    {
+
+        plan.total += 1;
+
+        const rowNumber = index + 2;
+
+        const currentLeadId = normalizeCellValue(row[leadIdColumn - 1]).trim();
+
+        const currentReferenceId = normalizeCellValue(row[referenceIdColumn - 1]).trim();
+
+        if (isValidLeadId(currentLeadId) && currentReferenceId)
+        {
+
+            plan.alreadyMigrated += 1;
+
+            return;
+
+        }
+
+        /* The migratable shape: a long-form id sitting in the leadId
+           column, which is precisely what every pre-split row holds. */
+
+        if (isValidReferenceId(currentLeadId))
+        {
+
+            nextNumber += 1;
+
+            plan.changes.push({
+
+                rowNumber: rowNumber,
+
+                leadId: LEAD_ID_PREFIX + padLeadNumber(nextNumber),
+
+                referenceId: currentReferenceId || currentLeadId,
+
+                previousLeadId: currentLeadId
+
+            });
+
+            return;
+
+        }
+
+        /* Anything else is reported rather than guessed at. A row with
+           a sequential leadId and no referenceId cannot have one
+           invented for it — the customer was quoted something, and
+           this code does not know what. */
+
+        plan.needsAttention.push(
+            'row ' + rowNumber + ': leadId="' + currentLeadId
+            + '", referenceId="' + currentReferenceId + '"'
+        );
+
+    });
+
+    return plan;
+
+}
+
+function describeMigrationPlan(plan, applied)
+{
+
+    const lines = [
+
+        applied ? 'MIGRATION APPLIED' : 'MIGRATION PREVIEW — nothing was written',
+        '',
+        'Data rows examined      : ' + plan.total,
+        'Already migrated        : ' + plan.alreadyMigrated,
+        (applied ? 'Rows migrated           : ' : 'Rows that would change  : ') + plan.changes.length
+
+    ];
+
+    plan.changes.forEach(function (change)
+    {
+
+        lines.push(
+            '  row ' + change.rowNumber + ': ' + change.previousLeadId
+            + '  ->  leadId ' + change.leadId + ' / referenceId ' + change.referenceId
+        );
+
+    });
+
+    if (plan.needsAttention.length)
+    {
+
+        lines.push('');
+
+        lines.push('Needs a human look      : ' + plan.needsAttention.length);
+
+        plan.needsAttention.forEach(function (note)
+        {
+
+            lines.push('  ' + note);
+
+        });
+
+    }
+
+    const summary = lines.join('\n');
+
+    logInfo(applied ? 'migrateLeadIdentifiers' : 'previewLeadIdentifierMigration', '\n' + summary);
+
+    return summary;
+
+}
+
+/* ============================================================
    SELF TEST  (run manually from the editor after deployment)
 
    Writes a lead, replays it to prove dedupe, then deletes the test
@@ -365,11 +584,11 @@ function runSelfTest()
 
     const results = [];
 
-    const testId = 'BG-' + Date.now();
+    const testReferenceId = LEAD_ID_PREFIX + Date.now();
 
     const samplePayload = {
 
-        leadId: testId,
+        referenceId: testReferenceId,
 
         submittedAt: new Date().toISOString(),
 
@@ -405,13 +624,31 @@ function runSelfTest()
 
     results.push('create: ' + (created.success ? 'PASS' : 'FAIL — ' + JSON.stringify(created.error)));
 
+    /* Both identifiers must be present and be different things: a
+       sequential leadId the owner reads, and the long reference the
+       customer was quoted. */
+
+    results.push('identifiers: ' + (created.success
+        && isValidLeadId(created.data.lead.leadId)
+        && created.data.lead.referenceId === testReferenceId
+        ? 'PASS'
+        : 'FAIL'));
+
     const replay = JSON.parse(handleCreateLead(samplePayload).getContent());
 
     results.push('dedupe: ' + (replay.success && replay.data.duplicate ? 'PASS' : 'FAIL'));
 
+    /* A replay must return the original row untouched — same
+       sequential number, no second allocation. */
+
+    results.push('dedupe keeps leadId: ' + (replay.success
+        && replay.data.lead.leadId === created.data.lead.leadId
+        ? 'PASS'
+        : 'FAIL'));
+
     const honeypotPayload = JSON.parse(JSON.stringify(samplePayload));
 
-    honeypotPayload.leadId = 'BG-' + (Date.now() + 1);
+    honeypotPayload.referenceId = LEAD_ID_PREFIX + (Date.now() + 1);
 
     honeypotPayload[HONEYPOT_FIELD] = 'bot';
 
@@ -431,7 +668,7 @@ function runSelfTest()
 
     const errorRowsBefore = errorLogSheet.getLastRow();
 
-    writeErrorLog('runSelfTest', 'Self test error entry — safe to delete.', 'no stack', testId);
+    writeErrorLog('runSelfTest', 'Self test error entry — safe to delete.', 'no stack', testReferenceId);
 
     const errorRowsAfter = errorLogSheet.getLastRow();
 
@@ -448,7 +685,7 @@ function runSelfTest()
 
     const sheet = getOrCreateSheet(SHEET_NAMES.leads);
 
-    const found = findLeadById(sheet, testId);
+    const found = findLeadByReferenceId(sheet, testReferenceId);
 
     if (found)
     {

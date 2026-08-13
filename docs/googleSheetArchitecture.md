@@ -29,11 +29,11 @@ The **`errorLog` tab records failures only.** There is deliberately **no Activit
 
 ## Tab: `leads`
 
-Row 1 is the `LEADS_HEADERS` contract — exactly these 27 headers, columns **A through AA**, in this order:
+Row 1 is the `LEADS_HEADERS` contract — exactly these 29 headers, columns **A through AC**, in this order:
 
 | Col | Header | Written by | Notes |
 |-----|--------|-----------|-------|
-| A | `leadId` | API | `BG-` + 13 digits. Dedupe key. |
+| A | `leadId` | API | `BG-` + a sequential number, zero-padded to 4 (`BG-0001`). Internal. Server-assigned. |
 | B | `submittedAt` | Website | ISO 8601. Server re-stamps if missing/invalid. |
 | C | `fullName` | Website | Max 100 |
 | D | `phone` | Website | Max 30 |
@@ -46,7 +46,7 @@ Row 1 is the `LEADS_HEADERS` contract — exactly these 27 headers, columns **A 
 | K | `preferredTime` | Website | Enum — dropdown `preferredTimeValues` |
 | L | `photoCount` | Website | Integer ≥ 0 |
 | M | `photoNames` | Website | JSON array string |
-| N | `photoUrls` | API (Phase 11) | JSON array string; always `[]` in Phase 1 |
+| N | `photoUrls` | API | JSON array string of Drive links, resolved from storage on create |
 | O | `sourcePage` | Website | e.g. `services/forestryMulching.html#estimateForm` |
 | P | `leadSource` | Website | `website` for all Phase 1 leads |
 | Q | `utmSource` | Website | Truncated, never rejected |
@@ -60,6 +60,8 @@ Row 1 is the `LEADS_HEADERS` contract — exactly these 27 headers, columns **A 
 | Y | `assignedTo` | Dashboard | Free text |
 | Z | `internalNotes` | Dashboard | Max 5000 |
 | AA | `lastUpdated` | API | ISO 8601, stamped on every create/update |
+| AB | `referenceId` | Website | `BG-` + 13 digits. The customer-facing confirmation number, and the dedupe key. |
+| AC | `photoFolderUrl` | API | Drive folder holding this row's photos |
 
 ### Formatting requirements
 
@@ -85,7 +87,8 @@ Keep it subtle: `new` = attention highlight, `completed` = green, `lost` = gray.
 
 1. **Row 1 is canonical and enforced.** The API compares row 1 to `LEADS_HEADERS` on every access and repairs labels without touching data.
 2. **Writes are positional; reads key off row 1 text.** A single mislabeled header silently drops fields — hence rule 1.
-3. **Columns are append-only.** New fields go after `lastUpdated`. Never insert mid-contract. Renames are forbidden — deprecate instead.
+3. **Columns are append-only.** New fields go after `lastUpdated`. Never insert mid-contract. Renames are forbidden — deprecate instead. `referenceId` and `photoFolderUrl` were appended under this rule on 2026-08-13, which is why the customer-facing reference sits in column AB rather than beside `leadId` where it reads better.
+4. **`leadId` and `referenceId` are not interchangeable.** `leadId` is the internal sequential number the owner organises by and `leads.update` writes against. `referenceId` is what the customer was quoted and what `leads.create` dedupes on. Sorting the sheet by `leadId` gives chronological lead order; sorting by `referenceId` happens to as well, but only by accident of the timestamp.
 
 ---
 
@@ -96,7 +99,7 @@ Failures only. Written by `writeErrorLog()` in `appsScript/utilities.gs`. Row 1 
 | Col | Header | Notes |
 |-----|--------|-------|
 | A | `timestamp` | ISO 8601, server time |
-| B | `leadId` | The join key back to the `leads` row. Empty when the failure happened before a lead id existed. |
+| B | `leadId` | The join key back to the `leads` row. Holds the `referenceId` for failures during create, because the sequential `leadId` does not exist until the row is written. Empty when neither existed yet. |
 | C | `functionName` | Where it failed, e.g. `handleCreateLead`, `sendOwnerNotification` |
 | D | `errorMessage` | Truncated to 1000 chars |
 | E | `stackTrace` | Truncated to 2000 chars; empty for validation failures |
@@ -174,7 +177,7 @@ Owner-facing and formula-driven. The dashboard SPA computes its own numbers from
 
 | Name | Range |
 |------|-------|
-| `leadsHeaders` | `leads!A1:AA1` |
+| `leadsHeaders` | `leads!A1:AC1` |
 | `statusValues` | `dropdowns!A2:A8` |
 | `serviceValues` | `dropdowns!B2:B9` |
 | `contactMethodValues` | `dropdowns!C2:C4` |
@@ -209,7 +212,7 @@ Set under **Project Settings → Script Properties**. Never in code, never in th
 ## Verification checklist
 
 - [ ] Spreadsheet is named `BlueGrid Leads` and has all **five** tabs.
-- [ ] `leads!A1:AA1` matches the 27 headers above **exactly** (text equality, not "close enough").
+- [ ] `leads!A1:AC1` matches the 29 headers above **exactly** (text equality, not "close enough").
 - [ ] `errorLog!A1:E1` reads `timestamp, leadId, functionName, errorMessage, stackTrace`.
 - [ ] A cell in column B holds an ISO string that stays a string after reload (plain-text spot check).
 - [ ] Each of the five validation columns rejects a bad value.

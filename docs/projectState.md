@@ -1,12 +1,12 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-13 (session closeout)
+**Last updated:** 2026-08-13 (lead pipeline finalization)
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
-**Last content commit:** `5e559d9` — estimate CTAs open the modal directly instead of scrolling to it
-**HEAD:** this session's closeout commit, two above `5e559d9` (after `ab802b9`, docs-only)
+**Last content commit:** this session's lead-pipeline commit — photo storage and the identifier split
+**HEAD:** that commit, two above `afb7868` (the previous closeout)
 **Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git` — **current, verified via `git remote -v`.** The old stale-URL debt (item 10h) is resolved; someone corrected it outside any session recorded here.
-**Sync:** `origin/main` was found equal to local `HEAD` (`ab802b9`) at the start of this session — **0 ahead / 0 behind**, verified with `git rev-list --left-right --count`. A push happened since the last session's close (which had `main` 12 ahead); nothing in this repo's history shows who ran it. This closeout's own commit will put `main` **1 ahead** again, and per instruction is not being pushed.
+**Sync:** `main` was **1 ahead / 0 behind** at the start of this session (the previous closeout commit, `afb7868`, unpushed). This session adds one more, so `main` is now **2 ahead**. Nothing has been pushed, per instruction. Verify with `git rev-list --left-right --count origin/main...HEAD` rather than trusting this line — `origin/main` has moved without a session recording it before.
 **Working tree:** clean
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
@@ -19,7 +19,9 @@
 
 ## Current Phase
 
-**Between phases. Nothing is half-finished and the working tree is clean.** All work through `ab802b9` is on `origin/main`; only this closeout's own commit is unpushed, per instruction.
+**Between phases. Nothing is half-finished and the working tree is clean.**
+
+**The lead pipeline is finished in the repository and not yet deployed.** The Apps Script project is a separately pasted copy (`appsScript/README.md`), so none of this session's backend work is live until someone pastes it and redeploys. Until then the production endpoint still runs the pre-split code, which cannot store a photo and knows nothing about `referenceId`. **The website must not be published ahead of that redeploy** — see *Waiting on Aron*.
 
 | Phase | State |
 |---|---|
@@ -45,10 +47,12 @@
 | **Mobile floating CTA — bottom edge clipping** | **Complete** |
 | **Estimate CTA arrival fix + notification config restore** | Complete, **superseded same day** — see below |
 | **Estimate CTAs open the modal directly** | **Complete** |
-| **Live end-to-end lead test** (Aron, test recipient) | Partial — see *Completed Work* below and the high-priority resume task |
+| **Live end-to-end lead test** (Aron, test recipient) | Partial — surfaced the photo defect; needs rerunning after the redeploy |
 | **Session closeout SOP** (`docs/sessionCloseout.md`, gitignored) | **Complete** |
+| **Photo storage — Drive upload, links in the Sheet and owner email** | **Complete in repo, not deployed** |
+| **Lead identifier split — internal `leadId` + customer `referenceId`** | **Complete in repo, not deployed** |
 
-**The production domain is the only outright launch blocker.**
+**Two launch blockers now: the Apps Script redeploy, and the production domain.**
 
 ---
 
@@ -58,14 +62,14 @@ Take the BlueGrid Land Solutions website from "built but not launchable" to prod
 
 1. ~~Repair missing functionality and broken navigation~~ — done
 2. ~~Complete missing content (service pages, service area pages)~~ — done for the first wave
-3. ~~Wire lead capture end to end (website → Apps Script → Sheet → owner email)~~ — done and verified live
+3. ~~Wire lead capture end to end (website → Apps Script → Sheet → owner email)~~ — done; verified live 2026-08-13, then rebuilt the same day to store photos and split the identifiers. **Awaiting redeploy and a fresh end-to-end test.**
 4. Final SEO, performance, and launch validation — **blocked on the domain**
 
 ---
 
 ## Current Repository Status
 
-**98 tracked files. 24 HTML pages.**
+**102 tracked files. 24 HTML pages.** (Counted with `git ls-files` at this session's commit; the previous figure of 98 had drifted.)
 
 ```
 index.html                  homepage
@@ -77,8 +81,9 @@ services/          (7)      forestryMulching, landClearing, brushRemoval,
 locations/         (6)      forestry-mulching-{ashland-ky, portsmouth-oh,
                             ironton-oh, chillicothe-oh, grayson-ky, morehead-ky}
 insights/          (8)      index.html + 7 articles
-appsScript/        (7 .gs)  Code, routes, leads, validation, notifications,
-                            utilities, config  (+ README.md, localTestRunner.js)
+appsScript/        (8 .gs)  Code, routes, leads, photoStorage, validation,
+                            notifications, utilities, config
+                            (+ README.md, localTestRunner.js)
 css/                        styleIndex.css (homepage + shared systems),
                             stylePages.css (interior pages)
 js/indexJS.js               single shared script for all 24 pages
@@ -96,7 +101,7 @@ docs/                       this file, engineeringJournal.md, technicalDebt.md,
 - **Two path variants.** Root pages take the canonical href; every one-level folder takes `../` + href. The Services mega panel used to be the one exception (bare siblings inside `services/`) and that exception was retired on 2026-08-07, so all three panels spell paths the same way.
 - **Put any new page one level deep** so it reuses the proven one-level chrome — that is why the FAQ page is `faq/index.html` and the company page is `company/index.html`.
 - **Line endings are uniform, and the old note here was wrong.** Audited 2026-08-09: **all 26 source files are CRLF in the working tree and LF in the index.** `core.autocrlf` is `true`, so Git normalises on commit and converts on checkout — there is no mixture to preserve. The previous entry claimed `faq/*`, `locations/*`, `insights/*` and `css/stylePages.css` were LF on disk; they are not. Scripted edits should still detect and restore per file (every script here does — it is free and correct), and **validators that match on `\n` must still normalise first**, which remains a real bug that has bitten twice.
-- The Apps Script endpoint lives in **exactly one place** — `businessConfig.estimateEndpoint` in `js/indexJS.js` — with exactly one `fetch()` call site.
+- The Apps Script endpoint lives in **exactly one place** — `businessConfig.estimateEndpoint` in `js/indexJS.js`. There are now **two** `fetch()` call sites (`leads.create` and `leads.addPhotos`) and both build their URL from that one constant, which `validateLeadFlow` asserts. Changing the deployment is still a one-line edit.
 
 ### Responsive breakpoints (current)
 
@@ -120,7 +125,7 @@ Every header dimension is a `:root` custom property overridden in the two header
 
 ---
 
-## Verification State — all green at `5e559d9`
+## Verification State — all green at this session's commit
 
 | Check | Result |
 |---|---|
@@ -137,7 +142,9 @@ Every header dimension is a `:root` custom property overridden in the two header
 | Hero before/after loop (10 min simulated) | PASS — **91 cycles alternating**, 6.16–7.01s cadence |
 | Hero typing profile (5 min simulated) | PASS — rendered cadence equals scheduled cadence exactly; **0 characters swallowed**, **0ms** write-to-paint |
 | Lead submission contract | PASS — one endpoint, one call site, payload matches schema on all 24 pages |
-| Apps Script harness | **64/64**, `runSelfTest` 6/6 |
+| Apps Script harness | **116/116**, `runSelfTest` 8/8 |
+| **Photo storage + identifiers** (in the harness above) | PASS — sequential numbering with correct padding, a duplicate consuming no number, the legacy-id guard, upload idempotency, per-lead caps, MIME/size/reference gates, path separators stripped, real links in both email bodies, and a non-destructive, idempotent migration. Nine regressions injected one at a time, every one caught |
+| **Photo upload, client side** (`simulateEstimateFlow` path C) | PASS — the real uploader driven against a mocked File: bytes transmitted, filed under the same referenceId as the lead, sent **before** `leads.create`, progress moving only as the upload resolves, and a retry re-uploading nothing |
 | `node --check` (indexJS, localTestRunner) | clean |
 | CSS brace balance | balanced in both stylesheets |
 
@@ -148,7 +155,7 @@ Every header dimension is a `:root` custom property overridden in the two header
 ## Completed Work (verified)
 
 ### Lead capture — Phase 2A + 2D, live
-- 7 Apps Script modules (`Code`, `routes`, `leads`, `validation`, `notifications`, `utilities`, `config`), 27-column `LEADS_HEADERS`, `errorLog` sheet, honeypot `companyWebsite`, `leadId` format `BG-\d{13}`, server-side dedupe on `leadId`, `LockService`, formula-injection defence.
+- 8 Apps Script modules (`Code`, `routes`, `leads`, `photoStorage`, `validation`, `notifications`, `utilities`, `config`), 29-column `LEADS_HEADERS`, `errorLog` sheet, honeypot `companyWebsite`, server-side dedupe on `referenceId` (`BG-\d{13}`), sequential `leadId` allocated under `LockService`, formula-injection defence. **The column count and the dedupe key both changed on 2026-08-13** — see *Lead pipeline finalization* below.
 - **Production `/exec` wired and verified live** with zero side effects: `ping` returned the matching `forestryModule` / `bluegrid` / `1.0.0` identity, proving the deployed script is this repo's code; `UNKNOWN_ACTION` and `UNAUTHORIZED` behaved; a honeypot-tripped `POST leads.create` exercised the whole transport chain while the server short-circuited before writing a row or sending mail.
 - **Duplicate-submit defect found and fixed** by the post-wiring review. `isLoading` was cosmetic, the button was never `disabled`, and `buildEstimatePayload()` minted a fresh `leadId` per call — a double-tap would have sent two payloads with two ids the server's dedupe could not collapse (two rows, two owner emails, two auto-replies, double MailApp quota). Fixed with an in-flight lock, a genuinely disabled button, release on all three terminal paths, and a `leadId` held stable for the page load so a retry collapses into the original row.
 - `text/plain` POST transport is deliberate — Apps Script web apps cannot answer a CORS preflight.
@@ -308,6 +315,22 @@ Aron reports:
 - Lead field data (name, phone, service, etc.) arrived correctly in that notification.
 - A photo was attached to the submission and its **filename** was recognized and reported in the notification — matching exactly what the code guarantees today (`appsScript/notifications.gs`: *"photos are not uploaded yet — reply or text the customer to request them"*). **The owner could not actually access the photo.** This is not a new defect; `photoUrls` has always stayed `[]` (`technicalDebt.md` item 24, pre-existing since Phase 1). The live test is what makes it a felt, urgent gap rather than a documented theoretical one — see the resume task below.
 
+### Lead pipeline finalization — 2026-08-13
+
+**Both defects the live test exposed are fixed in the repository. Neither is live.**
+
+**Photos.** The root cause was worse than "upload not built": the browser held the files in memory and `simulateUploadProgress()` filled every progress bar to 100% on a timer, so the visitor watched photos "upload" that never left the page. Now each photo is downscaled client-side (1600px long edge, JPEG 0.82, EXIF orientation honoured) and POSTed to a new `leads.addPhotos` endpoint **before** `leads.create`, one request per photo so a weak rural connection loses one photo rather than the whole submission. Files land in `BlueGrid Lead Photos/<referenceId>/`, and the folder is relabelled `BG-0001 · Name · <referenceId>` once the row exists.
+
+**`leads.create` reads that folder itself and never accepts photo URLs from the client** — otherwise a hand-crafted POST could put any link at all in front of the owner under his own website's name. The owner's email now carries a working link per photo plus one for the folder, and says plainly when an upload did not complete rather than implying the photos are somewhere.
+
+**Identifiers.** `leadId` is now internal and sequential (`BG-0001`), assigned by the server inside the `LockService` section that already serialises writes, and **after** the dedupe check — so a retry returns the original row and consumes no number. `referenceId` is the long client-minted id, now the sole dedupe key, and the only one a customer ever sees. Both columns were appended after `lastUpdated` per the append-only rule, which is why `referenceId` sits in column AB rather than beside `leadId`.
+
+The next number is derived from the sheet rather than a stored counter, which means **clearing the test rows before launch is the entire reset** — there is no counter to remember. A guard in `parseLeadNumber()` ignores legacy 13-digit ids so one unmigrated row cannot send the next lead to `BG-1786635839699`.
+
+**Migration.** `previewLeadIdentifierMigration()` reports the plan and writes nothing; `migrateLeadIdentifiers()` applies it. Both share one planning function so they cannot disagree. No rows are deleted, no columns removed, no other cell touched, and running it twice is a no-op. Rows it cannot interpret are reported rather than guessed at. Nothing destructive is automated — the pre-launch reset is documented as manual steps in `appsScript/README.md`.
+
+**Validated:** 12/12 validator suites and **116/116** Apps Script harness checks, with nine backend and three client regressions injected one at a time and every one confirmed caught. None of it has been seen in a browser — `technicalDebt.md` item 4g is now the largest untested-by-eye item on the site.
+
 ### Session closeout SOP
 
 Created `docs/sessionCloseout.md` — a local, gitignored workflow document instructing any future session how to close out cleanly (inspect real repo state, update the three continuity docs, run validation, commit locally, never push automatically, hand off a compact summary). Verified four ways before writing anything else: `git status --short` does not list it, `git ls-files --error-unmatch` confirms it was never tracked, `git check-ignore -v` resolves it to the new `.gitignore` rule, and `git status --ignored` shows it with the `!!` (ignored) marker. Nothing needed removing from tracking — it was never added.
@@ -319,16 +342,18 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 ## Currently In Progress
 
-**Nothing.** Working tree clean, all validators pass. `origin/main` matched local `HEAD` (`ab802b9`) at the start of this session; this closeout commit puts `main` 1 ahead again and is not being pushed, per instruction.
+**Nothing in the repository.** Working tree clean, all validators pass, `main` 2 ahead of `origin/main` and unpushed per instruction.
+
+**One thing outside it:** the lead pipeline is finished in code and **not deployed**. The live Apps Script still runs the pre-split version. That is the next action, and it is Aron's to take — see *Waiting on Aron*.
 
 ---
 
 ## Remaining Launch Work (priority order)
 
-1. **Finalize the lead pipeline — HIGH PRIORITY, the next session's resume task.** Photo accessibility (owner cannot open submitted photos, only see the filename) and lead-id architecture (split the current long generated id into an internal sequential `leadId` and a customer-facing `referenceId`). Full detail in *Waiting on Aron* and the dedicated section below. **Not started — deliberately left for next session.**
-2. **Restore `config!notificationEmail` to Chase's address.** Temporarily pointed at a test recipient for the live test above; no repo-level record of whether it has been restored. Verify before any further real submissions.
+1. **Deploy the new Apps Script and retest end to end.** The repo-side work is done; the deployment is a separately pasted copy and nothing reaches production without it. Exact steps in *Waiting on Aron* below and in `appsScript/README.md`. **The website must not go live ahead of this** — the current site sends `referenceId`, which the deployed script would file as a stray field, and it would POST photos to an endpoint that does not exist.
+2. **Restore `config!notificationEmail` to Chase's address.** Temporarily pointed at a test recipient for the live test; no repo-level record of whether it has been restored. Verify before any further real submissions.
 3. **Settle the production domain** — blocks 5–8 below. Canonicals say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`.
-4. **Page-by-page copy and browser QA.** No session has ever had a browser. Largest untested-by-eye items: the three mega panels side by side, the process section, the hero typing, the process board on tablet, the estimate modal's new Step 1 (five fields under a heading that still says "Where's the property?" — `technicalDebt.md` item 10m).
+4. **Page-by-page copy and browser QA.** No session has ever had a browser. Largest untested-by-eye items: **the photo uploader on a real phone over a real connection (`technicalDebt.md` item 4g — new, and the biggest of them)**, the three mega panels side by side, the process section, the hero typing, the process board on tablet, the estimate modal's new Step 1 (five fields under a heading that still says "Where's the property?" — item 10m).
 5. **`robots.txt`** — does not exist.
 6. **`sitemap.xml`** — does not exist. Needs **24 URLs** today, 29 once location rows 7–11 ship.
 7. **Canonical URL finalization** — 24 pages, every one `TODO:`-marked so a single sweep catches them.
@@ -349,39 +374,30 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 | # | Blocker | Impact |
 |---|---|---|
-| 1 | **Lead pipeline not finalized** | Photos are collected but not accessible to the owner; the lead identifier is not yet split into internal/customer-facing forms. Blocks a real production launch even once the domain is settled. See the dedicated section below. |
+| 1 | **The new Apps Script is not deployed** | The repo and production disagree: production cannot store a photo and does not know `referenceId`. Publishing the website before the redeploy would break photo upload outright. Aron's action — see below. |
 | 2 | **`config!notificationEmail` may still point at a test address** | Unverifiable from this repo. If not restored, a real customer submission would not reach Chase. |
 | 3 | **Production domain undecided** | Gates `robots.txt`, `sitemap.xml`, canonicals, OG URLs across 24 pages, and Search Console. |
 | 4 | `MODULE_API_KEY` state unknown | Cannot be checked from outside — `leads.list` returns `UNAUTHORIZED` whether the key is unset or merely not supplied. Blocks only a future dashboard, never the public form. |
 
 ---
 
-## High-Priority Resume Task — Lead Pipeline Finalization
+## Deployment Handover — the exact live steps
 
-**Not started. This is deliberately the first work item for the next session, not something to begin now.**
+**Everything below happens in Google, by hand. No session can do any of it, and nothing in the repo is live until it is done.** Full detail in `appsScript/README.md`; this is the ordered summary.
 
-### A. Photo accessibility
+**Order matters: Apps Script first, website second.** The new site posts `referenceId` and uploads photos to `leads.addPhotos`. Against the old deployment, photo upload would 404 and dedupe would silently stop working on retries. The old site against the new deployment is fine — `leadId` is read as a `referenceId` fallback precisely so that window is safe.
 
-The live test confirmed the exact gap `technicalDebt.md` item 24 already documented: a submitted photo's **filename** reaches the owner notification; the photo itself does not. `appsScript/leads.gs` hard-codes `photoUrls: []`, and `notifications.gs` says so explicitly in the owner email.
+1. **Paste the code.** Eight `.gs` files now, not seven — `photoStorage.gs` is new. Create it in the editor and paste the others over their existing contents.
+2. **Redeploy correctly.** *Deploy → Manage deployments → pencil → Version: New version → Deploy.* **Never "New deployment"** — that mints a different URL and silently breaks all 24 forms.
+3. **Run `setupSpreadsheet`.** Appends the two new headers and seeds `photoAccess`. Existing rows are untouched. Authorize the new Drive scope when prompted — the script now writes files, which it did not before.
+4. **Run `previewLeadIdentifierMigration`,** read the Execution log, and confirm the plan looks right. It writes nothing.
+5. **Run `migrateLeadIdentifiers`** to apply it. Safe to run twice.
+6. **Run `runSelfTest`.** Expect eight PASS lines, including the two new ones (`identifiers`, `dedupe keeps leadId`).
+7. **Confirm `config!notificationEmail`** is the address you actually want the next test to reach.
+8. **Publish the website** (`js/indexJS.js` is the only file that changed).
+9. **Submit a real lead with two photos** and confirm: a row with a sequential `leadId` and a long `referenceId`; photo links in the sheet and in the owner email that actually open the images; the auto-reply quoting the `referenceId` and never the sequential number; `errorLog` still empty.
 
-Trace the full path — website → Apps Script → photo storage → Sheet → owner notification — and implement real access, preferably persistent storage (Drive is the existing pattern elsewhere in this client's stack) with usable links in the notification and the Sheet. `docs/phasePrompts/phase11PhotoUploadService.md` specs this in detail but predates the current single-repo layout (it references separate `BlueGridAPI`/`BlueGridDashboard` folders that no longer exist as such) — reconcile paths, don't follow them blindly. It also assumes the current `leadId` format for its dedupe key (`^BG-\d{13}$`), which is the other half of this task and will need to change together with it.
-
-### B. Lead id / reference id separation
-
-**Current state, verified in `appsScript/leads.gs`:** `leadId: 'BG-' + Date.now()` — a client-generated, millisecond-timestamp id. It is the sole dedupe key: `handleCreateLead()` takes a global `LockService` lock, then checks `findLeadById(sheet, leadId)` before writing, so a retry with the same id collapses into the existing row. This is the entire idempotency mechanism today.
-
-**Desired end state:**
-- `leadId` (internal) becomes sequential — `BG-0001`, `BG-0002`, ...
-- The current long generated id becomes `referenceId` — the customer-facing confirmation number
-- Both columns exist in the Sheet
-- Sequential assignment is concurrency-safe
-- Retries/duplicates never consume a sequential id or create a duplicate row
-- Idempotency is preserved
-- No destructive change to existing Sheet data
-
-**Why this is real design work, not a rename:** the client currently generates the dedupe key, and a client cannot safely hand out race-free sequential numbers — that assignment has to move inside the server's existing `LockService`-protected section, which already serializes writes for exactly this reason. `LEADS_HEADERS`' own header comment in `leads.gs` says columns are "append-only once deployed... renames are forbidden" — that constraint should drive the schema choice (most likely: keep the dedupe key working exactly as it does today under whatever column ends up holding it, and add rather than rename). The next session should determine the safest migration, not assume one.
-
-**Also required:** update `setupSpreadsheet()` / migration logic as needed, update the Apps Script test harness and any relevant validator, determine the exact Apps Script update/redeployment procedure (the live deployment is a separately pasted copy — see `appsScript/README.md`), and run one more real end-to-end submission afterward.
+**Then, before launch — starting real leads at `BG-0001`:** delete the test data rows from `leads` (the rows, not their contents, and never row 1), optionally clear `errorLog` and the test folders under `BlueGrid Lead Photos`, and confirm `notificationEmail` is Chase's address. **Sequential numbering derives from the sheet, so deleting the rows is the whole reset — there is no counter to clear.** Nothing in the code does this automatically, deliberately.
 
 ---
 
@@ -402,8 +418,9 @@ Trace the full path — website → Apps Script → photo storage → Sheet → 
 
 ## Waiting on Aron
 
+- **Deploy the new Apps Script and run the migration** — the nine ordered steps in *Deployment Handover* above. This is the single thing standing between the finished code and a working pipeline.
+- **Decide `photoAccess` if the default misbehaves.** It defaults to `ownerEmail`, which shares each lead's photo folder view-only with `notificationEmail`. If Chase opens a link and hits a permission wall, change that one config cell to `anyoneWithLink` — no redeploy. `technicalDebt.md` item 24d.
 - **Restore `config!notificationEmail` to Chase's address** and confirm it — see Blocker 2.
-- **The lead pipeline resume task above** — photo accessibility and the leadId/referenceId split are design decisions as much as implementation; the next session will need direction on the Sheet migration approach if it isn't obvious once real options are laid out.
 - **Domain decision** — Blocker 3.
 - **A browser pass** on phone / tablet / desktop — see *Remaining Launch Work* item 4.
 - **Confirm the nav decision.** The 2026-08-04 brief spelled the resulting order out as four items, which excluded *Before & After*, so it was removed from the primary nav. It stays reachable from the homepage hero CTA and the footer Quick Links. **If a five-item nav was intended, restoring it is a one-line change** — the "Our Company" item already added a fifth.
@@ -414,15 +431,18 @@ Trace the full path — website → Apps Script → photo storage → Sheet → 
 
 ## Planned Next Session
 
-**The lead pipeline finalization above (A + B) is the plan.** It was deliberately not started this session — closeout documents it, it does not implement it.
+**Depends entirely on whether the deployment has happened.**
 
-**One smaller thing still worth knowing about:** current-page highlighting in the mega menus (`technicalDebt.md` item 19) remains undone, one rule and one small routine for all four panels, and has no urgency attached.
+- **If Aron has deployed and retested:** act on what the real submission showed. Expect at least one thing to need adjusting on a real device — photo orientation, upload time on a weak connection, or Drive link permissions (item 24d) are the three most likely, and all three are cheap to change.
+- **If not:** do not start anything that depends on the pipeline. Pick up the domain-independent work instead — the duplicate FAQ question (item 10a), Step 1's heading (item 10m), or current-page highlighting in the mega menus (item 19), none of which have urgency but all of which are self-contained.
+
+**Do not re-implement any of the photo or identifier work.** It is complete in the repository; if something looks wrong, it is either a deployment step that has not run or a real defect found on a device — diagnose which before changing code.
 
 # NEXT SESSION SHOULD START HERE
 
 1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. Multiple prior sessions have found this file's own header stale (commit hash, ahead/behind count, remote URL) within a day of being written; verify everything in the header block against `git` directly rather than trusting it.
 2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main` (check both directions; `origin/main` moved without a session recording it once already), remote URL, working tree, page count. Expect `main`, clean, **24 pages**. **Also run `git status` before trusting any hardcoded config value in `appsScript/`** — item 10l found one file with an uncommitted, undocumented edit sitting in the working tree.
-3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `validateEstimateCtas`, `simulateEstimateFlow`, `heroLoopHarness` — **twelve suites**, named so the count in this line can be checked against the list rather than trusted on its own — plus `measureHeader`, `measureProcessFit`, the guarded assemblers, and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, 64 checks) is committed and separate from all of this. **Locate the scratchpad toolchain before starting work, and re-run all twelve suites plus the Apps Script harness to establish a baseline before changing anything.**
-4. **Start the lead pipeline resume task** — read the *High-Priority Resume Task* section above in full before writing any code. Photo accessibility and the leadId/referenceId split are connected (the photo spec's dedupe assumption depends on the id format).
+3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `validateEstimateCtas`, `simulateEstimateFlow`, `heroLoopHarness` — **twelve suites**, named so the count in this line can be checked against the list rather than trusted on its own — plus `measureHeader`, `measureProcessFit`, the guarded assemblers, and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, **116 checks**) is committed and separate from all of this. **Locate the scratchpad toolchain before starting work, and re-run all twelve suites plus the Apps Script harness to establish a baseline before changing anything.** `validateLeadFlow` and `simulateEstimateFlow` were both rewritten on 2026-08-13 for the new contract; an older copy would assert the pre-split architecture and pass a broken build.
+4. **Ask whether the Apps Script has been deployed** before planning anything that touches the pipeline. The repo and production genuinely disagree until it has, and *Planned Next Session* above branches on the answer.
 5. **`docs/sessionCloseout.md` exists locally and is gitignored — do not commit it, and do not recreate it if it's already there.**
-6. **Do not start Remaining Launch Work items below the resume task until the domain is settled** — several would be done twice otherwise.
+6. **Do not start Remaining Launch Work items below the deployment until the domain is settled** — several would be done twice otherwise.

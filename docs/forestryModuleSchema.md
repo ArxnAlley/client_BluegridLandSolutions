@@ -31,7 +31,7 @@ The estimate experience is two-stage: a hero mini-form (`fullName`, `phone`, `se
 
 | Field | Type | Required | Values / Format | Example | Set By |
 |-------|------|----------|-----------------|---------|--------|
-| `leadId` | string | yes | `"BG-" + Date.now()` → `BG-` + 13 digits | `BG-1768594832000` | Website (client-side) |
+| `leadId` | string | yes | `BG-` + sequential number, zero-padded to 4 | `BG-0001` | **API (server-assigned)** |
 | `submittedAt` | string | yes | ISO 8601 | `2026-07-16T14:32:08.000Z` | Website (server re-stamps if missing/invalid) |
 | `fullName` | string | yes | max 100 chars | `Dale Compton` | Website (user input) |
 | `phone` | string | yes | free-form, max 30 chars | `(606) 555-0142` | Website (user input) |
@@ -62,7 +62,7 @@ Captured by the website JS at page load and carried through submit. Empty string
 
 | Field | Type | Required | Values / Format | Example | Set By |
 |-------|------|----------|-----------------|---------|--------|
-| `photoUrls` | array | no | JSON array of Drive URL strings; empty until Phase 2 photo upload ships | `["https://drive.google.com/..."]` | API (Phase 11) |
+| `photoUrls` | array | no | JSON array of Drive URL strings, resolved from storage by the API | `["https://drive.google.com/..."]` | API |
 | `propertySize` | string | no | numeric string ≥ 0 — TOTAL parcel acreage (distinct from `estimatedAcres`, the acres of work requested); reserved empty in Phase 1 | `42` | Dashboard (owner, after site review) |
 | `terrainType` | enum | no | `flat` \| `rolling` \| `steep` \| `mixed` \| `woodedWetland`; reserved empty in Phase 1 | `rolling` | Dashboard (owner, after site review) |
 | `status` | enum | yes | `new` \| `contacted` \| `estimated` \| `scheduled` \| `inProgress` \| `completed` \| `lost` | `new` | API on create (`new`); Dashboard thereafter |
@@ -70,6 +70,8 @@ Captured by the website JS at page load and carried through submit. Empty string
 | `assignedTo` | string | no | crew member / owner name | `Owner` | Dashboard |
 | `internalNotes` | string | no | max 5000 chars | `Walked property 7/18, mostly cedar and honeysuckle` | Dashboard |
 | `lastUpdated` | string | yes | ISO 8601, server time | `2026-07-16T14:32:09.412Z` | API (stamped on every create/update) |
+| `referenceId` | string | yes | `"BG-" + Date.now()` → `BG-` + 13 digits | `BG-1768594832000` | Website (client-side) |
+| `photoFolderUrl` | string | no | Drive folder holding this lead's photos | `https://drive.google.com/drive/folders/...` | API |
 
 ---
 
@@ -83,10 +85,11 @@ estimatedAcres, serviceNeeded, projectDescription, preferredContactMethod, prefe
 photoCount, photoNames, photoUrls, sourcePage,
 leadSource, utmSource, utmMedium, utmCampaign, facebookCampaign,
 propertySize, terrainType,
-status, estimateAmount, assignedTo, internalNotes, lastUpdated
+status, estimateAmount, assignedTo, internalNotes, lastUpdated,
+referenceId, photoFolderUrl
 ```
 
-27 columns, A through AA.
+29 columns, A through AC.
 
 Contract rules (each one is a lesson paid for during the 740Eatz orders audit):
 
@@ -94,8 +97,9 @@ Contract rules (each one is a lesson paid for during the 740Eatz orders audit):
 2. **Writes are positional.** `appendRow()` writes in `LEADS_HEADERS` order; reads key strictly off row 1 text. A single mislabeled header silently drops fields — hence rule 1.
 3. **All cells are plain-text formatted (`@`).** ISO dates and phone numbers must round-trip as strings, never as Date/number cells. The API additionally rescues Date cells introduced by manual sheet edits.
 4. **Arrays are stored as JSON strings.** `photoNames` and `photoUrls` are serialized with `JSON.stringify` into their single cell and parsed on read. Empty array → `[]`.
-5. **`photoUrls`, `propertySize`, and `terrainType` are reserved now, populated later.** Reserving these columns in the day-one contract means the photo upload feature (Phase 11) and owner-side property fields ship without a schema migration.
-6. **Columns are append-only once deployed.** New fields go after `lastUpdated`, never inserted mid-contract. Renames are forbidden; deprecate instead. (The July 2026 pre-deployment restructure to 27 columns was the last free reorder — nothing was live yet.)
+5. **`propertySize` and `terrainType` are reserved now, populated later.** Reserving these in the day-one contract means owner-side property fields ship without a schema migration. `photoUrls` was reserved the same way and is now live — see *Photo handling*.
+6. **Columns are append-only once deployed.** New fields go after `lastUpdated`, never inserted mid-contract. Renames are forbidden; deprecate instead. (The July 2026 pre-deployment restructure to 27 columns was the last free reorder — nothing was live yet. The 2026-08-13 identifier split honoured the rule: `referenceId` and `photoFolderUrl` were appended as columns 28 and 29 rather than slotted beside the fields they relate to.)
+7. **Two identifiers, different jobs.** `leadId` is internal, sequential and server-assigned; `referenceId` is customer-facing, long, and minted by the browser. `leads.create` dedupes on `referenceId` — only the client knows a second POST is a retry — while the sequential number is allocated server-side, inside the lock, *after* the dedupe check, so a retry never consumes one. The next number is derived from the sheet rather than a stored counter, which makes clearing rows before launch the entire reset.
 
 ---
 
@@ -105,7 +109,7 @@ The Free Estimate form POSTs this exact shape. Field name attributes on the form
 
 ```json
 {
-    "leadId": "BG-1768594832000",
+    "referenceId": "BG-1768594832000",
     "submittedAt": "2026-07-16T14:32:08.000Z",
     "fullName": "Dale Compton",
     "phone": "(606) 555-0142",
@@ -127,7 +131,7 @@ The Free Estimate form POSTs this exact shape. Field name attributes on the form
 }
 ```
 
-The website never sends `photoUrls`, `propertySize`, `terrainType`, `status`, `estimateAmount`, `assignedTo`, `internalNotes`, or `lastUpdated`. If present in a payload, the API ignores them.
+The website never sends `leadId`, `photoUrls`, `photoFolderUrl`, `propertySize`, `terrainType`, `status`, `estimateAmount`, `assignedTo`, `internalNotes`, or `lastUpdated`. If present in a payload, the API ignores them. `leadId` in particular is server-assigned: accepting one from a browser would let a submission claim another lead's row.
 
 ---
 
@@ -153,20 +157,22 @@ Full build spec lives in `phasePrompts/phase10AppsScriptApi.md`. The contract-le
 - Max lengths per the field dictionary; oversize → `VALIDATION_ERROR`.
 - `estimatedAcres`: if non-empty, must parse as a number in `[0, 100000]`; otherwise `VALIDATION_ERROR`.
 - Attribution fields (`leadSource`, `utmSource`, `utmMedium`, `utmCampaign`, `facebookCampaign`): free strings, truncated to their max lengths, never rejected — attribution must never block a lead.
-- `leadId` must match `^BG-\d{13}$`; if missing or malformed the server generates one (client value preferred so the visitor's confirmation reference matches the sheet).
+- `referenceId` must match `^BG-\d{13}$`; if missing or malformed the server generates one (client value preferred so the visitor's confirmation reference matches the sheet). A `leadId` in the payload is read as a `referenceId` fallback only, so a browser holding a cached copy of the pre-split site still dedupes correctly.
 - `submittedAt` must parse as a valid date; otherwise the server stamps it.
 - Honeypot: if the hidden trap field carries a value, return a fake success envelope and write nothing.
 
-### Dedupe by `leadId`
+### Dedupe by `referenceId`
 
-Before appending, scan the `leadId` column. If the id already exists, return `{ "success": true, "data": { "lead": <existing row>, "duplicate": true } }` and write nothing. This makes `leads.create` idempotent — safe against double-taps and mobile retry logic.
+Before appending, scan the `referenceId` column. If the value already exists, return `{ "success": true, "data": { "lead": <existing row>, "duplicate": true } }` and write nothing. This makes `leads.create` idempotent — safe against double-taps and mobile retry logic.
+
+The sequential `leadId` is allocated only after this check passes, so a duplicate returns the original row's number and consumes nothing.
 
 ### Write path
 
 1. Acquire `LockService` script lock (30s timeout → `LOCK_TIMEOUT` error).
 2. `getOrCreateSheet('leads')` — auto-creates the tab with `LEADS_HEADERS` if absent, enforces canonical headers if present, formats all cells plain-text.
 3. Dedupe check (above).
-4. Compose the row in `LEADS_HEADERS` order: form + attribution fields from the payload, `photoUrls` = `[]`, `propertySize`/`terrainType` = `""`, `status` = `new`, `estimateAmount`/`assignedTo`/`internalNotes` = `""`, `lastUpdated` = server ISO time.
+4. Compose the row in `LEADS_HEADERS` order: form + attribution fields from the payload, `leadId` = the next sequential number, `photoUrls`/`photoFolderUrl` resolved from storage, `propertySize`/`terrainType` = `""`, `status` = `new`, `estimateAmount`/`assignedTo`/`internalNotes` = `""`, `lastUpdated` = server ISO time.
 5. `appendRow()`, release lock, return the full lead record in the envelope.
 6. Fire the new-lead notification (see `phasePrompts/phase5Zapier.md` — Apps Script `MailApp` is the primary mechanism).
 
