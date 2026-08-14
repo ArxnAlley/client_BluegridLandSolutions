@@ -4,6 +4,65 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-13 — P0 SEO IMPLEMENTATION
+
+### What the inventory changed about the plan
+
+The brief assumed a site that needed an SEO pass. The site had already had one on 2026-08-11: unique titles and descriptions on all 24 pages, canonicals, OG, per-page-kind schema, breadcrumbs, an intent map enforced by `validateSeo`, and zero H1 intent collisions. Re-doing that would have been churn.
+
+So the work went where the gaps actually were, and the inventory found five:
+
+- **No `robots.txt` and no `sitemap.xml`.** Neither had ever existed.
+- **No service-area hub.** `locations/` had nine town pages and no index. They were reachable only from the header panel and the footer, which is chrome — so every one of them was a content orphan, and nothing on the site answered "do you come out to where I am?"
+- **No pages for Minford, Piketon or Jackson**, the three places with photograph-verified provenance.
+- **No tree page**, which the brief assumed existed and audited. It does not.
+- **The Service Areas panel's featured card said "View All Service Areas" and pointed at a homepage anchor.** It had nowhere else to point.
+
+### The claims audit found evidence nobody had opened
+
+The brief listed claims not to invent — insurance, pricing, response times, capability limits. Before touching any of them I checked what the repository could actually prove, and the answer was sitting in `graphics/images/` the whole time: three of those files are **Chase's own advertisements**, not job photos.
+
+They settle a lot. "FULLY INSURED" is a badge on two of them. "LOCALLY OWNED & OPERATED" is on one. The phone number the debt file has called an unconfirmed placeholder since Phase 1 is printed across the middle of `whatTheyDo2.jpg` — **the flyer was the evidence, and it had never been looked at.** The "1–2 days" claim is the headline of `BeforeandAfter.jpg`. The service list on `whatTheyDo.jpg` includes tree and brush cleanup, which is the one service with first-party backing and no page.
+
+What the adverts do *not* mention is any response time. So "Free estimates within 24 hours." — stated flat in three homepage descriptions while the on-page copy hedged it as "*most* quotes" — was brought into line with the hedged version rather than deleted, and flagged. Same reasoning retired "storm cleanup jumps the line … machine on site within days": Chase's own storm advert says "when the storm clears, we're just getting started", which is restoration, not emergency dispatch. Priority scheduling stayed, because that is his call to make; the on-site timeframe went, because the site cannot promise it on his behalf.
+
+Nothing else needed touching. No pricing figure exists anywhere on the site, no coverage amount, no diameter limit, and no schema block carries an address, coordinates or a `priceRange`.
+
+### Three location pages, written rather than templated
+
+Minford, Piketon and Jackson were built from the existing location architecture — same URL convention, same donor chrome spliced in byte-identically and proven so by diffing two donors before writing. What is *not* shared is the content: each page has its own terrain writing, its own landowner problems, its own five FAQs and its own nearby list. Swapping a city name through one template is the specific thing the brief forbade and the thing `validateSite`'s pairwise-overlap check would have caught anyway.
+
+**The restraint rule got its own section in the content data.** A location-coded filename proves where a photo was taken and nothing else. So the proof blocks say BlueGrid has completed *land-service work* in that place, the captions describe only what is visible in the frame, and no page calls its photographed project forestry mulching, pasture restoration, hunting work or reclamation. The H1s still say "Forestry Mulching in Minford, OH" because that is a statement of service availability — which is what a location page is for — not a claim about the job in the photograph.
+
+Four of the five orphaned photos from the rename session found their home here; one, `afterForestryMulching_minfordOH.jpg`, is now doing real work on the Minford page.
+
+### The hub, and two validators that had to learn about it
+
+`locations/index.html` answers the availability question, lists both regions county by county, links all nine town pages, and states plainly that there is no branch office in any of these towns. Its schema is an `ItemList` of the location pages — deliberately **not** a `LocalBusiness` per city, which would be a fabricated address nine times over.
+
+Two existing checks failed it, and both were right to on their own terms:
+
+- `validateSite` forbids a location page linking sideways to another location page. The hub does nothing but that. Exempted by path, with the reasoning written into the check: the rule exists to stop town pages cannibalising each other, and the hub is what stops them being orphans.
+- `validateSeo` requires `Service` schema on anything under `locations/`. The hub describes a territory, not one service in one place, so it became its own page kind.
+
+`validateMegaMenus` also failed, for the most useful reason of all: it asserts the Service Areas panel has exactly 13 rows, and adding Minford and Piketon made it 15. The contract was updated with a note saying why. That check earned its keep.
+
+### The sitemap generates from the canonicals
+
+`sitemap.xml` is built by reading the canonical tag off each page rather than from file paths, so the two cannot drift — if a canonical is wrong the sitemap is wrong identically, which is visible instead of hidden. It refuses to write if the canonicals span more than one origin, and it skips anything carrying `noindex`. The production domain is still undecided, so the generator inherits whatever origin the pages declare and both files carry a TODO; when the domain is settled, the canonicals get swept and this regenerates.
+
+### The lead path was not touched
+
+`js/indexJS.js` and every file under `appsScript/` are byte-identical to where they started — confirmed with `git diff --stat`. The estimate form section on the new pages is lifted verbatim from the donor rather than regenerated, behind a guard that refuses to write if the extracted block is missing the form or the honeypot. All 28 pages carry `estimateForm`, `estimateModal` and `companyWebsite`.
+
+The one edit inside that block was deliberate: the donor's "Most quotes answered within 24 hours by the owner" bullet became "Answered by the owner, not a call centre" on new pages, so the P0 work did not propagate an unevidenced claim onto four fresh URLs.
+
+### Validation
+
+13/13 validator suites, 116/116 Apps Script harness, `node --check` clean, 331 asset references resolving with exact casing. Nothing has been seen in a browser.
+
+---
+
 ## 2026-08-13 — PROJECT PHOTOS RENAMED WITH LOCATIONS; ASSET REFERENCES REPAIRED
 
 ### Brief

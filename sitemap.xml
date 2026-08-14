@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    BlueGrid Land Solutions - XML sitemap
+
+    Generated from the canonical tag on each page, so a URL here is
+    by definition the URL that page declares as canonical.
+
+    TODO: These URLs carry the placeholder production origin. When the
+    live domain is settled, sweep the canonicals and regenerate this
+    file - do not hand-edit it.
+-->
+
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/company/</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/faq/</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/</loc>
+        <changefreq>monthly</changefreq>
+        <priority>1.0</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/insights/benefits-of-forestry-mulching.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/insights/brush-hogging-vs-forestry-mulching.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/insights/fence-line-clearing-tips.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/insights/</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/insights/preparing-land-for-building.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/insights/signs-your-property-needs-land-management.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/insights/storm-cleanup-best-practices.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/insights/when-to-clear-overgrown-property.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/forestry-mulching-ashland-ky.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/forestry-mulching-chillicothe-oh.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/forestry-mulching-grayson-ky.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/forestry-mulching-ironton-oh.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/forestry-mulching-jackson-oh.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/forestry-mulching-minford-oh.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/forestry-mulching-morehead-ky.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/forestry-mulching-piketon-oh.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/forestry-mulching-portsmouth-oh.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/locations/</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/services/brushRemoval.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/services/forestryMulching.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/services/huntingPropertyPrep.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/services/landClearing.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/services/propertyCleanup.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/services/stormCleanup.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://www.bluegridlandsolutions.com/services/trailCutting.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+</urlset>

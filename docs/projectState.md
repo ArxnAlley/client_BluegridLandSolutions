@@ -1,6 +1,6 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-13 (project photo rename + asset reference repair)
+**Last updated:** 2026-08-13 (P0 SEO implementation)
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
 **Last content commit:** `18c8845` — lead pipeline: photo storage in Drive, `leadId` split from `referenceId`
@@ -52,6 +52,7 @@
 | **Session closeout SOP** (`docs/sessionCloseout.md`, gitignored) | **Complete** |
 | **Photo storage — Drive upload, links in the Sheet and owner email** | **Complete in repo, not deployed** |
 | **Lead identifier split — internal `leadId` + customer `referenceId`** | **Complete in repo, not deployed** |
+| **P0 SEO — service-area hub, 3 verified-proof town pages, robots, sitemap** | **Complete** |
 
 **Two launch blockers now: the Apps Script redeploy, and the production domain.**
 
@@ -70,7 +71,7 @@ Take the BlueGrid Land Solutions website from "built but not launchable" to prod
 
 ## Current Repository Status
 
-**102 tracked files. 24 HTML pages.** (Counted with `git ls-files` at this session's commit; the previous figure of 98 had drifted.)
+**112 tracked files. 28 HTML pages.** (Counted with `git ls-files` at this session's commit.)
 
 ```
 index.html                  homepage
@@ -79,8 +80,10 @@ faq/index.html              FAQ hub — 28 questions, 6 categories
 services/          (7)      forestryMulching, landClearing, brushRemoval,
                             trailCutting, stormCleanup, propertyCleanup,
                             huntingPropertyPrep
-locations/         (6)      forestry-mulching-{ashland-ky, portsmouth-oh,
-                            ironton-oh, chillicothe-oh, grayson-ky, morehead-ky}
+locations/        (10)      index.html (service-area hub) +
+                            forestry-mulching-{ashland-ky, portsmouth-oh,
+                            ironton-oh, chillicothe-oh, grayson-ky, morehead-ky,
+                            minford-oh, piketon-oh, jackson-oh}
 insights/          (8)      index.html + 7 articles
 appsScript/        (8 .gs)  Code, routes, leads, photoStorage, validation,
                             notifications, utilities, config
@@ -88,7 +91,8 @@ appsScript/        (8 .gs)  Code, routes, leads, photoStorage, validation,
 css/                        styleIndex.css (homepage + shared systems),
                             stylePages.css (interior pages)
 js/indexJS.js               single shared script for all 24 pages
-.gitignore                  one rule — see GBP assets below
+.gitignore                  see GBP assets below
+robots.txt, sitemap.xml     generated from the canonicals, never hand-edited
 docs/                       this file, engineeringJournal.md, technicalDebt.md,
                             seoPlan.md, servicePageArchitecture.md,
                             forestryModuleSchema.md, googleSheetArchitecture.md,
@@ -368,8 +372,8 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 2. **Restore `config!notificationEmail` to Chase's address.** Temporarily pointed at a test recipient for the live test; no repo-level record of whether it has been restored. Verify before any further real submissions.
 3. **Settle the production domain** — blocks 5–8 below. Canonicals say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`.
 4. **Page-by-page copy and browser QA.** No session has ever had a browser. Largest untested-by-eye items: **the photo uploader on a real phone over a real connection (`technicalDebt.md` item 4g — new, and the biggest of them)**, the three mega panels side by side, the process section, the hero typing, the process board on tablet, the estimate modal's new Step 1 (five fields under a heading that still says "Where's the property?" — item 10m).
-5. **`robots.txt`** — does not exist.
-6. **`sitemap.xml`** — does not exist. Needs **24 URLs** today, 29 once location rows 7–11 ship.
+5. ~~**`robots.txt`**~~ — **created 2026-08-13.** Allows everything; there is no admin area or staging path to exclude. Carries a TODO on the sitemap origin.
+6. ~~**`sitemap.xml`**~~ — **created 2026-08-13, 28 URLs.** Generated from the canonical tag on each page by a scratchpad script, so the two cannot drift. Regenerate rather than hand-edit after the domain sweep.
 7. **Canonical URL finalization** — 24 pages, every one `TODO:`-marked so a single sweep catches them.
 8. **Open Graph finalization** — same 24 pages; `og:url` and `og:image` must become absolute.
 9. **Competitor and search-intent research**, feeding into **final SEO implementation** on top of the intent map already in `seoPlan.md`.

@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-13 (project photos renamed with locations; asset references repaired, asset validator added) (earlier same day: lead pipeline finalization — photo storage built, identifiers split; items 24 and 24a resolved, new photo-related debt recorded)
+**Last updated:** 2026-08-13 (P0 SEO implementation — first-party claim evidence found in the client's own advertising; earlier same day: project photos renamed with locations; asset references repaired, asset validator added) (earlier same day: lead pipeline finalization — photo storage built, identifiers split; items 24 and 24a resolved, new photo-related debt recorded)
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -20,11 +20,41 @@ The old badge (`bluegridBadge400.png`, `bluegridBadge192.png`) reads **"FORESTRV
 
 **Still open outside the website:** the misspelled badge files remain on disk, and if the client has that artwork on a truck wrap, signage, business cards, or a GBP profile photo, it is still wrong there. `newBG_logo.png` spells **FORESTRY** correctly and is the asset to hand anyone who asks for print artwork.
 
-### 3. Placeholder contact details still shipping
-- Phone `(740) 464-2526` — TODO-marked, sourced from the flyer, never confirmed
-- Email `estimates@bluegridlandsolutions.com` — a placeholder that may not exist
+### 3. ~~Placeholder contact details~~ — PHONE CONFIRMED 2026-08-13, EMAIL STILL OPEN
+- Phone `(740) 464-2526` — **confirmed.** It is printed on Chase's own advertisement, `graphics/images/whatTheyDo2.jpg`, which is first-party marketing material sitting in this repository. Previous sessions recorded it as an unconfirmed flyer number; the flyer *is* the evidence, and nobody had opened it.
+- Email `estimates@bluegridlandsolutions.com` — **still a placeholder.** It appears on no client artwork and may not route anywhere. Shipping an unrouted address loses leads silently.
 
-Both are wired through `businessConfig`, so each is a one-line fix — but shipping an unrouted email address loses leads silently.
+Wired through `businessConfig`, so the email is a one-line fix once confirmed.
+
+### 3a. Claims audit — what the client's own advertising does and does not support
+
+Run 2026-08-13 during the P0 SEO pass. The three client artwork files in `graphics/images/` are first-party marketing material and had never been opened by any session. They settle several claims that were being treated as unverified, and fail to support two that were on the site.
+
+**Verified by Chase's own advertising — keep:**
+
+| Claim | Evidence |
+|---|---|
+| **Fully insured** | "FULLY INSURED" badge on both `whatTheyDo2.jpg` and `whatTheyDo.jpg` |
+| **Locally owned and operated** | "LOCALLY OWNED & OPERATED" on `whatTheyDo.jpg` |
+| **Phone (740) 464-2526** | Printed on `whatTheyDo2.jpg` |
+| **Cleared in 1–2 days** | "…or have it cleared in 1-2 days?" on `BeforeandAfter.jpg` |
+| **Free estimates** | "Call for a Free Estimate!" / "MESSAGE US TODAY FOR A FREE ESTIMATE!" |
+| **Serving Ohio and surrounding areas** | Footer strip of `whatTheyDo.jpg` |
+| **Tree and brush cleanup, debris removal and mulching, trail and access restoration** | The four service tiles on `whatTheyDo.jpg` |
+
+**Not supported by anything in the repository — softened, and needs Chase to confirm or correct:**
+
+- **"Free estimates within 24 hours."** No response time appears on any client artwork. The on-page copy hedges this ("*most* quotes go out within 24 hours"); three homepage meta/social descriptions stated it flat. Those three were brought into line with the hedged wording. **The hedged instances were left alone** — they are a soft claim, not a guarantee, and removing every mention would be over-correction. Ask Chase what he can actually commit to.
+- **"Storm cleanup jumps the line … machine on site within days, not weeks."** An emergency-dispatch promise. Chase's own storm advert says "when the storm clears, we're just getting started", which is post-storm restoration, not emergency response. Reworded on `index.html` and `services/stormCleanup.html` to keep the priority-scheduling claim (his decision to make) and drop the on-site timeframe (a promise the site cannot keep for him).
+
+**Checked and clean — nothing to fix:** no dollar figures anywhere on the site, no per-acre or hourly pricing, no insurance coverage amount, no tree-diameter or capability limit, no guaranteed-quote or zero-haul-off language, no invented reviews or ratings, and no street address, latitude, longitude or `priceRange` in any schema block.
+
+**Still open:** "we send a certificate of insurance before the machine leaves the shop" is a specific operational promise that goes beyond the "FULLY INSURED" badge. Retained, because the underlying insurance claim is verified, but worth one sentence of confirmation from Chase.
+
+### 3b. There is no tree-service page, and the P0 brief assumed there was one
+The SEO brief called for an audit of a tree removal / tree cutting page. **No such page exists** — the site has seven service pages and tree work is not one of them.
+
+Chase's own advertising does list "TREE & BRUSH CLEANUP" as a service tile, so there is a real, first-party-supported service here with no page behind it. That is a genuine P1 content opportunity rather than a defect. **Do not build it as a residential arborist page:** nothing verifies climbing, crane work, stump grinding, hazardous-tree capability, or any maximum diameter. The honest framing is tree and brush clearing for land improvement, which is what the advert actually claims.
 
 ### 4. Nothing has ever been checked in a real browser
 No session on this project has had Playwright or Chrome DevTools available, so **every validation to date is static analysis or simulation.** That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything *looks*.

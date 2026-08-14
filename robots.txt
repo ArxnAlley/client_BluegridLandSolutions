@@ -1,0 +1,10 @@
+# BlueGrid Land Solutions
+#
+# Everything on this site is intended to be crawlable. There is no
+# admin area, no login, and no staging path to exclude.
+
+User-agent: *
+Allow: /
+
+# TODO: Confirm this matches the live production domain before launch.
+Sitemap: https://www.bluegridlandsolutions.com/sitemap.xml
