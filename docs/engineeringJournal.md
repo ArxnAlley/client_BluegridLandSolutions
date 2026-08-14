@@ -6,6 +6,8 @@ Append-only. Newest entry at the top.
 
 ## 2026-08-13 — P0 SEO IMPLEMENTATION
 
+**Commit `4b3df59`** — 33 files, 8,786 insertions.
+
 ### What the inventory changed about the plan
 
 The brief assumed a site that needed an SEO pass. The site had already had one on 2026-08-11: unique titles and descriptions on all 24 pages, canonicals, OG, per-page-kind schema, breadcrumbs, an intent map enforced by `validateSeo`, and zero H1 intent collisions. Re-doing that would have been churn.
@@ -61,9 +63,19 @@ The one edit inside that block was deliberate: the donor's "Most quotes answered
 
 13/13 validator suites, 116/116 Apps Script harness, `node --check` clean, 331 asset references resolving with exact casing. Nothing has been seen in a browser.
 
+### One thing this session broke and the closeout caught
+
+Writing these journal and debt entries through scripts that emitted `\n` left **mixed line endings** in `engineeringJournal.md` (1607 CRLF + 59 bare LF) and `technicalDebt.md` (373 + 30). It bit immediately: the next scripted edit detected CRLF from the file as a whole, built its search string with `\r\n`, and failed to match a heading that happened to sit in an LF region.
+
+Normalised both files back to uniform CRLF at closeout. **`git diff` confirmed zero content change** from the normalisation — `core.autocrlf` is `true`, so the committed bytes were always LF either way, and this only ever affected the working tree.
+
+Worth knowing because the mitigation already exists and was not followed: every guarded assembler in this project detects the line ending per file and restores it, precisely so scripted edits stay reliable. The one-off doc scripts did not, and that is the whole lesson.
+
 ---
 
 ## 2026-08-13 — PROJECT PHOTOS RENAMED WITH LOCATIONS; ASSET REFERENCES REPAIRED
+
+**Commit `8fadfe0`.**
 
 ### Brief
 
@@ -121,6 +133,8 @@ It also reports orphans. That found six unreferenced project photos — the four
 ---
 
 ## 2026-08-13 — LEAD PIPELINE FINALIZATION: PHOTO STORAGE + IDENTIFIER SPLIT
+
+**Commits `18c8845` and `9990055`.** Repo-side only — not deployed.
 
 ### Brief
 

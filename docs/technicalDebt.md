@@ -1,6 +1,6 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-13 (P0 SEO implementation — first-party claim evidence found in the client's own advertising; earlier same day: project photos renamed with locations; asset references repaired, asset validator added) (earlier same day: lead pipeline finalization — photo storage built, identifiers split; items 24 and 24a resolved, new photo-related debt recorded)
+**Last updated:** 2026-08-13 (session closeout after P0 SEO implementation — first-party claim evidence found in the client's own advertising; earlier same day: project photos renamed with locations; asset references repaired, asset validator added) (earlier same day: lead pipeline finalization — photo storage built, identifiers split; items 24 and 24a resolved, new photo-related debt recorded)
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -81,6 +81,12 @@ Before launch: open the homepage on a real phone and confirm the hero photo ends
 4e. ~~"Get My Free Estimate" arrival focus~~ — **superseded.** The scroll-and-focus fix this item described was replaced the same day: estimate CTAs now open the modal directly (see below), so there is no scroll to confirm. See 4f.
 
 4f. **Every "Get My Free Estimate" CTA, opening the modal directly.** Click one from the header, then the hero, then the mobile floating bar, then a footer/mega-menu link, on both the homepage and an interior page. Confirm: no visible scroll or page movement before the modal appears; Step 1 shows all five fields (Name, Phone, Service, Address, Acres) under the heading "Where's the property?" — check whether that heading reads oddly now that it asks for more than the property, since it was deliberately left unedited; close and reopen the modal mid-fill and confirm it resumes rather than resets; and that the mini-form's own Continue button (still on the page, now feeding the modal instead of asking twice) carries its three fields into Step 1 pre-filled, not blank.
+
+4h. **The four pages created on 2026-08-13, on a real screen.** `locations/index.html` and the Minford, Piketon and Jackson pages have never been rendered. They reuse only existing components and every validator passes, so the risk is presentation rather than breakage — but two things are worth a specific look.
+
+   The **service-area hub** puts town links inside `benefitTitle` headings within `localProblemGrid` cards, which is a combination no existing page uses: check the links read as links and the cards still balance. The **local-proof gallery** on the three town pages uses `gallerySection`/`galleryGrid` lifted from the service pages, but Piketon has only **one** figure where that grid has only ever held three or four — confirm a single figure does not stretch oddly across the row.
+
+   Also confirm the Service Areas mega panel still fits now that it carries 15 rows rather than 13. `validateMegaMenus` measures it and passes, but it has never been seen at that height.
 
 4g. **The photo uploader, on a real phone, over a real mobile connection.** This is the largest untested-by-eye item on the site as of 2026-08-13, because the whole path is new and none of it can be proven from Node.
    Attach two or three photos straight from a phone camera roll and watch the bars: each should sit at **zero until Submit is pressed**, then fill one at a time as its photo actually uploads. A bar that races to full the moment a file is chosen means the old fake-progress code is back.
@@ -249,7 +255,7 @@ They agree today, and the loop now awaits the dissolve so a drift would show as 
 `graphics/images/after_minfordOH.JPG` (427KB, renamed from `after.JPG` on 2026-08-13) was committed in `fb15070` alongside the hero refresh. **Re-verified 2026-08-13: still referenced nowhere** in any HTML, CSS, or JS. It appears to be the previous `hero_after` image kept as a backup.
 Harmless but it ships to visitors' hosting. Left in place because it is the client's asset, not one this project created — the 2026-08-07 GBP cleanup deliberately removed only the asset Aron named.
 
-**Widened 2026-08-13.** `validateAssets` now reports every unreferenced project photo rather than tracking this one by hand, and it found six:
+**Widened 2026-08-13.** `validateAssets` now reports every unreferenced project photo rather than tracking this one by hand. It found six on 2026-08-13; **five remain** after the Minford page took one:
 
 | File | Size | Status |
 |---|---|---|
@@ -258,7 +264,7 @@ Harmless but it ships to visitors' hosting. Left in place because it is the clie
 | `B4MulchingJob_minfordOH.jpg` | 72KB | **New file, dropped in 2026-08-13.** Never referenced. |
 | `mulchingJob_minfordOH.jpg` | 59KB | **New file**, the "after" partner to the above. |
 | `b4ForestryMulch_minfordOH.jpg` | 65KB | **New file.** |
-| `afterForestryMulching_minfordOH.jpg` | 62KB | **New file**, the "after" partner to the above. |
+| ~~`afterForestryMulching_minfordOH.jpg`~~ | 62KB | **No longer orphaned** — placed on the new Minford location page 2026-08-13. |
 
 The four new ones are two before/after pairs and are the strongest candidates yet for the galleries item 8 says are missing — they are small, recent, and carry confirmed Minford provenance. **Deliberately not placed on any page:** which photo belongs where is an editorial decision, and the rename task was explicitly scoped to repairing references, not adding imagery.
 

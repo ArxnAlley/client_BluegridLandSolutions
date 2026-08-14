@@ -3,10 +3,10 @@
 **Last updated:** 2026-08-13 (P0 SEO implementation)
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
-**Last content commit:** `18c8845` — lead pipeline: photo storage in Drive, `leadId` split from `referenceId`
-**HEAD:** `18c8845`, one above `afb7868` (the previous session's closeout)
+**Last content commit:** `4b3df59` — SEO: implement BlueGrid launch search strategy
+**HEAD:** `4b3df59`. This session produced four commits: `18c8845` (lead pipeline), `9990055` (docs), `8fadfe0` (image-reference repair), `4b3df59` (P0 SEO).
 **Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git` — **current, verified via `git remote -v`.** The old stale-URL debt (item 10h) is resolved; someone corrected it outside any session recorded here.
-**Sync:** `main` was **1 ahead / 0 behind** at the start of this session (the previous closeout commit, `afb7868`, unpushed). This session adds one more, so `main` is now **2 ahead**. Nothing has been pushed, per instruction. Verify with `git rev-list --left-right --count origin/main...HEAD` rather than trusting this line — `origin/main` has moved without a session recording it before.
+**Sync:** **0 behind / 5 ahead**, verified this closeout with `git rev-list --left-right --count origin/main...HEAD`. The five unpushed commits are `afb7868` (previous closeout) plus this session's four. Nothing has been pushed, per instruction. Re-verify with that command rather than trusting this line — `origin/main` has moved without a session recording it before.
 **Working tree:** clean
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
@@ -90,7 +90,7 @@ appsScript/        (8 .gs)  Code, routes, leads, photoStorage, validation,
                             (+ README.md, localTestRunner.js)
 css/                        styleIndex.css (homepage + shared systems),
                             stylePages.css (interior pages)
-js/indexJS.js               single shared script for all 24 pages
+js/indexJS.js               single shared script for all 28 pages
 .gitignore                  see GBP assets below
 robots.txt, sitemap.xml     generated from the canonicals, never hand-edited
 docs/                       this file, engineeringJournal.md, technicalDebt.md,
@@ -130,24 +130,26 @@ Every header dimension is a `:root` custom property overridden in the two header
 
 ---
 
-## Verification State — all green at this session's commit
+## Verification State — all green at `4b3df59`, re-run at closeout
+
+**13 validator suites, 116/116 Apps Script harness, `node --check` clean, 72 JSON-LD blocks parse.** Page counts below are 28 since the P0 SEO pass added four.
 
 | Check | Result |
 |---|---|
-| Internal links & assets (`validateSite`) | **24 pages, zero broken** |
+| Internal links & assets (`validateSite`) | **28 pages, zero broken** |
 | **Local assets** (`validateAssets`, new 2026-08-13) | PASS — **284 references** resolve with **exact casing**: src/href, og:image and twitter:image `content`, srcset, inline and CSS `url()`, and the asset paths in `js/indexJS.js`. Catches case-only mismatches that `fs.existsSync` hides on Windows and that 404 on GitHub Pages |
-| **Mobile floating CTA** (`validateFloatingCta`) | PASS — bar sizes to content at both breakpoints (61.44px / 59.44px), touch targets 46px and 44px, `env(safe-area-inset-*)` on all three insets, bar outside `<main>` and `<footer>` on 24 pages |
-| **Estimate CTA routing** (`validateEstimateCtas`, rewritten) | PASS — 131 `a[href="#estimateForm"]` anchors all call `preventDefault()` + `openEstimateModal()`; modal Step 1 carries `modalFullName`/`modalPhone`/`modalServiceNeeded` on all 24 pages with the config.gs enum order; **`buildEstimatePayload()` verified to read from the modal's fields, not the mini-form's**; mini-form untouched; no duplicate ids |
+| **Mobile floating CTA** (`validateFloatingCta`) | PASS — bar sizes to content at both breakpoints (61.44px / 59.44px), touch targets 46px and 44px, `env(safe-area-inset-*)` on all three insets, bar outside `<main>` and `<footer>` on 28 pages |
+| **Estimate CTA routing** (`validateEstimateCtas`, rewritten) | PASS — 131 `a[href="#estimateForm"]` anchors all call `preventDefault()` + `openEstimateModal()`; modal Step 1 carries `modalFullName`/`modalPhone`/`modalServiceNeeded` on all 28 pages with the config.gs enum order; **`buildEstimatePayload()` verified to read from the modal's fields, not the mini-form's**; mini-form untouched; no duplicate ids |
 | **Estimate flow, functionally** (`simulateEstimateFlow`, new) | PASS — real `js/indexJS.js` loaded into a mocked DOM and actually driven: a direct-CTA click opens the modal with `preventDefault` observed, Step 1 genuinely rejects an empty submission, a completed flow's captured (unsent) payload matches what was typed; a mini-form Continue pre-fills Step 1 and its payload matches the mini-form's values. 25 assertions; both this and the static check proven to catch the payload-source regression by injecting it first |
-| **On-page SEO** (`validateSeo`, new) | PASS — 24 pages: exactly one non-empty H1 each, no skipped heading levels, 24 unique titles and descriptions within budget, canonicals and breadcrumbs present, per-page-kind schema, **every FAQ schema question rendered on its page**, alt coverage, descriptive anchors, no content orphans, **zero H1 intent collisions** |
-| Navigation / mobile drawer / FAQ hub / Insights | PASS on all 24 pages |
-| **Mega menu system** | PASS — 24 pages × 4 panels: one shell, every row on `.megaRow`, links resolving with the right relative form per depth, no duplicate ids, `aria-controls` intact, fit 1201–1600px, height spread **24%** against a 45% gate |
+| **On-page SEO** (`validateSeo`) | PASS — 28 pages: exactly one non-empty H1 each, no skipped heading levels, 28 unique titles and descriptions within budget, canonicals and breadcrumbs present, per-page-kind schema, **every FAQ schema question rendered on its page**, alt coverage, descriptive anchors, no content orphans, **zero H1 intent collisions** |
+| Navigation / mobile drawer / FAQ hub / Insights | PASS on all 28 pages |
+| **Mega menu system** | PASS — 28 pages × 4 panels: one shell, every row on `.megaRow`, links resolving with the right relative form per depth, no duplicate ids, `aria-controls` intact, fit 1201–1600px, height spread **24%** against a 45% gate |
 | **Process sequence** | PASS — 8 pages, two-phase: Phase A exact 13-beat order, max 1 arrow bright, **5 reveals in 120s with none repeated**, **0 un-reveals ever**; Phase B **25 passes each filling 1 → 1+2 → 1+2+3 → 1+2+3+4**, peaking at all four, holding 1400ms, clearing on one tick, **0 step events throughout**, fresh pass at arrow 1 on resume; reduced motion registers nothing |
 | Header width sweep 900–1600px | PASS — zero wrapping; tightest desktop **1201px at +70px** slack, **+11px on the fallback face** |
 | Hero seam geometry (5 viewports) | PASS — copy ends exactly on the seam, 24px card overlap |
 | Hero before/after loop (10 min simulated) | PASS — **91 cycles alternating**, 6.16–7.01s cadence |
 | Hero typing profile (5 min simulated) | PASS — rendered cadence equals scheduled cadence exactly; **0 characters swallowed**, **0ms** write-to-paint |
-| Lead submission contract | PASS — one endpoint, one call site, payload matches schema on all 24 pages |
+| Lead submission contract | PASS — one endpoint behind both call sites (`leads.create`, `leads.addPhotos`), payload matches schema on all 28 pages |
 | Apps Script harness | **116/116**, `runSelfTest` 8/8 |
 | **Photo storage + identifiers** (in the harness above) | PASS — sequential numbering with correct padding, a duplicate consuming no number, the legacy-id guard, upload idempotency, per-lead caps, MIME/size/reference gates, path separators stripped, real links in both email bodies, and a non-destructive, idempotent migration. Nine regressions injected one at a time, every one caught |
 | **Photo upload, client side** (`simulateEstimateFlow` path C) | PASS — the real uploader driven against a mocked File: bytes transmitted, filed under the same referenceId as the lead, sent **before** `leads.create`, progress moving only as the upload resolves, and a retry re-uploading nothing |
@@ -360,7 +362,7 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 ## Currently In Progress
 
-**Nothing in the repository.** Working tree clean, all validators pass, `main` 2 ahead of `origin/main` and unpushed per instruction.
+**Nothing in the repository.** Working tree clean, all validators pass, `main` 5 ahead of `origin/main` and unpushed per instruction.
 
 **One thing outside it:** the lead pipeline is finished in code and **not deployed**. The live Apps Script still runs the pre-split version. That is the next action, and it is Aron's to take — see *Waiting on Aron*.
 
@@ -374,8 +376,8 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 4. **Page-by-page copy and browser QA.** No session has ever had a browser. Largest untested-by-eye items: **the photo uploader on a real phone over a real connection (`technicalDebt.md` item 4g — new, and the biggest of them)**, the three mega panels side by side, the process section, the hero typing, the process board on tablet, the estimate modal's new Step 1 (five fields under a heading that still says "Where's the property?" — item 10m).
 5. ~~**`robots.txt`**~~ — **created 2026-08-13.** Allows everything; there is no admin area or staging path to exclude. Carries a TODO on the sitemap origin.
 6. ~~**`sitemap.xml`**~~ — **created 2026-08-13, 28 URLs.** Generated from the canonical tag on each page by a scratchpad script, so the two cannot drift. Regenerate rather than hand-edit after the domain sweep.
-7. **Canonical URL finalization** — 24 pages, every one `TODO:`-marked so a single sweep catches them.
-8. **Open Graph finalization** — same 24 pages; `og:url` and `og:image` must become absolute.
+7. **Canonical URL finalization** — 28 pages, every one `TODO:`-marked so a single sweep catches them. `sitemap.xml` and `robots.txt` regenerate from the canonicals afterwards; do not hand-edit either.
+8. **Open Graph finalization** — same 28 pages; `og:url` and `og:image` must become absolute.
 9. **Competitor and search-intent research**, feeding into **final SEO implementation** on top of the intent map already in `seoPlan.md`.
 10. **Chase review / major revision pass** — the first time the client sees the site as a whole, after the pipeline and copy are solid. Expect a real round of change requests, not a formality.
 11. **Search Console** — property verification and sitemap submission, after 3, 5, 6.
@@ -394,7 +396,7 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 |---|---|---|
 | 1 | **The new Apps Script is not deployed** | The repo and production disagree: production cannot store a photo and does not know `referenceId`. Publishing the website before the redeploy would break photo upload outright. Aron's action — see below. |
 | 2 | **`config!notificationEmail` may still point at a test address** | Unverifiable from this repo. If not restored, a real customer submission would not reach Chase. |
-| 3 | **Production domain undecided** | Gates `robots.txt`, `sitemap.xml`, canonicals, OG URLs across 24 pages, and Search Console. |
+| 3 | **Production domain undecided** | Gates canonicals and OG URLs across 28 pages, the origin baked into `robots.txt` and `sitemap.xml`, and Search Console. |
 | 4 | `MODULE_API_KEY` state unknown | Cannot be checked from outside — `leads.list` returns `UNAUTHORIZED` whether the key is unset or merely not supplied. Blocks only a future dashboard, never the public form. |
 
 ---
@@ -406,7 +408,7 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 **Order matters: Apps Script first, website second.** The new site posts `referenceId` and uploads photos to `leads.addPhotos`. Against the old deployment, photo upload would 404 and dedupe would silently stop working on retries. The old site against the new deployment is fine — `leadId` is read as a `referenceId` fallback precisely so that window is safe.
 
 1. **Paste the code.** Eight `.gs` files now, not seven — `photoStorage.gs` is new. Create it in the editor and paste the others over their existing contents.
-2. **Redeploy correctly.** *Deploy → Manage deployments → pencil → Version: New version → Deploy.* **Never "New deployment"** — that mints a different URL and silently breaks all 24 forms.
+2. **Redeploy correctly.** *Deploy → Manage deployments → pencil → Version: New version → Deploy.* **Never "New deployment"** — that mints a different URL and silently breaks all 28 forms.
 3. **Run `setupSpreadsheet`.** Appends the two new headers and seeds `photoAccess`. Existing rows are untouched. Authorize the new Drive scope when prompted — the script now writes files, which it did not before.
 4. **Run `previewLeadIdentifierMigration`,** read the Execution log, and confirm the plan looks right. It writes nothing.
 5. **Run `migrateLeadIdentifiers`** to apply it. Safe to run twice.
@@ -439,22 +441,24 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 - **Deploy the new Apps Script and run the migration** — the nine ordered steps in *Deployment Handover* above. This is the single thing standing between the finished code and a working pipeline.
 - **Decide `photoAccess` if the default misbehaves.** It defaults to `ownerEmail`, which shares each lead's photo folder view-only with `notificationEmail`. If Chase opens a link and hits a permission wall, change that one config cell to `anyoneWithLink` — no redeploy. `technicalDebt.md` item 24d.
 - **Restore `config!notificationEmail` to Chase's address** and confirm it — see Blocker 2.
+- **Get four claims confirmed or corrected by Chase** — see `technicalDebt.md` item 3a, which lists exactly what his own advertising does and does not support. The two that need him: whether he can commit to any estimate turnaround (the site's remaining hedged "most quotes within 24 hours" instances rest on nothing), and whether "we send a certificate of insurance before the machine leaves the shop" is accurate. Also still outstanding: the business email `estimates@bluegridlandsolutions.com`, which appears on no artwork and may route nowhere.
 - **Domain decision** — Blocker 3.
 - **A browser pass** on phone / tablet / desktop — see *Remaining Launch Work* item 4.
 - **Confirm the nav decision.** The 2026-08-04 brief spelled the resulting order out as four items, which excluded *Before & After*, so it was removed from the primary nav. It stays reachable from the homepage hero CTA and the footer Quick Links. **If a five-item nav was intended, restoring it is a one-line change** — the "Our Company" item already added a fifth.
 - **Decide whether to delete `phase2a-lead-capture`.** It is fully merged into `main`; it was kept deliberately.
-- **Redeploy discipline:** always *Deploy → Manage deployments → edit → New version*. A **new deployment** mints a different URL and silently breaks all 24 forms.
+- **Redeploy discipline:** always *Deploy → Manage deployments → edit → New version*. A **new deployment** mints a different URL and silently breaks all 28 forms.
 
 ---
 
 ## Planned Next Session
 
-**Depends entirely on whether the deployment has happened.**
+**Depends on two answers: has the Apps Script been deployed, and has the domain been settled?**
 
-- **If Aron has deployed and retested:** act on what the real submission showed. Expect at least one thing to need adjusting on a real device — photo orientation, upload time on a weak connection, or Drive link permissions (item 24d) are the three most likely, and all three are cheap to change.
-- **If not:** do not start anything that depends on the pipeline. Pick up the domain-independent work instead — the duplicate FAQ question (item 10a), Step 1's heading (item 10m), or current-page highlighting in the mega menus (item 19), none of which have urgency but all of which are self-contained.
+- **If Aron has deployed and retested the pipeline:** act on what the real submission showed. Expect at least one thing to need adjusting on a real device — photo orientation, upload time on a weak connection, or Drive link permissions (item 24d) are the three most likely, and all three are cheap to change.
+- **If the domain is settled:** run the domain sweep. It is one pass over 28 pages of `TODO:`-marked canonicals and `og:url`/`og:image`, then **regenerate `robots.txt` and `sitemap.xml` rather than hand-editing them** — the sitemap is generated from the canonicals precisely so the two cannot drift.
+- **If neither:** the self-contained work is the tree/brush clearing page (debt item 3b — first-party supported by Chase's own advertising, and the only advertised service with no page), the duplicate FAQ question (item 10a), Step 1's heading (item 10m), or mega-menu current-page highlighting (item 19).
 
-**Do not re-implement any of the photo or identifier work.** It is complete in the repository; if something looks wrong, it is either a deployment step that has not run or a real defect found on a device — diagnose which before changing code.
+**Do not re-implement the photo, identifier, or P0 SEO work.** All three are complete in the repository. If something looks wrong, it is either a deployment step that has not run or a real defect found on a device — diagnose which before changing code.
 
 # NEXT SESSION SHOULD START HERE
 
