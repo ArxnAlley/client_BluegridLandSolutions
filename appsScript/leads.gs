@@ -194,6 +194,13 @@ function handleCreateLead(payload)
 
             photoFolderUrl: photos.folderUrl,
 
+            /* Not a column — LEADS_HEADERS drives objectToRow, so this
+               never reaches the sheet. It exists only so the owner's
+               email can distinguish "nothing was attached" from "photo
+               storage faulted", and point at errorLog when it did. */
+
+            photoStorageFailed: photos.failed === true,
+
             sourcePage: validation.clean.sourcePage,
 
             leadSource: validation.clean.leadSource || 'website',

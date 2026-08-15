@@ -136,9 +136,32 @@ const PHOTO_ROOT_FOLDER_PROPERTY = 'PHOTO_ROOT_FOLDER_ID';
    owner's Drive. The website enforces the same numbers as a
    courtesy; these are the control. */
 
-const MAX_PHOTOS_PER_LEAD = 12;
+const MAX_PHOTOS_PER_LEAD = 5;
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+
+/* Combined across every photo on one referenceId. Enforced by summing
+   what the lead's folder already holds, so it cannot be defeated by
+   spreading the payload over several requests — each upload is its own
+   POST and no single request ever sees the total. */
+
+const MAX_TOTAL_PHOTO_BYTES = 25 * 1024 * 1024;
+
+/* The formats that survive the WHOLE pipeline, not merely the ones a
+   file picker will offer:
+
+     image/jpeg   downscaled in-browser, stored, previewed in Drive
+     image/png    same
+     image/webp   same
+     image/heic   iPhone default. Canvas usually cannot decode it, so
+     image/heif   downscaling falls back to the original bytes and it
+                  uploads full size — the 8MB cap is what bounds it.
+                  Drive previews it. Kept because rejecting it would
+                  fail a large share of iPhone submissions.
+
+   Deliberately absent: SVG (markup, scriptable), GIF, BMP, TIFF, and
+   anything not an image. See PHOTO_CONTENT_SIGNATURES — the list below
+   is only the CLAIMED type, and a claim is not evidence. */
 
 const ALLOWED_PHOTO_MIME_TYPES = [
     'image/jpeg',
@@ -148,6 +171,87 @@ const ALLOWED_PHOTO_MIME_TYPES = [
     'image/heif'
 ];
 
+/* ============================================================
+   PHOTO CONTENT SIGNATURES
+
+   mimeType arrives from the browser and a direct POST can claim
+   anything, so the bytes are checked rather than the claim. Each
+   entry tests the leading bytes of the decoded file.
+
+   offset/bytes are matched literally; `brands` (HEIF family) matches
+   any one of several four-character brands at offset 8.
+============================================================ */
+
+const PHOTO_CONTENT_SIGNATURES = [
+
+    { type: 'image/jpeg', offset: 0, bytes: [0xFF, 0xD8, 0xFF] },
+
+    { type: 'image/png', offset: 0, bytes: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] },
+
+    /* RIFF....WEBP — the four size bytes between the two markers are
+       skipped, which is why this needs two anchored fragments. */
+
+    { type: 'image/webp', offset: 0, bytes: [0x52, 0x49, 0x46, 0x46], also: { offset: 8, bytes: [0x57, 0x45, 0x42, 0x50] } },
+
+    /* ISO-BMFF: "ftyp" at 4, then the brand at 8 decides the flavour. */
+
+    {
+        type: 'image/heic',
+        offset: 4,
+        bytes: [0x66, 0x74, 0x79, 0x70],
+        brands: ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1']
+    }
+
+];
+
+/* Recognised specifically so a rejection can be logged as what it
+   actually was, instead of a shrug. Not an allowlist — anything that
+   matches no PHOTO_CONTENT_SIGNATURES entry is rejected regardless of
+   whether it appears here. */
+
+const REJECTED_CONTENT_SIGNATURES = [
+
+    { label: 'SVG image (markup, can carry script)', offset: 0, bytes: [0x3C, 0x73, 0x76, 0x67] },
+    { label: 'XML/SVG document', offset: 0, bytes: [0x3C, 0x3F, 0x78, 0x6D, 0x6C] },
+    { label: 'HTML document', offset: 0, bytes: [0x3C, 0x21, 0x44, 0x4F, 0x43, 0x54, 0x59, 0x50, 0x45] },
+    { label: 'HTML document', offset: 0, bytes: [0x3C, 0x68, 0x74, 0x6D, 0x6C] },
+    { label: 'Windows executable', offset: 0, bytes: [0x4D, 0x5A] },
+    { label: 'Linux executable', offset: 0, bytes: [0x7F, 0x45, 0x4C, 0x46] },
+    { label: 'Mach-O executable', offset: 0, bytes: [0xCF, 0xFA, 0xED, 0xFE] },
+    { label: 'ZIP archive or Office document', offset: 0, bytes: [0x50, 0x4B, 0x03, 0x04] },
+    { label: 'RAR archive', offset: 0, bytes: [0x52, 0x61, 0x72, 0x21] },
+    { label: 'gzip archive', offset: 0, bytes: [0x1F, 0x8B] },
+    { label: 'PDF document', offset: 0, bytes: [0x25, 0x50, 0x44, 0x46] },
+    { label: 'shell script', offset: 0, bytes: [0x23, 0x21] },
+    { label: 'GIF image (not an accepted format)', offset: 0, bytes: [0x47, 0x49, 0x46, 0x38] },
+    { label: 'BMP image (not an accepted format)', offset: 0, bytes: [0x42, 0x4D] }
+
+];
+
+/* How many bytes of each upload are decoded for the signature test.
+   Only the head is decoded — decoding 8MB to read twelve bytes would
+   cost memory on every upload for nothing. */
+
+const PHOTO_SIGNATURE_SAMPLE_BYTES = 48;
+
+/* ============================================================
+   UPLOAD THROTTLE
+
+   leads.addPhotos is public and anonymous, and a referenceId is just
+   BG-<timestamp> — trivially minted. The per-lead caps therefore bound
+   one lead, not one attacker, and the residual risk is filling the
+   owning account's Drive.
+
+   Apps Script exposes no client IP, so per-caller limiting is not
+   possible. This is a deliberately blunt global ceiling: far above any
+   real hour on a local-service site, far below what a script could do
+   unattended. Override with "photoUploadsPerHour" in the config tab.
+============================================================ */
+
+const DEFAULT_PHOTO_UPLOADS_PER_HOUR = 120;
+
+const PHOTO_THROTTLE_CACHE_PREFIX = 'photoUploads:';
+
 /* A referenceId carries the millisecond timestamp it was minted at,
    so requiring it to be recent bounds how far back a replayed id can
    reach and stops abandoned folders accumulating indefinitely.
@@ -156,28 +260,63 @@ const ALLOWED_PHOTO_MIME_TYPES = [
 
 const PHOTO_REFERENCE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-/* How the per-lead folder is shared, set by the "photoAccess" key in
-   the spreadsheet's config tab so it can change without a redeploy:
+/* How lead photos are shared, set by the "photoAccess" key in the
+   spreadsheet's config tab so it can change without a redeploy:
 
-     ownerEmail      Grant view access to notificationEmail. The
-                     default, and the one that works regardless of
-                     which account owns the script.
-     private         Share with nobody. Only the account running this
-                     script can open the links.
-     anyoneWithLink  Anyone holding the link can view. Least
-                     restrictive — only if the owner reads mail on an
-                     account that is not on the folder.
+     rootInherited   THE DEFAULT AND THE APPROVED ARCHITECTURE.
+                     A customer submission performs NO Drive sharing
+                     call of any kind. The BlueGrid owner is granted
+                     Viewer on the PHOTO_ROOT_FOLDER_NAME folder once,
+                     by running shareRootFolderWithOwner() from the
+                     editor, and every lead folder and photo beneath it
+                     inherits that access. One grant, not one per lead:
+                     no "shared with you" mail per estimate, one entry
+                     in the owner's Shared with me, and nothing above or
+                     beside the root is reachable.
 
-   Photos are never made public unless anyoneWithLink is chosen
-   deliberately. */
+     anyoneWithLink  Per-lead link sharing — anyone holding the URL can
+                     view. NOT part of the approved model: it performs a
+                     sharing call during the submission and makes
+                     customer photographs readable by anyone with the
+                     link. Kept only as an escape hatch for an owner who
+                     genuinely cannot be added to the root folder.
+                     Choose it deliberately or not at all.
+
+   Two modes that existed before 2026-08-15 are gone:
+
+     ownerEmail      Granted Viewer to notificationEmail on EVERY lead
+                     folder. Replaced by rootInherited, which is the
+                     same access with one grant instead of hundreds.
+     private         Named for "shared with nobody", which stopped being
+                     true once the root carried the grant. Renamed to
+                     rootInherited so the name states what it does.
+
+   A config tab still holding either old value is not an error: the
+   value is simply unrecognised, applyPhotoFolderAccess falls back to
+   DEFAULT_PHOTO_ACCESS, and the fallback is logged. That fallback IS
+   rootInherited, so a sheet left untouched lands on the approved
+   behaviour rather than an unsafe one. */
 
 const PHOTO_ACCESS_MODES = [
-    'ownerEmail',
-    'private',
+    'rootInherited',
     'anyoneWithLink'
 ];
 
-const DEFAULT_PHOTO_ACCESS = 'ownerEmail';
+const DEFAULT_PHOTO_ACCESS = 'rootInherited';
+
+/* The Google account that gets Viewer on the photo root.
+
+   DELIBERATELY SEPARATE FROM notificationEmail. They answer different
+   questions — "who is emailed about a lead" and "whose Google account
+   can open the photographs" — and during acceptance testing they are
+   different addresses: estimate mail goes to admin@nulostudio.com
+   while a temporary test account holds Drive access. Never collapse
+   the two.
+
+   Blank by default and never guessed at: shareRootFolderWithOwner()
+   refuses to run rather than granting access to an assumed address. */
+
+const DEFAULT_PHOTO_VIEWER_EMAIL = '';
 
 /* ============================================================
    ENUMS  (exact, case-sensitive — must match

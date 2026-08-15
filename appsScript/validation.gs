@@ -408,6 +408,217 @@ function estimateBase64Bytes(base64)
 
 }
 
+/* Checked BEFORE any decode so malformed input is a clean validation
+   failure instead of an exception surfacing as SERVER_ERROR. */
+
+function isWellFormedBase64(value)
+{
+
+    const text = String(value).replace(/\s+/g, '');
+
+    if (!text || (text.length % 4) !== 0)
+    {
+
+        return false;
+
+    }
+
+    return /^[A-Za-z0-9+/]+={0,2}$/.test(text);
+
+}
+
+/* ============================================================
+   CONTENT SIGNATURE INSPECTION
+
+   mimeType is whatever the caller says it is. This reads the actual
+   leading bytes, which is the only part of an upload a direct POST
+   cannot lie about without genuinely supplying that file type.
+
+   Only the head is decoded — 64 base64 characters is a clean multiple
+   of four and yields 48 bytes, enough for every signature we test.
+============================================================ */
+
+function readPhotoHeadBytes(base64)
+{
+
+    const text = String(base64).replace(/\s+/g, '');
+
+    const sampleChars = Math.ceil(PHOTO_SIGNATURE_SAMPLE_BYTES / 3) * 4;
+
+    let head = text.substring(0, sampleChars);
+
+    /* A file shorter than the sample keeps its own padding; a slice
+       taken from the middle of a longer string has none, and decoding
+       an unpadded non-multiple-of-four is what throws. */
+
+    head = head.substring(0, head.length - (head.length % 4));
+
+    if (!head)
+    {
+
+        return [];
+
+    }
+
+    try
+    {
+
+        return Utilities.base64Decode(head);
+
+    }
+    catch (decodeError)
+    {
+
+        return [];
+
+    }
+
+}
+
+function bytesMatchAt(bytes, offset, expected)
+{
+
+    if (bytes.length < offset + expected.length)
+    {
+
+        return false;
+
+    }
+
+    for (let index = 0; index < expected.length; index += 1)
+    {
+
+        /* base64Decode yields signed bytes on the Apps Script runtime,
+           so 0xFF arrives as -1. Masking makes both runtimes agree. */
+
+        if ((bytes[offset + index] & 0xFF) !== expected[index])
+        {
+
+            return false;
+
+        }
+
+    }
+
+    return true;
+
+}
+
+function readBrandAt(bytes, offset)
+{
+
+    if (bytes.length < offset + 4)
+    {
+
+        return '';
+
+    }
+
+    let brand = '';
+
+    for (let index = 0; index < 4; index += 1)
+    {
+
+        brand += String.fromCharCode(bytes[offset + index] & 0xFF);
+
+    }
+
+    return brand.toLowerCase();
+
+}
+
+/* Returns { type, rejected, label }.
+
+   type      the image type the BYTES say it is, '' if unrecognised
+   rejected  true when the bytes match something explicitly refused
+   label     human description for the errorLog, never for a customer */
+
+function detectPhotoContentType(base64)
+{
+
+    const bytes = readPhotoHeadBytes(base64);
+
+    if (!bytes.length)
+    {
+
+        return { type: '', rejected: false, label: 'unreadable or empty' };
+
+    }
+
+    for (let index = 0; index < PHOTO_CONTENT_SIGNATURES.length; index += 1)
+    {
+
+        const signature = PHOTO_CONTENT_SIGNATURES[index];
+
+        if (!bytesMatchAt(bytes, signature.offset, signature.bytes))
+        {
+
+            continue;
+
+        }
+
+        if (signature.also && !bytesMatchAt(bytes, signature.also.offset, signature.also.bytes))
+        {
+
+            continue;
+
+        }
+
+        if (signature.brands)
+        {
+
+            const brand = readBrandAt(bytes, 8);
+
+            if (signature.brands.indexOf(brand) === -1)
+            {
+
+                continue;
+
+            }
+
+        }
+
+        return { type: signature.type, rejected: false, label: signature.type };
+
+    }
+
+    for (let index = 0; index < REJECTED_CONTENT_SIGNATURES.length; index += 1)
+    {
+
+        const refused = REJECTED_CONTENT_SIGNATURES[index];
+
+        if (bytesMatchAt(bytes, refused.offset, refused.bytes))
+        {
+
+            return { type: '', rejected: true, label: refused.label };
+
+        }
+
+    }
+
+    return { type: '', rejected: false, label: 'unrecognised binary' };
+
+}
+
+/* HEIC and HEIF share one container and one signature, so a file whose
+   bytes say heic may legitimately be declared either. Everything else
+   must agree exactly. */
+
+function contentTypeMatchesClaim(detectedType, claimedType)
+{
+
+    if (detectedType === claimedType)
+    {
+
+        return true;
+
+    }
+
+    return detectedType === 'image/heic'
+        && (claimedType === 'image/heic' || claimedType === 'image/heif');
+
+}
+
 /* This endpoint is public, so everything it trusts is checked here:
    the reference must be well-formed and recent, the type must be an
    image we expect, and the payload must be under the size cap before
@@ -472,16 +683,94 @@ function validatePhotoPayload(payload)
         ? payload.dataBase64.trim()
         : '';
 
+    clean.byteSize = 0;
+
+    clean.detected = { type: '', rejected: false, label: 'not inspected' };
+
     if (!clean.dataBase64)
     {
 
         fields.dataBase64 = 'Required.';
 
     }
+    else if (!isWellFormedBase64(clean.dataBase64))
+    {
+
+        fields.dataBase64 = 'That image could not be read.';
+
+    }
     else if (estimateBase64Bytes(clean.dataBase64) > MAX_PHOTO_BYTES)
     {
 
         fields.dataBase64 = 'That image is too large.';
+
+    }
+    else
+    {
+
+        clean.byteSize = estimateBase64Bytes(clean.dataBase64);
+
+        /* ── content inspection ──
+
+           The check that actually matters. Everything above trusts the
+           caller: mimeType is a claim, fileName is a claim, and a POST
+           made outside the browser can set both to anything. The bytes
+           are the one thing an attacker has to supply honestly, so an
+           .exe renamed .jpg and declared image/jpeg dies here and
+           nowhere earlier. */
+
+        clean.detected = detectPhotoContentType(clean.dataBase64);
+
+        if (clean.detected.rejected)
+        {
+
+            fields.dataBase64 = 'That file is not a photo.';
+
+        }
+        else if (!clean.detected.type)
+        {
+
+            fields.dataBase64 = 'That file is not a supported image.';
+
+        }
+        else if (!clean.mimeType)
+        {
+
+            /* No type declared at all — common from Android pickers and
+               from drag-and-drop. The bytes are a proven image, so they
+               are authoritative and the absent claim is not fatal. */
+
+            clean.mimeType = clean.detected.type;
+
+            delete fields.mimeType;
+
+        }
+        else if (fields.mimeType)
+        {
+
+            /* A claim that is not an accepted image type at all
+               (application/pdf, image/svg+xml, text/html …). The bytes
+               may well be a real photo, but a caller declaring a
+               non-image type is not behaving like the website, and the
+               earlier rejection stands. Costs nothing to keep and keeps
+               one more thing having to be right. */
+
+        }
+        else if (!contentTypeMatchesClaim(clean.detected.type, clean.mimeType))
+        {
+
+            /* Both the claim and the content are accepted image types,
+               they just disagree — a PNG announced as JPEG. Benign, and
+               browsers do it. Store what the bytes actually are and
+               record the disagreement as a signal, rather than inventing
+               a way for an honest upload to fail. */
+
+            clean.mimeTypeMismatch = clean.mimeType + ' claimed, '
+                + clean.detected.type + ' stored';
+
+            clean.mimeType = clean.detected.type;
+
+        }
 
     }
 

@@ -281,7 +281,10 @@ function buildPhotoLines(record)
 
             'Attached   : ' + claimedCount + ' photo(s) — UPLOAD DID NOT COMPLETE',
             'Names      : ' + (formatPhotoNames(names) || 'unknown'),
-            'Note       : the photos never reached us. Reply or text the customer to ask for them.'
+
+            record.photoStorageFailed
+                ? 'Note       : photo storage returned an error. See the errorLog tab for the cause, then reply or text the customer.'
+                : 'Note       : the photos never reached us. Reply or text the customer to ask for them.'
 
         ];
 
@@ -405,7 +408,10 @@ function buildPhotoHtml(record)
     {
 
         return '<strong>' + claimedCount + ' attached, but the upload did not complete.</strong>'
-            + '<br>Reply or text the customer to ask for them.';
+            + '<br>'
+            + (record.photoStorageFailed
+                ? 'Photo storage returned an error &mdash; see the <strong>errorLog</strong> tab for the cause. Reply or text the customer for the photos in the meantime.'
+                : 'Reply or text the customer to ask for them.');
 
     }
 

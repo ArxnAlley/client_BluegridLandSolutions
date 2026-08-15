@@ -152,6 +152,43 @@ const photoInput = document.getElementById('propertyPhotos');
 
 const photoPreviewGrid = document.getElementById('photoPreviewGrid');
 
+/* Built in JS rather than added to the markup because the estimate
+   modal is duplicated into all 28 pages — one element created here
+   beats 28 hand-synchronised copies of it. */
+
+const photoNoticeElement = buildPhotoNoticeElement();
+
+function buildPhotoNoticeElement()
+{
+
+    if (!photoPreviewGrid || !photoPreviewGrid.parentNode)
+    {
+
+        return null;
+
+    }
+
+    const notice = document.createElement('p');
+
+    notice.className = 'photoUploadNotice';
+
+    notice.id = 'photoUploadNotice';
+
+    /* polite, not assertive: a rejected photo is worth announcing but
+       must not interrupt someone mid-field. */
+
+    notice.setAttribute('role', 'status');
+
+    notice.setAttribute('aria-live', 'polite');
+
+    notice.hidden = true;
+
+    photoPreviewGrid.parentNode.insertBefore(notice, photoPreviewGrid);
+
+    return notice;
+
+}
+
 const comparisonSlider = document.getElementById('beforeAfterSlider');
 
 const sliderHandle = document.getElementById('sliderHandle');
@@ -3433,6 +3470,16 @@ function uploadOnePhoto(entry, position)
 
             }
 
+            /* The API's own reason, kept for the console only. The
+               customer never sees it — the photo tile just shows the
+               failed state — but without it a support call could only
+               ever report "it didn't work". */
+
+            console.warn(
+                'BlueGrid: the API rejected a photo.',
+                (result && result.error) ? result.error : result
+            );
+
             markPhotoFailed(entry);
 
         })
@@ -3676,20 +3723,120 @@ function readBlobAsBase64(blob)
 
 }
 
+/* ── Upload policy ──
+
+   These four numbers are the customer-facing half of a policy the API
+   enforces independently. Changing them here changes what a visitor is
+   told, NOT what is allowed: photoStorage.gs re-checks every one of
+   them against the bytes that actually arrive, because a public
+   endpoint cannot trust a browser. Keep the two in step. */
+
+const photoPolicy = {
+
+    maxPhotos: 5,
+
+    maxBytesEach: 8 * 1024 * 1024,
+
+    maxBytesTotal: 25 * 1024 * 1024,
+
+    /* Matches ALLOWED_PHOTO_MIME_TYPES in config.gs. The file picker's
+       accept="image/*" is a filter, not a guarantee — a visitor can
+       still choose "all files" in most browsers, and drag-and-drop
+       bypasses accept entirely. */
+
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+
+};
+
+function describeMegabytes(bytes)
+{
+
+    return (bytes / 1024 / 1024).toFixed(0) + ' MB';
+
+}
+
+function currentPhotoBytes()
+{
+
+    return photoFiles.reduce(function (total, entry)
+    {
+
+        return total + entry.file.size;
+
+    }, 0);
+
+}
+
+/* An empty file.type is common — some Android pickers and most
+   drag-and-drop sources report nothing. The extension is the only
+   other hint available in the browser, and being wrong here is
+   harmless: the API inspects the real bytes either way. */
+
+function looksLikeAcceptedImage(file)
+{
+
+    const type = String(file.type || '').toLowerCase();
+
+    if (type)
+    {
+
+        return photoPolicy.acceptedTypes.indexOf(type) !== -1;
+
+    }
+
+    return /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name || '');
+
+}
+
 function addPhotoFiles(fileList)
 {
 
-    const maxPhotos = 12;
+    const rejections = [];
+
+    let runningBytes = currentPhotoBytes();
 
     Array.prototype.forEach.call(fileList, function (file)
     {
 
-        if (!file.type.startsWith('image/') || photoFiles.length >= maxPhotos)
+        if (photoFiles.length >= photoPolicy.maxPhotos)
         {
+
+            rejections.push('You can attach up to ' + photoPolicy.maxPhotos + ' photos.');
 
             return;
 
         }
+
+        if (!looksLikeAcceptedImage(file))
+        {
+
+            rejections.push(file.name + ' is not a JPG, PNG, WebP or HEIC photo.');
+
+            return;
+
+        }
+
+        if (file.size > photoPolicy.maxBytesEach)
+        {
+
+            rejections.push(file.name + ' is over '
+                + describeMegabytes(photoPolicy.maxBytesEach) + '.');
+
+            return;
+
+        }
+
+        if ((runningBytes + file.size) > photoPolicy.maxBytesTotal)
+        {
+
+            rejections.push(file.name + ' would put you over '
+                + describeMegabytes(photoPolicy.maxBytesTotal) + ' in total.');
+
+            return;
+
+        }
+
+        runningBytes += file.size;
 
         photoIdCounter += 1;
 
@@ -3713,7 +3860,44 @@ function addPhotoFiles(fileList)
 
     });
 
+    showPhotoNotice(rejections);
+
     renderPhotoPreviews();
+
+}
+
+/* One line, above the thumbnails, replaced on every selection. A
+   visitor on a phone should not have to scroll to find out why a photo
+   did not appear, and a dialog would be worse. Duplicates are collapsed
+   so choosing eight oversized files says one thing, not eight. */
+
+function showPhotoNotice(messages)
+{
+
+    if (!photoNoticeElement)
+    {
+
+        return;
+
+    }
+
+    const unique = [];
+
+    messages.forEach(function (message)
+    {
+
+        if (unique.indexOf(message) === -1)
+        {
+
+            unique.push(message);
+
+        }
+
+    });
+
+    photoNoticeElement.textContent = unique.join(' ');
+
+    photoNoticeElement.hidden = unique.length === 0;
 
 }
 

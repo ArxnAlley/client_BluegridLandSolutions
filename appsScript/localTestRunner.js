@@ -332,6 +332,8 @@ let driveIdCounter = 0;
 
 const driveSharingCalls = [];
 
+const cacheStore = {};
+
 function createDriveFile(name, mimeType, bytes)
 {
 
@@ -355,6 +357,11 @@ function createDriveFile(name, mimeType, bytes)
 
         getUrl: function () { return 'https://drive.google.com/file/d/' + this.id + '/view'; },
 
+        /* Real DriveApp reports the stored byte count; the combined
+           size cap reads it, so the mock has to model it honestly. */
+
+        getSize: function () { return (this.bytes && this.bytes.length) ? this.bytes.length : 0; },
+
         getBlob: function () { return { bytes: this.bytes }; }
 
     };
@@ -376,11 +383,38 @@ function createDriveFolder(name)
 
         folders: [],
 
+        trashed: false,
+
         getId: function () { return this.id; },
 
         getName: function () { return this.name; },
 
         setName: function (newName) { this.name = newName; return this; },
+
+        /* checkPhotoStorage() trashes its probe folder. Modelled so
+           the harness proves the cleanup runs rather than silently
+           swallowing a missing-method throw. */
+
+        setTrashed: function (state)
+        {
+
+            this.trashed = state === true;
+
+            if (this.trashed)
+            {
+
+                driveRoot.folders = driveRoot.folders.filter(function (child)
+                {
+
+                    return child.id !== this.id;
+
+                }, this);
+
+            }
+
+            return this;
+
+        },
 
         getUrl: function () { return 'https://drive.google.com/drive/folders/' + this.id; },
 
@@ -443,10 +477,61 @@ function createDriveFolder(name)
 
         },
 
+        viewers: [],
+
+        editors: [],
+
+        getViewers: function ()
+        {
+
+            return this.viewers.map(function (email)
+            {
+
+                return { getEmail: function () { return email; } };
+
+            });
+
+        },
+
+        getEditors: function ()
+        {
+
+            return this.editors.map(function (email)
+            {
+
+                return { getEmail: function () { return email; } };
+
+            });
+
+        },
+
+        removeViewer: function (emailAddress)
+        {
+
+            driveSharingCalls.push({ folder: this.name, removedViewer: emailAddress });
+
+            this.viewers = this.viewers.filter(function (email)
+            {
+
+                return email !== emailAddress;
+
+            });
+
+            return this;
+
+        },
+
         addViewer: function (emailAddress)
         {
 
             driveSharingCalls.push({ folder: this.name, viewer: emailAddress });
+
+            if (this.viewers.indexOf(emailAddress) === -1)
+            {
+
+                this.viewers.push(emailAddress);
+
+            }
 
             return this;
 
@@ -527,6 +612,42 @@ const sandbox = {
         getActiveSpreadsheet: function () { return spreadsheet; },
 
         openById: function () { return spreadsheet; }
+
+    },
+
+    /* Script cache backing the upload throttle. Deliberately ignores
+       expiry — the tests drive the counter directly rather than
+       waiting an hour, and a TTL the tests never reach would only add
+       a moving part. */
+
+    CacheService: {
+
+        getScriptCache: function ()
+        {
+
+            return {
+
+                get: function (key)
+                {
+
+                    return Object.prototype.hasOwnProperty.call(cacheStore, key)
+                        ? cacheStore[key]
+                        : null;
+
+                },
+
+                put: function (key, value)
+                {
+
+                    cacheStore[key] = String(value);
+
+                },
+
+                remove: function (key) { delete cacheStore[key]; }
+
+            };
+
+        }
 
     },
 
@@ -761,10 +882,77 @@ vm.runInContext(
     + ' DEFAULT_NOTIFICATION_EMAIL: DEFAULT_NOTIFICATION_EMAIL,'
     + ' MAX_PHOTOS_PER_LEAD: MAX_PHOTOS_PER_LEAD,'
     + ' MAX_PHOTO_BYTES: MAX_PHOTO_BYTES,'
-    + ' PHOTO_ROOT_FOLDER_NAME: PHOTO_ROOT_FOLDER_NAME'
+    + ' PHOTO_ROOT_FOLDER_NAME: PHOTO_ROOT_FOLDER_NAME,'
+    + ' PHOTO_ACCESS_MODES: PHOTO_ACCESS_MODES,'
+    + ' DEFAULT_PHOTO_ACCESS: DEFAULT_PHOTO_ACCESS,'
+    + ' DEFAULT_PHOTO_VIEWER_EMAIL: DEFAULT_PHOTO_VIEWER_EMAIL,'
+    + ' MAX_TOTAL_PHOTO_BYTES: MAX_TOTAL_PHOTO_BYTES,'
+    + ' DEFAULT_PHOTO_UPLOADS_PER_HOUR: DEFAULT_PHOTO_UPLOADS_PER_HOUR'
     + ' };',
     sandbox
 );
+
+/* ============================================================
+   CONFIG TAB HELPERS  (test-only)
+
+   getConfig() memoises into a top-level `cachedConfig`, which in
+   Apps Script lives for exactly one execution. Node keeps one context
+   alive for the whole run, so a test that edits the config tab has to
+   drop that cache itself to see its own write. Scripts share the
+   context's global lexical scope, so assigning to the binding works.
+============================================================ */
+
+function setConfigValue(key, value)
+{
+
+    const sheet = sandbox.getOrCreateSheet(sandbox.constants.SHEET_NAMES.config);
+
+    const lastRow = sheet.getLastRow();
+
+    let targetRow = -1;
+
+    if (lastRow > 1)
+    {
+
+        sheet.getRange(2, 1, lastRow - 1, 2).getValues().forEach(function (row, index)
+        {
+
+            if (String(row[0]).trim() === key)
+            {
+
+                targetRow = index + 2;
+
+            }
+
+        });
+
+    }
+
+    if (targetRow === -1)
+    {
+
+        sheet.appendRow([key, value]);
+
+    }
+    else
+    {
+
+        sheet.getRange(targetRow, 2, 1, 1).setValues([[value]]);
+
+    }
+
+    vm.runInContext('cachedConfig = null;', sandbox);
+
+}
+
+function readFreshConfig()
+{
+
+    vm.runInContext('cachedConfig = null;', sandbox);
+
+    return sandbox.getConfig();
+
+}
 
 /* ============================================================
    TEST HARNESS
@@ -1422,6 +1610,48 @@ console.log('\nPHOTO STORAGE');
 const onePixelPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42m'
     + 'P8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
+/* How many files actually reached the lead's Drive folder. The point
+   of most of the policy tests is that a rejected upload leaves nothing
+   behind, and only the mock Drive can answer that. */
+
+function countFilesUnderReference(referenceId)
+{
+
+    const roots = driveRoot.folders.filter(function (folder)
+    {
+
+        return folder.name === sandbox.constants.PHOTO_ROOT_FOLDER_NAME;
+
+    });
+
+    let total = 0;
+
+    roots.forEach(function (root)
+    {
+
+        root.folders.forEach(function (leadFolder)
+        {
+
+            /* Matched by prefix as well as exact name: labelPhotoFolder
+               renames to "BG-0001 · Name · BG-<ref>" once a lead row
+               exists, and the reference stays on the end. */
+
+            if (leadFolder.name === referenceId
+                || leadFolder.name.indexOf(referenceId) !== -1)
+            {
+
+                total += leadFolder.files.length;
+
+            }
+
+        });
+
+    });
+
+    return total;
+
+}
+
 function uploadPhoto(referenceId, index, fileName, overrides)
 {
 
@@ -1528,11 +1758,221 @@ check('the folder was renamed to carry the lead number',
     && findMockFolderById(photoLead.data.lead.photoFolderUrl.split('/').pop())
         .getName().indexOf(photoLead.data.lead.leadId) === 0);
 
-check('folder shared with the notification recipient by default',
-    driveSharingCalls.some(function (call) { return call.viewer === 'Bluegridls@gmail.com'; }));
+/* ── Access model: rootInherited (approved 2026-08-15) ──
+
+   This block used to assert the opposite — that every lead folder was
+   shared with the notification recipient. That per-lead grant is what
+   the root-inheritance model removed, so the assertion is inverted
+   rather than deleted: a submission that shares anything is now the
+   regression. */
+
+check('a customer submission performs NO per-lead sharing call',
+    driveSharingCalls.length === 0,
+    JSON.stringify(driveSharingCalls));
+
+check('no lead folder was shared with an individual account',
+    !driveSharingCalls.some(function (call) { return Boolean(call.viewer); }));
 
 check('nothing was shared publicly',
     !driveSharingCalls.some(function (call) { return call.access === 'ANYONE_WITH_LINK'; }));
+
+check('the lead folder still received both uploaded photos',
+    photoLead.data.lead.photoUrls.length === 2
+    && photoLead.data.lead.photoUrls[0] === upload1.data.photo.url
+    && photoLead.data.lead.photoUrls[1] === upload2.data.photo.url,
+    JSON.stringify(photoLead.data.lead.photoUrls));
+
+check('an individual photo URL was still generated',
+    /^https:\/\/drive\.google\.com\/file\/d\//.test(photoLead.data.lead.photoUrls[0]),
+    photoLead.data.lead.photoUrls[0]);
+
+check('"Open all photos" still points at this lead\'s own folder',
+    photoLead.data.lead.photoFolderUrl
+    === findMockFolderById(photoLead.data.lead.photoFolderUrl.split('/').pop()).getUrl());
+
+/* ── notificationEmail and photoViewerEmail are independent ── */
+
+check('notification recipient is unchanged by the access model',
+    photoOwnerEmail.to === 'Bluegridls@gmail.com',
+    photoOwnerEmail.to);
+
+check('photoViewerEmail defaults blank and is NOT the notification address',
+    sandbox.constants.DEFAULT_PHOTO_VIEWER_EMAIL === ''
+    && sandbox.constants.DEFAULT_PHOTO_VIEWER_EMAIL !== sandbox.constants.DEFAULT_NOTIFICATION_EMAIL);
+
+check('the two keys resolve independently from the config tab',
+    (function ()
+    {
+
+        setConfigValue('notificationEmail', 'notify@example.com');
+        setConfigValue('photoViewerEmail', 'viewer@example.com');
+
+        const resolved = readFreshConfig();
+
+        setConfigValue('notificationEmail', 'Bluegridls@gmail.com');
+        setConfigValue('photoViewerEmail', '');
+
+        return resolved.notificationEmail === 'notify@example.com'
+            && resolved.photoViewerEmail === 'viewer@example.com';
+
+    })());
+
+/* ── shareRootFolderWithOwner(): scope, idempotency, loud failure ── */
+
+check('shareRootFolderWithOwner refuses to run with a blank photoViewerEmail',
+    (function ()
+    {
+
+        setConfigValue('photoViewerEmail', '');
+
+        try
+        {
+
+            sandbox.shareRootFolderWithOwner();
+
+            return false;
+
+        }
+        catch (expected)
+        {
+
+            return String(expected.message).indexOf('photoViewerEmail is blank') !== -1;
+
+        }
+
+    })());
+
+check('shareRootFolderWithOwner rejects a malformed address',
+    (function ()
+    {
+
+        setConfigValue('photoViewerEmail', 'not-an-email');
+
+        try
+        {
+
+            sandbox.shareRootFolderWithOwner();
+
+            return false;
+
+        }
+        catch (expected)
+        {
+
+            return String(expected.message).indexOf('not a valid email') !== -1;
+
+        }
+
+    })());
+
+driveSharingCalls.length = 0;
+
+const shareReport = (function ()
+{
+
+    setConfigValue('photoViewerEmail', 'chase@example.com');
+
+    return sandbox.shareRootFolderWithOwner();
+
+})();
+
+check('shareRootFolderWithOwner grants Viewer to photoViewerEmail',
+    driveSharingCalls.some(function (call) { return call.viewer === 'chase@example.com'; }));
+
+check('it targets ONLY the BlueGrid photo root',
+    driveSharingCalls.every(function (call)
+    {
+
+        return call.folder === sandbox.constants.PHOTO_ROOT_FOLDER_NAME;
+
+    }),
+    JSON.stringify(driveSharingCalls));
+
+check('no lead folder was touched by the root share',
+    !driveSharingCalls.some(function (call)
+    {
+
+        return String(call.folder).indexOf('BG-') === 0;
+
+    }));
+
+check('the report names the folder and the account',
+    shareReport.indexOf(sandbox.constants.PHOTO_ROOT_FOLDER_NAME) !== -1
+    && shareReport.indexOf('chase@example.com') !== -1);
+
+check('re-running is idempotent — no second grant',
+    (function ()
+    {
+
+        driveSharingCalls.length = 0;
+
+        const second = sandbox.shareRootFolderWithOwner();
+
+        return driveSharingCalls.length === 0
+            && second.indexOf('ALREADY SHARED') === 0;
+
+    })());
+
+check('listRootFolderAccess reports the granted viewer',
+    sandbox.listRootFolderAccess().indexOf('chase@example.com') !== -1);
+
+/* The documented swap: point photoViewerEmail at the incoming account,
+   share, then revoke — which removes everyone the config no longer
+   names, without anyone having to type the outgoing address. */
+
+check('swapping accounts grants the incoming one',
+    (function ()
+    {
+
+        setConfigValue('photoViewerEmail', 'newowner@example.com');
+
+        sandbox.shareRootFolderWithOwner();
+
+        return sandbox.listRootFolderAccess().indexOf('newowner@example.com') !== -1;
+
+    })());
+
+check('revokeRootFolderViewer drops the outgoing account and keeps the configured one',
+    (function ()
+    {
+
+        const report = sandbox.revokeRootFolderViewer();
+
+        const access = sandbox.listRootFolderAccess();
+
+        return report.indexOf('chase@example.com') !== -1
+            && access.indexOf('chase@example.com') === -1
+            && access.indexOf('newowner@example.com') !== -1;
+
+    })());
+
+check('revoking twice is safe',
+    sandbox.revokeRootFolderViewer().indexOf('NOTHING TO REVOKE') === 0);
+
+check('a blank photoViewerEmail revokes everyone',
+    (function ()
+    {
+
+        setConfigValue('photoViewerEmail', '');
+
+        sandbox.revokeRootFolderViewer();
+
+        return sandbox.listRootFolderAccess().indexOf('newowner@example.com') === -1;
+
+    })());
+
+check('revokeRootFolderViewer never touches a lead folder',
+    !driveSharingCalls.some(function (call)
+    {
+
+        return call.removedViewer && String(call.folder).indexOf('BG-') === 0;
+
+    }),
+    JSON.stringify(driveSharingCalls.filter(function (c) { return c.removedViewer; })));
+
+setConfigValue('photoViewerEmail', '');
+
+driveSharingCalls.length = 0;
 
 /* ── A lead whose photos never arrived must say so ── */
 
@@ -1569,6 +2009,386 @@ const staleReference = uploadPhoto('BG-' + (Date.now() - (48 * 60 * 60 * 1000)),
 
 check('expired reference rejected', staleReference.success === false
     && Boolean(staleReference.error.fields.referenceId));
+
+/* ============================================================
+   UPLOAD POLICY  (production hardening, 2026-08-15)
+
+   Everything here posts straight at doPost, bypassing the browser
+   entirely — which is the only way to test the controls that matter.
+   A protection that exists only in indexJS.js is not a protection.
+============================================================ */
+
+/* ── fixtures: real leading bytes for each format and each threat ── */
+
+function base64FromBytes(bytes)
+{
+
+    return Buffer.from(bytes).toString('base64');
+
+}
+
+function padTo(bytes, total)
+{
+
+    const out = bytes.slice();
+
+    while (out.length < total) { out.push(0x00); }
+
+    return out;
+
+}
+
+const fixtures = {
+
+    jpeg: base64FromBytes(padTo([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46], 64)),
+
+    png: onePixelPng,
+
+    webp: base64FromBytes(padTo(
+        [0x52, 0x49, 0x46, 0x46, 0x24, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50], 64)),
+
+    heic: base64FromBytes(padTo(
+        [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63], 64)),
+
+    /* MZ — a Windows executable renamed and declared as a photo. */
+    exe: base64FromBytes(padTo([0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00], 64)),
+
+    svg: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>').toString('base64'),
+
+    html: Buffer.from('<!DOCTYPE html><html><body><script>alert(1)</script></body></html>').toString('base64'),
+
+    pdf: base64FromBytes(padTo([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x37], 64)),
+
+    zip: base64FromBytes(padTo([0x50, 0x4B, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00], 64)),
+
+    gif: base64FromBytes(padTo([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00], 64)),
+
+    shell: Buffer.from('#!/bin/sh\nrm -rf /\n').toString('base64')
+
+};
+
+/* ── accepted formats ── */
+
+[
+    ['JPEG', 'jpeg', 'image/jpeg'],
+    ['PNG', 'png', 'image/png'],
+    ['WebP', 'webp', 'image/webp'],
+    ['HEIC', 'heic', 'image/heic']
+].forEach(function (entry, position)
+{
+
+    const result = uploadPhoto('BG-' + (Date.now() + 400 + position), 1, 'photo.img', {
+        mimeType: entry[2],
+        dataBase64: fixtures[entry[1]]
+    });
+
+    check('accepted format: ' + entry[0], result.success === true,
+        JSON.stringify(result.error || {}));
+
+});
+
+check('HEIF may declare the shared HEIC container',
+    uploadPhoto('BG-' + (Date.now() + 410), 1, 'p.heif', {
+        mimeType: 'image/heif',
+        dataBase64: fixtures.heic
+    }).success === true);
+
+/* ── disguised and dangerous content ── */
+
+const disguised = [
+    ['.exe renamed .jpg and declared image/jpeg', 'exe'],
+    ['SVG (scriptable markup)', 'svg'],
+    ['HTML with script', 'html'],
+    ['PDF', 'pdf'],
+    ['ZIP archive', 'zip'],
+    ['GIF (not an accepted format)', 'gif'],
+    ['shell script', 'shell']
+];
+
+disguised.forEach(function (entry, position)
+{
+
+    const reference = 'BG-' + (Date.now() + 500 + position);
+
+    const result = uploadPhoto(reference, 1, 'holiday.jpg', {
+        mimeType: 'image/jpeg',
+        dataBase64: fixtures[entry[1]]
+    });
+
+    check('rejected by content inspection: ' + entry[0],
+        result.success === false && Boolean(result.error.fields.dataBase64),
+        JSON.stringify(result.error || {}));
+
+    check('  ...and nothing reached Drive for it',
+        countFilesUnderReference(reference) === 0);
+
+});
+
+/* ── malformed and missing metadata ── */
+
+check('malformed base64 rejected cleanly, not as a server error',
+    (function ()
+    {
+
+        const result = uploadPhoto('BG-' + (Date.now() + 600), 1, 'x.jpg', {
+            dataBase64: 'not!valid!base64!!'
+        });
+
+        return result.success === false
+            && result.error.code === 'VALIDATION_ERROR'
+            && Boolean(result.error.fields.dataBase64);
+
+    })());
+
+check('empty payload rejected',
+    uploadPhoto('BG-' + (Date.now() + 601), 1, 'x.jpg', { dataBase64: '' }).success === false);
+
+check('missing MIME metadata is handled safely when the bytes are a real image',
+    (function ()
+    {
+
+        const result = uploadPhoto('BG-' + (Date.now() + 602), 1, 'nomime.png', {
+            mimeType: '',
+            dataBase64: fixtures.png
+        });
+
+        return result.success === true;
+
+    })());
+
+check('a non-image MIME claim is still refused outright',
+    uploadPhoto('BG-' + (Date.now() + 603), 1, 'notes.pdf', {
+        mimeType: 'application/pdf',
+        dataBase64: fixtures.png
+    }).success === false);
+
+/* ── count and size caps ── */
+
+const photoCapReference = 'BG-' + (Date.now() + 700);
+
+for (let index = 1; index <= 5; index += 1)
+{
+
+    check('photo ' + index + ' of 5 accepted',
+        uploadPhoto(photoCapReference, index, 'p' + index + '.png').success === true);
+
+}
+
+const sixth = uploadPhoto(photoCapReference, 6, 'p6.png');
+
+check('the 6th photo is refused',
+    sixth.success === false && Boolean(sixth.error.fields.index));
+
+check('the 6th photo never reached Drive',
+    countFilesUnderReference(photoCapReference) === 5);
+
+check('an oversized single photo is refused',
+    (function ()
+    {
+
+        /* Just over 8MB decoded, without allocating 8MB of real image:
+           the size gate reads the base64 length, which is what a real
+           oversized upload would present. */
+
+        const oversized = 'A'.repeat(Math.ceil((sandbox.constants.MAX_PHOTO_BYTES + 4096) / 3) * 4);
+
+        const result = uploadPhoto('BG-' + (Date.now() + 800), 1, 'huge.jpg', {
+            dataBase64: oversized
+        });
+
+        return result.success === false && Boolean(result.error.fields.dataBase64);
+
+    })());
+
+check('combined payload over 25MB is refused across separate requests',
+    (function ()
+    {
+
+        const reference = 'BG-' + (Date.now() + 900);
+
+        /* Each photo is its own POST, so no single request can see the
+           total — the cap has to come from the folder's real contents.
+           Four at ~7MB pass, the fifth would cross 25MB. */
+
+        const sevenMegabytes = base64FromBytes(padTo(
+            [0xFF, 0xD8, 0xFF, 0xE0], 7 * 1024 * 1024));
+
+        let accepted = 0;
+
+        let refused = null;
+
+        for (let index = 1; index <= 5; index += 1)
+        {
+
+            const result = uploadPhoto(reference, index, 'big' + index + '.jpg', {
+                dataBase64: sevenMegabytes
+            });
+
+            if (result.success) { accepted += 1; }
+            else if (!refused) { refused = result; }
+
+        }
+
+        return accepted === 3
+            && refused
+            && refused.success === false
+            && Boolean(refused.error.fields.dataBase64)
+            && countFilesUnderReference(reference) === 3;
+
+    })());
+
+/* ── a rejected photo must never cost the lead ── */
+
+sentEmails.length = 0;
+
+const rejectedPhotoReference = 'BG-' + (Date.now() + 1000);
+
+uploadPhoto(rejectedPhotoReference, 1, 'malware.jpg', {
+    mimeType: 'image/jpeg',
+    dataBase64: fixtures.exe
+});
+
+const leadDespiteRejection = createLead({
+
+    referenceId: rejectedPhotoReference,
+
+    photoCount: 1,
+
+    photoNames: ['malware.jpg']
+
+});
+
+check('a rejected photo does not destroy the lead',
+    leadDespiteRejection.success === true,
+    JSON.stringify(leadDespiteRejection.error || {}));
+
+check('the rejected file is absent from Drive',
+    countFilesUnderReference(rejectedPhotoReference) === 0);
+
+check('the owner is told the photo did not arrive',
+    sentEmails[0].body.indexOf('UPLOAD DID NOT COMPLETE') !== -1);
+
+check('no internal detail leaks to the customer',
+    (function ()
+    {
+
+        const result = uploadPhoto('BG-' + (Date.now() + 1100), 1, 'x.jpg', {
+            dataBase64: fixtures.exe
+        });
+
+        const text = JSON.stringify(result);
+
+        /* Deliberately specific. An earlier version of this check
+           searched for "at " to catch stack frames and failed on the
+           word "That" in a perfectly clean message — a test that
+           rejects correct behaviour is worse than no test. */
+
+        const leaks = [
+            'Drive', 'DriveApp', 'executable', 'Windows', 'folder', 'Folder',
+            'stack', 'Exception', 'googleapis.com', 'script.google.com',
+            'photoViewerEmail', 'notificationEmail', 'BlueGrid Lead Photos',
+            '.gs:', '\\n    at '
+        ];
+
+        return leaks.every(function (needle) { return text.indexOf(needle) === -1; });
+
+    })());
+
+/* ── customer input cannot influence storage location or sharing ── */
+
+driveSharingCalls.length = 0;
+
+check('a traversal filename cannot escape the lead folder',
+    (function ()
+    {
+
+        const reference = 'BG-' + (Date.now() + 1200);
+
+        const result = uploadPhoto(reference, 1, '../../../../etc/passwd.png');
+
+        if (!result.success) { return false; }
+
+        const stored = result.data.photo.name;
+
+        return stored.indexOf('/') === -1
+            && stored.indexOf(String.fromCharCode(92)) === -1
+            && stored.indexOf('..') !== 0
+            && countFilesUnderReference(reference) === 1;
+
+    })());
+
+check('a customer payload cannot name its own Drive folder or ids',
+    (function ()
+    {
+
+        const reference = 'BG-' + (Date.now() + 1300);
+
+        const result = uploadPhoto(reference, 1, 'ok.png', {
+            folderId: 'attacker-folder',
+            photoFolderUrl: 'https://drive.google.com/attacker',
+            photoViewerEmail: 'attacker@example.com',
+            photoAccess: 'anyoneWithLink'
+        });
+
+        return result.success === true
+            && driveSharingCalls.length === 0
+            && readFreshConfig().photoViewerEmail !== 'attacker@example.com';
+
+    })());
+
+check('no customer upload triggered any sharing call',
+    driveSharingCalls.length === 0, JSON.stringify(driveSharingCalls));
+
+check('the administrative helpers are unreachable over HTTP',
+    ['shareRootFolderWithOwner', 'revokeRootFolderViewer', 'listRootFolderAccess']
+        .every(function (action)
+        {
+
+            const viaPost = parse(sandbox.doPost({
+                parameter: { action: action },
+                postData: { contents: '{}' }
+            }));
+
+            const viaGet = parse(sandbox.doGet({ parameter: { action: action } }));
+
+            return viaPost.success === false
+                && viaGet.success === false
+                && viaPost.error.code === 'UNKNOWN_ACTION';
+
+        }));
+
+/* ── throttle ── */
+
+check('the global upload throttle refuses a flood and then recovers',
+    (function ()
+    {
+
+        Object.keys(cacheStore).forEach(function (key) { delete cacheStore[key]; });
+
+        setConfigValue('photoUploadsPerHour', '3');
+
+        const reference = 'BG-' + (Date.now() + 1400);
+
+        const outcomes = [];
+
+        for (let index = 1; index <= 5; index += 1)
+        {
+
+            outcomes.push(uploadPhoto(reference, index, 't' + index + '.png').success);
+
+        }
+
+        const throttled = outcomes.filter(function (ok) { return ok === false; }).length;
+
+        Object.keys(cacheStore).forEach(function (key) { delete cacheStore[key]; });
+
+        setConfigValue('photoUploadsPerHour', String(sandbox.constants.DEFAULT_PHOTO_UPLOADS_PER_HOUR));
+
+        const afterReset = uploadPhoto('BG-' + (Date.now() + 1500), 1, 'after.png');
+
+        return throttled === 2 && afterReset.success === true;
+
+    })());
 
 const malformedReference = uploadPhoto('BG-not-a-reference', 1, 'x.jpg');
 

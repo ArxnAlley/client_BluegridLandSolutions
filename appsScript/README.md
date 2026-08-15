@@ -29,9 +29,28 @@ Authoritative data contract: [`../docs/forestryModuleSchema.md`](../docs/forestr
 | `notifications.gs` | Owner email, customer auto-reply, message formatting |
 | `utilities.gs` | Sheet access, header enforcement, row/object mapping, config, envelopes, auth, **error logging** |
 | `config.gs` | Constants, enums, limits, error codes, default recipient |
+| `appsscript.json` | **Project manifest.** Declares the OAuth scopes explicitly — see *OAuth scopes* below. Pasted into the manifest editor, not created as a script file. |
 | `localTestRunner.js` | **Development tool — do not paste into Apps Script.** Node harness that runs everything against in-memory Google mocks. |
 
 Paste order does not matter — Apps Script loads all files into one global scope before running.
+
+---
+
+## OAuth scopes
+
+`appsscript.json` declares `oauthScopes` explicitly. **An explicit list replaces the automatically derived one — it does not add to it**, so this array has to name every scope the project needs, not just the one that was missing.
+
+These are the complete minimum for the current code. Each was taken from the Authorization section of the relevant Apps Script reference page, not inferred.
+
+| Scope | Why it is required | Called by |
+|---|---|---|
+| `.../auth/drive` | Photo storage creates folders and files, renames the per-lead folder, changes its sharing, and trashes the preflight probe. `drive.readonly` — the only narrower scope `DriveApp` accepts — cannot do any of that, and `getFoldersByName` searches beyond app-created files. | `photoStorage.gs` (`getPhotoRootFolder`, `getLeadPhotoFolder`, `applyPhotoFolderAccess`, `handleAddPhoto`, `labelPhotoFolder`), `Code.gs` (`checkPhotoStorage`) |
+| `.../auth/spreadsheets` | Reading and writing the `leads`, `errorLog` and `config` tabs. **`spreadsheets.currentonly` is deliberately not used**: `getSpreadsheet()` falls back to `SpreadsheetApp.openById()` when the script runs standalone, and the narrower scope would break that path. | `utilities.gs` (`getSpreadsheet`) and everything that writes a row |
+| `.../auth/script.send_mail` | The owner notification and the customer auto-reply. `MailApp` only ever needs this one; it is much narrower than the `mail.google.com` scope `GmailApp` would have required. | `notifications.gs` |
+
+**Nothing else needs a scope.** `PropertiesService`, `LockService`, `Utilities`, `ContentService` and `Session.getScriptTimeZone()` are all documented as requiring none. There is no `UrlFetchApp` (so no `script.external_request`), no `ScriptApp`, no advanced services, and nothing reads user identity (so no `userinfo.email`).
+
+> **The trade-off of declaring scopes explicitly:** adding a new Google service to the code will now fail at runtime instead of quietly widening the consent prompt. If you add one, add its scope here in the same change. `checkPhotoStorage()` and `runSelfTest()` will both catch it before a customer does.
 
 ---
 
@@ -85,9 +104,120 @@ Each photo is stored in Drive under `BlueGrid Lead Photos/<referenceId>/`, named
 
 Retries are idempotent by filename: re-uploading the same photo returns the stored one instead of a second copy.
 
-Being public, the endpoint is bounded by: a well-formed `referenceId` no more than 24 hours old, an allowed image MIME type, 8MB per file, and 12 files per lead. The browser downscales to 1600px on the long edge first.
+See *Upload policy* below for everything this endpoint enforces. The browser downscales to 1600px on the long edge first.
+
+---
+
+## Upload policy
+
+**Enforced twice.** The website applies every limit so a customer gets instant feedback; the API applies all of them again against the bytes that actually arrive. `leads.addPhotos` is public and anonymous, so **the front end is a courtesy and the server is the control** — a direct POST is subject to the identical policy.
+
+| Limit | Value | Server-side enforcement |
+|---|---|---|
+| Photos per estimate | **5** | Counted from the lead folder's real contents |
+| Per photo | **8 MB** | Base64 length, checked before any decode |
+| Combined per estimate | **25 MB** | Summed from the folder, since each photo is its own POST |
+| Formats | JPEG, PNG, WebP, HEIC/HEIF | **Content signature**, not the declared type |
+| Reference age | 24 hours | `isReferenceIdRecent` |
+| Global ceiling | 120 uploads/hour | `photoUploadsPerHour`, script cache |
+
+### Content is authoritative
+
+`mimeType` and `fileName` are claims. A direct POST can set both to anything, so **the leading bytes of every upload are inspected** against `PHOTO_CONTENT_SIGNATURES` and the file is rejected unless they are genuinely one of the accepted formats. An `.exe` renamed `holiday.jpg` and declared `image/jpeg` fails here and nowhere earlier.
+
+Explicitly detected and refused, each logged by what it actually was: SVG, XML, HTML, Windows/Linux/Mach-O executables, ZIP, RAR, gzip, PDF, shell scripts, GIF, BMP. Anything matching no accepted signature is refused regardless.
+
+Three deliberate nuances:
+
+- **A missing `mimeType` is not fatal** when the bytes are a real image — Android pickers and drag-and-drop often send nothing, and the content settles it.
+- **A wrong-but-still-image `mimeType`** (a PNG announced as JPEG) is stored as what the bytes are, and the disagreement is logged. Refusing it would invent a way for honest uploads to fail without preventing anything an attacker could not trivially avoid.
+- **A non-image `mimeType`** (`application/pdf`, `image/svg+xml`) is refused outright even when the bytes are a valid photo. Nothing legitimate does that.
+
+### HEIC/HEIF
+
+Kept, and worth understanding: canvas usually cannot decode HEIC, so the browser's downscale step falls back to the original bytes and the file uploads full size. The 8 MB cap is what bounds it. Rejecting the format would fail a large share of iPhone submissions, so it stays — but it is the one accepted format that arrives un-downscaled.
+
+### Throttle
+
+Apps Script gives a web app **no client IP**, so per-caller rate limiting is not possible. `photoUploadsPerHour` is a deliberately blunt global ceiling — far above any real hour for a local-service business, far below what an unattended script could do. It fails **open** if the cache is unavailable: a cache outage must not stop a real customer, and every per-lead cap still applies.
+
+### Failure behaviour
+
+Unchanged and load-bearing: **a photo problem never costs the lead.** A rejected file is never written to Drive, the estimate is still created, the owner's email says plainly that photos did not arrive, and the customer sees only a short neutral message. The specific reason — including the detected file type — goes to `errorLog`.
 
 **A photo failure can never fail a lead.** Every path in `photoStorage.gs` returns empty or logs and returns, and the owner's email says plainly when photos did not arrive.
+
+---
+
+## Photo access architecture
+
+**Approved 2026-08-15. Root-folder Viewer inheritance.**
+
+```
+admin@nulostudio.com  (owns the script, the spreadsheet and the Drive storage)
+│
+└── BlueGrid Lead Photos          ← BlueGrid owner granted VIEWER here, ONCE
+    ├── BG-0001 · Name · BG-…     ← inherits Viewer
+    │   ├── 01-frontField.jpg     ← inherits Viewer
+    │   └── 02-backLot.jpg        ← inherits Viewer
+    └── BG-0002 · Name · BG-…     ← inherits Viewer
+```
+
+**Nulo Studio owns everything. The BlueGrid owner receives Viewer on the root once. Every existing and future lead folder and photo inherits it. Customer submissions perform no Drive sharing operation whatsoever.**
+
+### What this deliberately avoids
+
+The previous model called `addViewer()` on **every lead folder** at creation. That meant one sharing operation per estimate — a potential Drive "shared with you" email per customer submission, one *Shared with me* entry per lead accumulating forever, and one more thing to fail silently on the submission path. One grant on the root replaces all of it.
+
+### The security boundary
+
+Google Drive permissions apply to **one item and inherit downward only**. There is no upward traversal. Granting Viewer on `BlueGrid Lead Photos` therefore exposes that folder and its descendants — and nothing else.
+
+| The BlueGrid owner CAN | The BlueGrid owner CANNOT |
+|---|---|
+| See `BlueGrid Lead Photos` in *Shared with me* | Browse `admin@nulostudio.com`'s My Drive |
+| Open every lead folder, past and future | See the root's **parent** folder |
+| View and download every customer photo | See any **sibling** of the root — other Nulo folders, other clients' files |
+| Use both email link types | Open the Apps Script project or the leads spreadsheet |
+| | Edit, delete, rename or restructure anything — **Viewer is read-only** |
+| | Re-share the folder with anyone else |
+
+### `photoViewerEmail` is not `notificationEmail`
+
+Two keys, two questions, never collapsed:
+
+| Key | Answers | Typical value during testing |
+|---|---|---|
+| `notificationEmail` | *Who is emailed about a new lead?* | `admin@nulostudio.com` |
+| `photoViewerEmail` | *Whose Google account can open the photographs?* | a temporary test account, later Chase's |
+
+They are independent by design: during acceptance testing estimate mail goes to Nulo Studio while Drive access sits with a throwaway account. `photoViewerEmail` is **blank by default and never guessed** — `shareRootFolderWithOwner()` refuses to run rather than granting access to an assumed address.
+
+### Admin functions — editor only, never on the submission path
+
+None of these is reachable from `routes.gs`; no HTTP request can trigger them.
+
+| Function | Does |
+|---|---|
+| `shareRootFolderWithOwner()` | Grants Viewer on the photo root to `photoViewerEmail`. Idempotent — re-running when already shared makes no second grant and says so. Throws loudly on a blank/malformed address or a sharing failure. Reports the folder name, id, URL and the account. |
+| `revokeRootFolderViewer(email)` | Removes Viewer again. Defaults to `photoViewerEmail` when called with no argument. Safe to run twice. |
+| `listRootFolderAccess()` | Read-only. Who can currently see the root, plus the active `photoAccess` mode. The fastest answer to *"can the owner actually open these links yet?"* |
+| `checkPhotoStorage()` | Full storage preflight, now also reporting whether `photoViewerEmail` holds access — so *"photos upload fine"* can never again be mistaken for *"the owner can see them"*. |
+
+### Granting or replacing the photo viewer
+
+To point Drive access at a different Google account — swapping a test account for Chase's, or changing it later:
+
+1. Open the `config` tab and set **`photoViewerEmail`** to the new address.
+2. In the editor, run **`shareRootFolderWithOwner()`**. Confirm the log names the right folder and account.
+3. Run **`revokeRootFolderViewer("old@address.com")`** with the address being replaced.
+4. Run **`listRootFolderAccess()`** and confirm only the intended account is listed.
+
+No redeploy is needed for any of this — these are editor-run functions and config values, not deployed code.
+
+### Retention — an open policy decision, not implemented
+
+These folders accumulate customer photographs and names indefinitely. Nothing in this codebase deletes them, and **nothing should be added that does until a retention period is decided** with the client: how long photos are kept after a job closes or a lead goes cold, whether deletion is manual or scheduled, and what the customer was told at submission. Recorded here as an open decision, deliberately unimplemented.
 
 ---
 
@@ -127,6 +257,17 @@ Do these in order, signed in as the account that should **own** the spreadsheet 
 3. **Do not paste `localTestRunner.js`.** It is a Node development tool and will not run in Apps Script.
 4. **Save** (Ctrl/Cmd + S).
 
+### 3b · Paste the manifest
+
+1. **Project Settings** (gear) → tick **Show "appsscript.json" manifest file in editor**.
+2. Back in the **Editor**, open `appsscript.json` and replace its contents with [`appsscript.json`](appsscript.json) from this folder.
+3. **Keep your own `timeZone` if it differs** — everything else in the file should match.
+4. **Save.**
+
+This step is what grants Drive access. Without the explicit `oauthScopes` array, a project that gained `DriveApp` after it was first authorized keeps its older scope set: `leads.create` keeps working (Sheets and Mail were already granted) while every photo upload throws `You do not have permission to call DriveApp.getFoldersByName`. See *OAuth scopes* above.
+
+**After saving the manifest, re-authorize:** select `checkPhotoStorage` → **Run** → approve the prompt, which will now ask for Drive. Expect `PASS` in the execution log.
+
 ### 4 · Set the API key
 
 1. **Project Settings** (gear) → **Script Properties** → **Add script property**.
@@ -148,24 +289,29 @@ Do these in order, signed in as the account that should **own** the spreadsheet 
 
 Open the `config` tab:
 
-| key | value |
-|-----|-------|
-| `notificationEmail` | `Bluegridls@gmail.com` |
-| `notificationsEnabled` | `true` |
-| `autoReplyEnabled` | `true` |
-| `photoAccess` | `ownerEmail` |
+| key | value | purpose |
+|-----|-------|---------|
+| `notificationEmail` | the address that receives lead alerts | **email delivery only** |
+| `notificationsEnabled` | `true` | **email delivery only** |
+| `autoReplyEnabled` | `true` | **email delivery only** |
+| `photoAccess` | `rootInherited` | Drive sharing behaviour |
+| `photoViewerEmail` | *(blank until set deliberately)* | Drive access only |
+| `photoUploadsPerHour` | `120` | upload throttle ceiling |
 
 Editing these takes effect on the next submission — **no redeploy needed**. There is intentionally no second recipient key.
 
-**`photoAccess`** decides who can open submitted photos:
+**The notification keys and the photo keys are independent and must stay that way.** `notificationEmail` decides who is *emailed*; `photoViewerEmail` decides whose Google account can *open the photographs*. During acceptance testing they are different addresses. Never repurpose one for the other.
+
+**`photoAccess`** decides how submitted photos are shared. See *Photo access architecture* below.
 
 | value | effect |
 |-------|--------|
-| `ownerEmail` | **Default.** The per-lead folder is shared, view-only, with whatever `notificationEmail` holds. Works whichever account owns the script. |
-| `private` | No sharing at all. Only the account running the script can open the links — correct when that account *is* the owner's. |
-| `anyoneWithLink` | Anyone holding the link can view. Least restrictive; use only if the owner reads mail on an account that cannot be added to the folder. |
+| `rootInherited` | **Default and approved model.** A submission performs **no Drive sharing call at all**. Access comes from one Viewer grant on the photo root, applied once by `shareRootFolderWithOwner()`, which every lead folder and photo inherits. |
+| `anyoneWithLink` | Per-lead link sharing — anyone holding the URL can view. **Not part of the approved model**; it shares during the submission and makes customer photographs readable by anyone with the link. Escape hatch only. |
 
-Photos are never made public unless `anyoneWithLink` is chosen deliberately.
+`ownerEmail` and `private` were retired on 2026-08-15. A sheet still holding either is not an error — the value is unrecognised, the mode falls back to `rootInherited`, and the fallback is logged. **The fallback is the safe mode**, so an un-migrated sheet lands on the approved behaviour rather than an unsafe one.
+
+**`photoViewerEmail`** is the Google account that gets Viewer on the photo root. It is **deliberately separate from `notificationEmail`** — see below.
 
 ### 7 · Run the built-in self test
 

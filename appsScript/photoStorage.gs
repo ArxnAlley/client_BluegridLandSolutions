@@ -34,23 +34,30 @@
 function handleAddPhoto(payload)
 {
 
-    const validation = validatePhotoPayload(payload);
+    /* Declared out here so the catch can still name the reference even
+       when the throw happened inside validation. */
 
-    if (!validation.valid)
-    {
-
-        logValidationFailure('handleAddPhoto', validation.fields, validation.clean.referenceId);
-
-        return errorResponse(
-            ERROR_CODES.validation,
-            'That photo could not be accepted.',
-            validation.fields
-        );
-
-    }
+    let referenceId = '';
 
     try
     {
+
+        const validation = validatePhotoPayload(payload || {});
+
+        referenceId = validation.clean.referenceId || '';
+
+        if (!validation.valid)
+        {
+
+            logValidationFailure('handleAddPhoto', validation.fields, referenceId);
+
+            return errorResponse(
+                ERROR_CODES.validation,
+                'That photo could not be accepted.',
+                validation.fields
+            );
+
+        }
 
         const folder = getLeadPhotoFolder(validation.clean.referenceId, true);
 
@@ -85,18 +92,68 @@ function handleAddPhoto(payload)
 
         }
 
-        /* Enforced here rather than trusted from the browser — this
-           endpoint is public, so the website's own limit is a
-           courtesy and this is the control. */
+        /* Every limit below is enforced HERE rather than trusted from
+           the browser. The website applies the same numbers first so a
+           customer gets instant feedback, but this endpoint is public
+           and anonymous: the front end is a courtesy and this is the
+           control. Counted from the folder's real contents, so
+           spreading a payload across requests cannot defeat it. */
 
-        if (countFolderFiles(folder) >= MAX_PHOTOS_PER_LEAD)
+        const folderState = summarizeFolderContents(folder);
+
+        if (folderState.count >= MAX_PHOTOS_PER_LEAD)
         {
+
+            logInfo('photoRejected', validation.clean.referenceId
+                + ' :: photo limit (' + MAX_PHOTOS_PER_LEAD + ') reached');
 
             return errorResponse(
                 ERROR_CODES.validation,
                 'That is the maximum number of photos for one request.',
                 { index: 'Too many photos.' }
             );
+
+        }
+
+        if ((folderState.bytes + validation.clean.byteSize) > MAX_TOTAL_PHOTO_BYTES)
+        {
+
+            logInfo('photoRejected', validation.clean.referenceId
+                + ' :: combined size would reach '
+                + (folderState.bytes + validation.clean.byteSize) + ' bytes');
+
+            return errorResponse(
+                ERROR_CODES.validation,
+                'Those photos are too large in total.',
+                { dataBase64: 'Combined photo size is too large.' }
+            );
+
+        }
+
+        /* Global ceiling, checked last so a rejected upload never
+           consumes throttle budget. */
+
+        if (!consumePhotoUploadAllowance())
+        {
+
+            logError(
+                'handleAddPhoto',
+                new Error('upload throttle reached for this hour'),
+                validation.clean.referenceId
+            );
+
+            return errorResponse(
+                ERROR_CODES.serverError,
+                'Photos cannot be accepted right now. Please try again shortly.'
+            );
+
+        }
+
+        if (validation.clean.mimeTypeMismatch)
+        {
+
+            logInfo('photoTypeMismatch', validation.clean.referenceId
+                + ' :: ' + validation.clean.mimeTypeMismatch);
 
         }
 
@@ -108,7 +165,8 @@ function handleAddPhoto(payload)
 
         const file = folder.createFile(blob);
 
-        logInfo('photoStored', validation.clean.referenceId + ' :: ' + targetName);
+        logInfo('photoStored', validation.clean.referenceId + ' :: ' + targetName
+            + ' :: ' + validation.clean.detected.type + ' :: ' + validation.clean.byteSize + ' bytes');
 
         return successResponse({
 
@@ -120,7 +178,14 @@ function handleAddPhoto(payload)
     catch (photoError)
     {
 
-        logError('handleAddPhoto', photoError, validation.clean.referenceId);
+        /* The customer sees "That photo could not be saved." and never
+           anything more. The real exception — including the Drive
+           authorization message, which is the one that actually
+           stopped this working in production — goes to the errorLog
+           sheet with its stack, tagged with the reference so it can be
+           matched to the lead row. */
+
+        logError('handleAddPhoto', photoError, referenceId);
 
         return errorResponse(
             ERROR_CODES.serverError,
@@ -128,6 +193,32 @@ function handleAddPhoto(payload)
         );
 
     }
+
+}
+
+/* ============================================================
+   ERROR DESCRIPTION  (internal only — never sent to a customer)
+============================================================ */
+
+/* Apps Script throws several shapes: real Errors, bare strings, and
+   the permission objects the runtime raises when a scope is missing.
+   Flattens all of them to one short internal line. */
+
+function describePhotoError(error)
+{
+
+    if (!error)
+    {
+
+        return 'unknown error';
+
+    }
+
+    const name = error.name ? String(error.name) : 'Error';
+
+    const message = error.message ? String(error.message) : String(error);
+
+    return (name + ': ' + message).substring(0, 300);
 
 }
 
@@ -146,6 +237,13 @@ function handleAddPhoto(payload)
 function resolveLeadPhotos(referenceId)
 {
 
+    /* `failed` is the distinction this function used to lose. An empty
+       result meant both "the customer attached nothing" and "Drive
+       threw and we swallowed it", so the owner's email could not tell
+       a quiet lead from a broken pipeline. The flag never reaches the
+       sheet — objectToRow only writes LEADS_HEADERS — it exists so the
+       owner email can say which of the two happened. */
+
     const empty = {
 
         urls: [],
@@ -154,7 +252,11 @@ function resolveLeadPhotos(referenceId)
 
         folderUrl: '',
 
-        folderId: ''
+        folderId: '',
+
+        failed: false,
+
+        failureReason: ''
 
     };
 
@@ -206,7 +308,11 @@ function resolveLeadPhotos(referenceId)
 
             folderUrl: folder.getUrl(),
 
-            folderId: folder.getId()
+            folderId: folder.getId(),
+
+            failed: false,
+
+            failureReason: ''
 
         };
 
@@ -216,7 +322,24 @@ function resolveLeadPhotos(referenceId)
 
         logError('resolveLeadPhotos', resolveError, referenceId);
 
-        return empty;
+        /* Still returns empty arrays, so a storage fault can never cost
+           the lead — but now it says so. */
+
+        return {
+
+            urls: [],
+
+            names: [],
+
+            folderUrl: '',
+
+            folderId: '',
+
+            failed: true,
+
+            failureReason: describePhotoError(resolveError)
+
+        };
 
     }
 
@@ -337,19 +460,46 @@ function getLeadPhotoFolder(referenceId, createIfMissing)
 
 }
 
-/* Sharing is applied to the folder rather than to each file, so it is
-   one call per lead and any photo added later inherits it. */
+/* Runs once per newly created lead folder.
+
+   Under the approved architecture this does NOTHING, and that is the
+   point: access comes from a single Viewer grant on the photo root,
+   applied once by shareRootFolderWithOwner(), which every folder and
+   file beneath it inherits. A customer submission performs no Drive
+   sharing call, so there is no per-estimate "shared with you" mail, no
+   per-lead grant to fail silently, and no growing list of individually
+   shared folders.
+
+   Only the deliberate anyoneWithLink escape hatch still shares here. */
 
 function applyPhotoFolderAccess(folder)
 {
 
     const config = getConfig();
 
-    const mode = (PHOTO_ACCESS_MODES.indexOf(config.photoAccess) !== -1)
-        ? config.photoAccess
-        : DEFAULT_PHOTO_ACCESS;
+    const requested = String(config.photoAccess || '').trim();
 
-    if (mode === 'private')
+    const recognised = PHOTO_ACCESS_MODES.indexOf(requested) !== -1;
+
+    if (!recognised && requested)
+    {
+
+        /* Names the bad value rather than silently correcting it — a
+           typo in the config tab used to be indistinguishable from a
+           deliberate setting. Not an error: the fallback is the safe
+           mode, so the lead proceeds normally. */
+
+        logInfo(
+            'applyPhotoFolderAccess',
+            'unrecognised photoAccess "' + requested
+            + '" — falling back to ' + DEFAULT_PHOTO_ACCESS
+        );
+
+    }
+
+    const mode = recognised ? requested : DEFAULT_PHOTO_ACCESS;
+
+    if (mode === 'rootInherited')
     {
 
         return;
@@ -359,32 +509,121 @@ function applyPhotoFolderAccess(folder)
     try
     {
 
-        if (mode === 'anyoneWithLink')
-        {
+        folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-            folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
-            return;
-
-        }
-
-        /* Granting view access to the account that already owns the
-           folder throws, and that case needs no grant at all — which
-           is why this is inside the try rather than guarded. */
-
-        folder.addViewer(config.notificationEmail || DEFAULT_NOTIFICATION_EMAIL);
+        logInfo('applyPhotoFolderAccess', 'link sharing applied to ' + folder.getName());
 
     }
     catch (sharingError)
     {
 
-        /* A convenience, not a requirement: the photos are stored
-           either way and the owner can always reach them from Drive
-           directly. */
+        /* Storage still succeeded, so the lead is never failed for
+           this — but it is recorded loudly enough to find. */
 
         logError('applyPhotoFolderAccess', sharingError);
 
     }
+
+}
+
+/* ============================================================
+   ROOT FOLDER ACCESS — DRIVE PRIMITIVES
+
+   The three functions a human actually runs live in Code.gs, with
+   every other editor entry point. The reason is mechanical: the Apps
+   Script editor's Run selector lists the functions of the file
+   currently open, so admin entry points scattered across modules are
+   invisible unless you happen to have the right file open. Code.gs is
+   the one file that is always open.
+
+   What stays here is the Drive work itself. None of it is reachable
+   from routes.gs, and neither handleCreateLead nor handleAddPhoto
+   calls any of it — a sharing call on the submission path is exactly
+   what this architecture removed.
+============================================================ */
+
+/* Removes Viewer from the photo root for one address.
+
+   Scope is the root folder and nothing else. Returns a description
+   rather than throwing when the account was not a viewer to begin
+   with, so a repeated revoke is safe. */
+
+function revokeRootFolderViewerByEmail(emailAddress)
+{
+
+    const target = String(emailAddress || '').trim();
+
+    if (!target)
+    {
+
+        throw new Error('revokeRootFolderViewerByEmail needs an address.');
+
+    }
+
+    const root = getPhotoRootFolder();
+
+    if (!folderHasViewer(root, target))
+    {
+
+        return 'NOT A VIEWER (no change made)'
+            + '\n  folder : ' + root.getName()
+            + '\n  account: ' + target;
+
+    }
+
+    try
+    {
+
+        root.removeViewer(target);
+
+    }
+    catch (revokeError)
+    {
+
+        logError('revokeRootFolderViewerByEmail', revokeError, target);
+
+        throw new Error('Revoke failed for ' + target + ': ' + describePhotoError(revokeError));
+
+    }
+
+    return 'REVOKED'
+        + '\n  folder : ' + root.getName()
+        + '\n  account: ' + target;
+
+}
+
+/* Every account that can currently see the photo root, lowercased.
+   Viewers and editors together — for "can this account open the
+   links?" the distinction does not matter. */
+
+function rootFolderViewerEmails()
+{
+
+    const root = getPhotoRootFolder();
+
+    return root.getViewers()
+        .concat(root.getEditors())
+        .map(function (user) { return String(user.getEmail()).trim().toLowerCase(); });
+
+}
+
+function folderHasViewer(folder, emailAddress)
+{
+
+    const wanted = String(emailAddress).trim().toLowerCase();
+
+    /* Editors are checked too: an account that already has edit access
+       is not "missing" access, and calling addViewer on it would
+       silently downgrade nothing and report a misleading success. */
+
+    const holders = folder.getViewers().concat(folder.getEditors());
+
+    return holders.some(function (user)
+    {
+
+        return String(user.getEmail()).trim().toLowerCase() === wanted;
+
+    });
 
 }
 
@@ -433,19 +672,105 @@ function describePhotoFile(file)
 function countFolderFiles(folder)
 {
 
+    return summarizeFolderContents(folder).count;
+
+}
+
+/* One pass for both caps. The combined-size limit has to come from
+   what is already on disk: each photo is its own POST, so no single
+   request can see the total and a client-reported running total would
+   be worth exactly nothing. */
+
+function summarizeFolderContents(folder)
+{
+
     const iterator = folder.getFiles();
 
     let count = 0;
 
+    let bytes = 0;
+
     while (iterator.hasNext())
     {
 
-        iterator.next();
+        const file = iterator.next();
 
         count += 1;
 
+        try
+        {
+
+            bytes += Number(file.getSize()) || 0;
+
+        }
+        catch (sizeError)
+        {
+
+            /* A size we cannot read must not be treated as zero, or an
+               unreadable file would quietly raise the ceiling. Charge
+               the per-photo maximum instead. */
+
+            bytes += MAX_PHOTO_BYTES;
+
+        }
+
     }
 
-    return count;
+    return { count: count, bytes: bytes };
+
+}
+
+/* ============================================================
+   UPLOAD THROTTLE
+============================================================ */
+
+/* Coarse global ceiling per clock hour. Apps Script gives a web app no
+   client IP, so per-caller limiting is impossible here — this bounds
+   total damage rather than identifying an attacker.
+
+   CacheService increments are not atomic, so a burst can undercount
+   slightly. That is acceptable: this is a safety net against an
+   unattended script, not an accounting record, and undercounting fails
+   towards accepting a real customer's photo. */
+
+function consumePhotoUploadAllowance()
+{
+
+    try
+    {
+
+        const cache = CacheService.getScriptCache();
+
+        const limit = Number(getConfig().photoUploadsPerHour) || DEFAULT_PHOTO_UPLOADS_PER_HOUR;
+
+        const key = PHOTO_THROTTLE_CACHE_PREFIX
+            + Utilities.formatDate(new Date(), 'Etc/UTC', 'yyyyMMddHH');
+
+        const used = Number(cache.get(key)) || 0;
+
+        if (used >= limit)
+        {
+
+            return false;
+
+        }
+
+        cache.put(key, String(used + 1), 3900);
+
+        return true;
+
+    }
+    catch (throttleError)
+    {
+
+        /* The throttle failing open is the right trade: a cache outage
+           must not stop a real customer sending photographs, and every
+           per-lead cap above still applies. */
+
+        logError('consumePhotoUploadAllowance', throttleError);
+
+        return true;
+
+    }
 
 }

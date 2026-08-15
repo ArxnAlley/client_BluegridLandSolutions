@@ -227,7 +227,15 @@ function setupSpreadsheet()
         ['notificationsEnabled', 'true'],
         ['autoReplyEnabled', 'true'],
         ['weeklySummaryDay', 'Monday'],
-        ['photoAccess', DEFAULT_PHOTO_ACCESS]
+        ['photoAccess', DEFAULT_PHOTO_ACCESS],
+
+        /* Seeded blank on purpose. shareRootFolderWithOwner() refuses
+           to run until a human puts a real Google account here, so an
+           empty cell can never become an accidental grant. */
+
+        ['photoViewerEmail', DEFAULT_PHOTO_VIEWER_EMAIL],
+
+        ['photoUploadsPerHour', String(DEFAULT_PHOTO_UPLOADS_PER_HOUR)]
     ];
 
     const existingKeys = configSheet.getLastRow() > 1
@@ -572,11 +580,393 @@ function describeMigrationPlan(plan, applied)
 }
 
 /* ============================================================
+   PHOTO ACCESS ADMIN  (run manually from the editor)
+
+   These three live in Code.gs rather than photoStorage.gs for one
+   mechanical reason: the Apps Script editor's Run selector lists the
+   functions of the FILE CURRENTLY OPEN, and it skips functions that
+   declare parameters. An admin entry point defined in another module,
+   or taking an argument, simply never appears in the dropdown.
+
+   So every function a human is expected to run sits here, beside
+   setupSpreadsheet / runSelfTest / checkPhotoStorage, and every one of
+   them takes no arguments. The Drive work itself stays in
+   photoStorage.gs; these are the handles on it.
+
+   None of them is reachable over HTTP — routes.gs has no entry for
+   any of them.
+============================================================ */
+
+/* Grants Viewer on the photo ROOT folder to config.photoViewerEmail.
+
+   Scope is that folder and nothing else. It cannot reach a parent, a
+   sibling, or any other file in the owning account's Drive: Drive
+   permissions apply to one item and inherit downward only.
+
+   Idempotent — re-running when the account already has access makes no
+   second grant and says so. Fails loudly, because unlike a customer
+   submission there is no one to protect from the error and a human is
+   watching the log. */
+
+function shareRootFolderWithOwner()
+{
+
+    const config = getConfig();
+
+    const viewerEmail = String(config.photoViewerEmail || '').trim();
+
+    if (!viewerEmail)
+    {
+
+        const blankMessage = 'photoViewerEmail is blank in the config tab. '
+            + 'Set it to the Google account that should view lead photos, then re-run. '
+            + 'It is deliberately separate from notificationEmail and is never assumed.';
+
+        logError('shareRootFolderWithOwner', new Error(blankMessage));
+
+        throw new Error(blankMessage);
+
+    }
+
+    if (!isValidEmail(viewerEmail))
+    {
+
+        const invalidMessage = 'photoViewerEmail "' + viewerEmail + '" is not a valid email address.';
+
+        logError('shareRootFolderWithOwner', new Error(invalidMessage));
+
+        throw new Error(invalidMessage);
+
+    }
+
+    let root = null;
+
+    try
+    {
+
+        root = getPhotoRootFolder();
+
+    }
+    catch (rootError)
+    {
+
+        logError('shareRootFolderWithOwner', rootError);
+
+        throw new Error('Could not open the photo root folder: ' + describePhotoError(rootError));
+
+    }
+
+    const alreadyViewer = folderHasViewer(root, viewerEmail);
+
+    if (!alreadyViewer)
+    {
+
+        try
+        {
+
+            root.addViewer(viewerEmail);
+
+        }
+        catch (shareError)
+        {
+
+            logError('shareRootFolderWithOwner', shareError, viewerEmail);
+
+            throw new Error('Sharing failed: ' + describePhotoError(shareError));
+
+        }
+
+    }
+
+    const report = [
+        (alreadyViewer ? 'ALREADY SHARED (no change made)' : 'SHARED'),
+        '  folder    : ' + root.getName(),
+        '  folder id : ' + root.getId(),
+        '  folder url: ' + root.getUrl(),
+        '  viewer    : ' + viewerEmail + '  (Viewer — read only)',
+        '  scope     : this folder and everything inside it. Nothing above it,',
+        '              nothing beside it, no other file in this Drive.'
+    ].join('\n');
+
+    logInfo('shareRootFolderWithOwner', '\n' + report);
+
+    return report;
+
+}
+
+/* Makes the root's viewer list match photoViewerEmail: removes every
+   OTHER viewer and keeps that one. Takes no argument so it appears in
+   the Run selector, and because the swap procedure never needs to name
+   the outgoing address — set photoViewerEmail to the incoming account,
+   run shareRootFolderWithOwner(), then run this.
+
+   Blank photoViewerEmail means nobody should have access, so it
+   removes every viewer. Only ever touches the root, only ever the
+   Viewer role, and always reversible by re-running the share. */
+
+function revokeRootFolderViewer()
+{
+
+    const keep = String(getConfig().photoViewerEmail || '').trim().toLowerCase();
+
+    const root = getPhotoRootFolder();
+
+    /* Viewers only. removeViewer() has no effect on an editor, and the
+       folder's owner never appears in this list, so neither can be
+       removed by accident. */
+
+    const currentViewers = root.getViewers()
+        .map(function (user) { return String(user.getEmail()).trim(); });
+
+    const toRemove = currentViewers.filter(function (email)
+    {
+
+        return email.toLowerCase() !== keep;
+
+    });
+
+    const removed = [];
+
+    toRemove.forEach(function (email)
+    {
+
+        revokeRootFolderViewerByEmail(email);
+
+        removed.push(email);
+
+    });
+
+    const report = [
+        (removed.length ? 'REVOKED ' + removed.length + ' viewer(s)' : 'NOTHING TO REVOKE'),
+        '  folder  : ' + root.getName(),
+        '  removed : ' + (removed.length ? removed.join(', ') : '(none)'),
+        '  kept    : ' + (keep || '(none — photoViewerEmail is blank)')
+    ].join('\n');
+
+    logInfo('revokeRootFolderViewer', '\n' + report);
+
+    return report;
+
+}
+
+/* Read-only. Who can currently see the photo root, and under which
+   access mode. The quickest answer to "can the owner actually open
+   these links yet?" without opening Drive. */
+
+function listRootFolderAccess()
+{
+
+    const root = getPhotoRootFolder();
+
+    const viewers = root.getViewers().map(function (user) { return user.getEmail(); });
+
+    const editors = root.getEditors().map(function (user) { return user.getEmail(); });
+
+    const configured = String(getConfig().photoViewerEmail || '').trim();
+
+    const report = [
+        'folder      : ' + root.getName(),
+        'folder id   : ' + root.getId(),
+        'folder url  : ' + root.getUrl(),
+        'viewers     : ' + (viewers.length ? viewers.join(', ') : '(none)'),
+        'editors     : ' + (editors.length ? editors.join(', ') : '(none)'),
+        'photoAccess : ' + (getConfig().photoAccess || DEFAULT_PHOTO_ACCESS),
+        'configured  : ' + (configured || '(photoViewerEmail is blank)')
+    ].join('\n  ');
+
+    logInfo('listRootFolderAccess', '\n  ' + report);
+
+    return report;
+
+}
+
+/* ============================================================
+   PHOTO STORAGE PREFLIGHT  (run manually from the editor)
+
+   Run this on its own whenever photo upload misbehaves. It does two
+   jobs:
+
+   1. Running ANY function from the editor is what makes Apps Script
+      re-prompt for consent. photoStorage.gs was the file that first
+      introduced DriveApp to this project, and a web app deployed
+      without re-consenting carries the older scope set — every
+      DriveApp call then throws at runtime while leads.create, which
+      only needs Sheets and Mail, keeps working perfectly. That is
+      exactly the shape of "the lead arrives but the photo does not".
+
+   2. It exercises the real Drive path end to end — root folder, per
+      lead folder, sharing, file write, read back, delete — and
+      RETURNS THE ACTUAL EXCEPTION rather than the customer-facing
+      wording. Nothing here writes a lead or sends mail.
+
+   Everything it creates is deleted before it returns.
+============================================================ */
+
+function checkPhotoStorage()
+{
+
+    const steps = [];
+
+    const probeReference = 'BG-' + Date.now();
+
+    let folder = null;
+
+    try
+    {
+
+        const root = getPhotoRootFolder();
+
+        steps.push('root folder: ' + root.getName());
+
+        folder = getLeadPhotoFolder(probeReference, true);
+
+        steps.push('lead folder: created');
+
+        /* A one pixel PNG — smallest thing that proves a real byte
+           write, decode and file create, without uploading anything
+           meaningful into the owner's Drive.
+
+           It must be a genuinely supported format: this used to be a
+           GIF, which the content-signature check now correctly refuses.
+           A preflight that cannot pass the real validation would be
+           testing the wrong pipeline. */
+
+        const probe = handleAddPhoto({
+
+            referenceId: probeReference,
+
+            index: 1,
+
+            fileName: 'preflight.png',
+
+            mimeType: 'image/png',
+
+            dataBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42m'
+                + 'P8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
+        });
+
+        const probeResult = JSON.parse(probe.getContent());
+
+        if (!probeResult.success)
+        {
+
+            throw new Error('handleAddPhoto rejected the probe: '
+                + JSON.stringify(probeResult.error || probeResult));
+
+        }
+
+        steps.push('file write: ok');
+
+        const resolved = resolveLeadPhotos(probeReference);
+
+        if (resolved.failed)
+        {
+
+            throw new Error('resolveLeadPhotos failed: ' + resolved.failureReason);
+
+        }
+
+        if (resolved.urls.length !== 1)
+        {
+
+            throw new Error('expected 1 stored photo, resolved ' + resolved.urls.length);
+
+        }
+
+        steps.push('read back: ok');
+        steps.push('link: ' + resolved.urls[0]);
+        steps.push('folder link: ' + resolved.folderUrl);
+
+        /* Storage working and the owner being able to OPEN it are two
+           different things, and the first used to imply the second
+           only because the script owner ran the test. Reported here so
+           "photos upload fine" can never again be mistaken for "Chase
+           can see them". */
+
+        const viewerEmail = String(getConfig().photoViewerEmail || '').trim();
+
+        const rootViewers = root.getViewers()
+            .concat(root.getEditors())
+            .map(function (user) { return String(user.getEmail()).toLowerCase(); });
+
+        steps.push('root viewers: ' + (rootViewers.length ? rootViewers.join(', ') : '(none)'));
+
+        if (!viewerEmail)
+        {
+
+            steps.push('OWNER ACCESS: photoViewerEmail is blank — run shareRootFolderWithOwner() once it is set');
+
+        }
+        else if (rootViewers.indexOf(viewerEmail.toLowerCase()) === -1)
+        {
+
+            steps.push('OWNER ACCESS: ' + viewerEmail
+                + ' CANNOT open these links yet — run shareRootFolderWithOwner()');
+
+        }
+        else
+        {
+
+            steps.push('OWNER ACCESS: ' + viewerEmail + ' has Viewer on the root — links will open');
+
+        }
+
+        const detail = steps.join('\n  ');
+
+        logInfo('checkPhotoStorage', '\n  ' + detail);
+
+        return { ok: true, summary: 'PASS', detail: detail };
+
+    }
+    catch (preflightError)
+    {
+
+        logError('checkPhotoStorage', preflightError, probeReference);
+
+        const reason = describePhotoError(preflightError);
+
+        const detail = steps.concat(['FAILED AT THIS POINT: ' + reason]).join('\n  ');
+
+        logInfo('checkPhotoStorage', '\n  ' + detail);
+
+        return { ok: false, summary: 'FAIL — ' + reason, detail: detail };
+
+    }
+    finally
+    {
+
+        /* Best effort: the probe folder must not accumulate whether
+           this passed or failed. */
+
+        try
+        {
+
+            if (folder)
+            {
+
+                folder.setTrashed(true);
+
+            }
+
+        }
+        catch (cleanupError)
+        {
+
+            logError('checkPhotoStorage:cleanup', cleanupError, probeReference);
+
+        }
+
+    }
+
+}
+
+/* ============================================================
    SELF TEST  (run manually from the editor after deployment)
 
    Writes a lead, replays it to prove dedupe, then deletes the test
-   row. Confirms sheet write access and surfaces mail errors without
-   waiting for a real visitor.
+   row. Confirms sheet write access, exercises the real Drive photo
+   path, and surfaces mail errors without waiting for a real visitor.
 ============================================================ */
 
 function runSelfTest()
@@ -680,6 +1070,12 @@ function runSelfTest()
         errorLogSheet.deleteRow(errorRowsAfter);
 
     }
+
+    /* Drive was the one dependency this test never touched, so it
+       reported 8/8 while photo storage was completely non-functional
+       in production. It is checked here now. */
+
+    results.push('photoStorage: ' + checkPhotoStorage().summary);
 
     /* Clean up the row the create test wrote. */
 

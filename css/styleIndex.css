@@ -3624,6 +3624,31 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* Why a photo was not added — file too large, wrong type, too many.
+   Sits above the thumbnails so it is the first thing read after a
+   selection, and stays a single quiet line rather than an alert. */
+
+.photoUploadNotice
+{
+
+    margin: 0.8rem 0 0;
+
+    padding: 0.6rem 0.8rem;
+
+    font-size: 0.82rem;
+
+    line-height: 1.5;
+
+    color: var(--colorWhite);
+
+    background-color: rgba(217, 106, 91, 0.14);
+
+    border-left: 3px solid var(--colorDanger);
+
+    border-radius: 6px;
+
+}
+
 .photoPreviewGrid
 {
 

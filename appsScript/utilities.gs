@@ -513,7 +513,16 @@ function getConfig()
 
         autoReplyEnabled: 'true',
 
-        weeklySummaryDay: 'Monday'
+        weeklySummaryDay: 'Monday',
+
+        /* Drive photo access. Independent of the notification keys
+           above by design — see config.gs. */
+
+        photoAccess: DEFAULT_PHOTO_ACCESS,
+
+        photoViewerEmail: DEFAULT_PHOTO_VIEWER_EMAIL,
+
+        photoUploadsPerHour: String(DEFAULT_PHOTO_UPLOADS_PER_HOUR)
 
     };
 
