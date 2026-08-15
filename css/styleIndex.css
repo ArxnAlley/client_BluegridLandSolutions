@@ -492,6 +492,24 @@ button
 
 }
 
+/* Icon slot for any button in the system above. It inherits the
+   button's own text colour rather than carrying one, so the same
+   glyph works on the solid primary and the outlined ghost, and it
+   rides the gap the buttons already declare — dimensions unchanged. */
+
+.buttonIcon
+{
+
+    width: 17px;
+
+    height: 17px;
+
+    flex-shrink: 0;
+
+    fill: currentColor;
+
+}
+
 /* ============================================================
    ANIMATION ENGINE  (reusable — load sequence + viewport reveal)
 ============================================================ */
@@ -5806,12 +5824,18 @@ html.jsEnabled .processArrow.isResting
 
 }
 
+/* Three cards share whatever the 400px embed frame leaves of the
+   1172px content width, so a fixed repeat(3, 1fr) kept squeezing them
+   below the width their own header needs. A minimum track width lets
+   the row drop to two cards instead of crushing three; the ≤1080px
+   and ≤640px queries below still take over from there. */
+
 .facebookPosts
 {
 
     display: grid;
 
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 
     gap: 1.4rem;
 
@@ -5867,6 +5891,12 @@ html.jsEnabled .processArrow.isResting
 
 }
 
+/* flex: 1 meant flex-basis: 0, so the meta block volunteered to shrink
+   to nothing and the nowrap tag never wrapped — the author line
+   ellipsed away and the date broke mid-string, stacking "July" over
+   "8". A real basis makes the tag wrap to its own row instead, which
+   is the row that should give way. */
+
 .postMeta
 {
 
@@ -5874,7 +5904,7 @@ html.jsEnabled .processArrow.isResting
 
     flex-direction: column;
 
-    flex: 1;
+    flex: 1 1 7.5rem;
 
     min-width: 0;
 
@@ -5901,6 +5931,8 @@ html.jsEnabled .processArrow.isResting
 {
 
     font-size: 0.74rem;
+
+    white-space: nowrap;
 
     color: rgba(247, 249, 251, 0.5);
 
@@ -6242,24 +6274,61 @@ html.jsEnabled .processArrow.isResting
 
 }
 
-/* Frosted-glass secondary actions — a light translucent fill reads
-   as "glass" against the dark photo; a same-hue dark fill (the old
-   treatment) never separated from the background no matter its
-   opacity. */
+/* Outlined secondary actions, scoped to this section only — the hero
+   and the modal keep the frosted treatment. The old translucent white
+   fill read as weak next to the solid primary sitting beside it, so
+   these now carry the brand blue on their edge and fill with it on
+   hover and focus. Both states use existing tokens; no new colour. */
 
-.contactActions .buttonGhost
+.contactActions .buttonGhost,
+.contactActions .contactPhone
 {
 
-    background-color: rgba(247, 249, 251, 0.14);
+    background-color: transparent;
+
+    color: var(--colorSky);
+
+    border: 2px solid var(--colorSky);
+
+    transition:
+        border-color 0.25s var(--easePremium),
+        background-color 0.25s var(--easePremium),
+        color 0.25s var(--easePremium),
+        transform 0.25s var(--easePremium);
 
 }
 
-.contactActions .buttonGhost:hover
+.contactActions .buttonGhost:hover,
+.contactActions .buttonGhost:focus-visible,
+.contactActions .contactPhone:hover,
+.contactActions .contactPhone:focus-visible
 {
 
-    background-color: rgba(247, 249, 251, 0.2);
+    background-color: var(--colorSky);
+
+    color: var(--colorNearBlack);
+
+    border-color: var(--colorSky);
 
 }
+
+/* The section-wide focus ring is the same blue these buttons fill
+   with, so it would vanish against their focused state. Inside this
+   section the ring goes white and keeps its offset. */
+
+.contactActions .buttonGhost:focus-visible,
+.contactActions .contactPhone:focus-visible
+{
+
+    outline: 3px solid var(--colorWhite);
+
+    outline-offset: 2px;
+
+}
+
+/* Shape and type only. Colour, fill and border live in the
+   .contactActions block above, which is the one place the outlined
+   states are declared. */
 
 .contactPhone
 {
@@ -6280,26 +6349,17 @@ html.jsEnabled .processArrow.isResting
 
     letter-spacing: 0.04em;
 
-    color: var(--colorWhite);
-
-    background-color: rgba(247, 249, 251, 0.14);
-
-    border: 1.5px solid rgba(247, 249, 251, 0.4);
-
     border-radius: 10px;
 
-    transition: border-color 0.25s var(--easePremium), background-color 0.25s var(--easePremium);
+    transition:
+        border-color 0.25s var(--easePremium),
+        background-color 0.25s var(--easePremium),
+        color 0.25s var(--easePremium);
 
 }
 
-.contactPhone:hover
-{
-
-    border-color: var(--colorSky);
-
-    background-color: rgba(247, 249, 251, 0.2);
-
-}
+/* currentColor, so the glyph follows the button from blue-on-dark to
+   dark-on-blue instead of disappearing into the filled hover state. */
 
 .contactPhoneIcon
 {
@@ -6308,7 +6368,7 @@ html.jsEnabled .processArrow.isResting
 
     height: 22px;
 
-    fill: var(--colorSky);
+    fill: currentColor;
 
 }
 
