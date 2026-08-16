@@ -25,9 +25,11 @@ header and a later section disagree, this header is right.
 
 ## Current Phase
 
-**Between phases. Nothing is half-finished and the working tree is clean.**
+**LAUNCHED. Between phases, working tree clean.**
 
-**The lead pipeline is finished in the repository and not yet deployed.** The Apps Script project is a separately pasted copy (`appsScript/README.md`), so none of this session's backend work is live until someone pastes it and redeploys. Until then the production endpoint still runs the pre-split code, which cannot store a photo and knows nothing about `referenceId`. **The website must not be published ahead of that redeploy** — see *Waiting on Aron*.
+`bluegridlandsolutions.com` is live, the Apps Script is deployed, and the full estimate-with-photos path was verified in production on 2026-08-15 by a public visitor in an incognito browser.
+
+**The repository is one Apps Script version ahead of production.** `config.gs` and `validation.gs` narrowed the accepted photo formats to JPEG/PNG/WebP after that deployment. Not a vulnerability — production runs the safe superset minus one format — but the two disagree until Aron pastes and redeploys. See *Waiting on Aron*.
 
 | Phase | State |
 |---|---|
@@ -54,13 +56,17 @@ header and a later section disagree, this header is right.
 | **Estimate CTA arrival fix + notification config restore** | Complete, **superseded same day** — see below |
 | **Estimate CTAs open the modal directly** | **Complete** |
 | **Project photos renamed with locations + references repaired** | **Complete** |
-| **Live end-to-end lead test** (Aron, test recipient) | Partial — surfaced the photo defect; needs rerunning after the redeploy |
+| **Live end-to-end lead test** (Aron, test recipient) | Superseded by the production acceptance test below |
 | **Session closeout SOP** (`docs/sessionCloseout.md`, gitignored) | **Complete** |
-| **Photo storage — Drive upload, links in the Sheet and owner email** | **Complete in repo, not deployed** |
-| **Lead identifier split — internal `leadId` + customer `referenceId`** | **Complete in repo, not deployed** |
+| **Photo storage — Drive upload, links in the Sheet and owner email** | **Complete and verified in production** |
+| **Lead identifier split — internal `leadId` + customer `referenceId`** | **Complete and verified in production** |
 | **P0 SEO — service-area hub, 3 verified-proof town pages, robots, sitemap** | **Complete** |
 
-**Two launch blockers now: the Apps Script redeploy, and the production domain.**
+| **Drive access — `rootInherited`, root-folder Viewer inheritance** | **Complete; boundary verified from an external Google account** |
+| **Photo upload hardening — content signatures, caps, throttle** | **Complete in repo; production one version behind** |
+| **Production launch + public acceptance test** | **Complete 2026-08-15** |
+
+**No launch blockers remain.** The open P0 is a configuration check Aron must make in the Google Sheet — see *Waiting on Aron*.
 
 ---
 
@@ -70,8 +76,8 @@ Take the BlueGrid Land Solutions website from "built but not launchable" to prod
 
 1. ~~Repair missing functionality and broken navigation~~ — done
 2. ~~Complete missing content (service pages, service area pages)~~ — done for the first wave
-3. ~~Wire lead capture end to end (website → Apps Script → Sheet → owner email)~~ — done; verified live 2026-08-13, then rebuilt the same day to store photos and split the identifiers. **Awaiting redeploy and a fresh end-to-end test.**
-4. Final SEO, performance, and launch validation — **blocked on the domain**
+3. ~~Wire lead capture end to end (website → Apps Script → Sheet → owner email)~~ — done, and **verified in production 2026-08-15** with five photos from an incognito public submission.
+4. Final SEO, performance, and launch validation — **domain settled; `og:image` and Search Console still outstanding.** See *NEXT SESSION SHOULD START HERE*.
 
 ---
 
@@ -136,9 +142,11 @@ Every header dimension is a `:root` custom property overridden in the two header
 
 ---
 
-## Verification State — all green at `4b3df59`, re-run at closeout
+## Verification State — all green at `c4cef24`, re-run at this closeout
 
-**13 validator suites, 116/116 Apps Script harness, `node --check` clean, 72 JSON-LD blocks parse.** Page counts below are 28 since the P0 SEO pass added four.
+**14 validator suites, 178/178 Apps Script harness, `runSelfTest` 9/9, `node --check` clean, 72 JSON-LD blocks parse.** Page counts below are 28.
+
+**Two additions since the table below was written:** `validateFollowTheWork` (layout arithmetic against real Inter metrics) and `validateFrontendPhotoPolicy` (drives the shipped `addPhotoFiles()` in a mocked DOM). A **23-check upload security audit** also runs against `doPost` directly — see the 2026-08-15 journal entry.
 
 | Check | Result |
 |---|---|
@@ -156,7 +164,7 @@ Every header dimension is a `:root` custom property overridden in the two header
 | Hero before/after loop (10 min simulated) | PASS — **91 cycles alternating**, 6.16–7.01s cadence |
 | Hero typing profile (5 min simulated) | PASS — rendered cadence equals scheduled cadence exactly; **0 characters swallowed**, **0ms** write-to-paint |
 | Lead submission contract | PASS — one endpoint behind both call sites (`leads.create`, `leads.addPhotos`), payload matches schema on all 28 pages |
-| Apps Script harness | **116/116**, `runSelfTest` 8/8 |
+| Apps Script harness | **178/178**, `runSelfTest` 9/9 — deterministic over 10 consecutive runs after the `formatDate` mock fix |
 | **Photo storage + identifiers** (in the harness above) | PASS — sequential numbering with correct padding, a duplicate consuming no number, the legacy-id guard, upload idempotency, per-lead caps, MIME/size/reference gates, path separators stripped, real links in both email bodies, and a non-destructive, idempotent migration. Nine regressions injected one at a time, every one caught |
 | **Photo upload, client side** (`simulateEstimateFlow` path C) | PASS — the real uploader driven against a mocked File: bytes transmitted, filed under the same referenceId as the lead, sent **before** `leads.create`, progress moving only as the upload resolves, and a retry re-uploading nothing |
 | `node --check` (indexJS, localTestRunner) | clean |
@@ -355,7 +363,7 @@ The next number is derived from the sheet rather than a stored counter, which me
 
 **Migration.** `previewLeadIdentifierMigration()` reports the plan and writes nothing; `migrateLeadIdentifiers()` applies it. Both share one planning function so they cannot disagree. No rows are deleted, no columns removed, no other cell touched, and running it twice is a no-op. Rows it cannot interpret are reported rather than guessed at. Nothing destructive is automated — the pre-launch reset is documented as manual steps in `appsScript/README.md`.
 
-**Validated:** 12/12 validator suites and **116/116** Apps Script harness checks, with nine backend and three client regressions injected one at a time and every one confirmed caught. None of it has been seen in a browser — `technicalDebt.md` item 4g is now the largest untested-by-eye item on the site.
+**Validated at the time (2026-08-13):** 12/12 validator suites and 116/116 Apps Script harness checks, with nine backend and three client regressions injected one at a time and every one confirmed caught. **Current counts are 14 suites and 178 harness checks** — see *Verification State*. The photo path has since been exercised in production; `technicalDebt.md` item 4g is narrower than it was but most page layout still has not been seen in a browser.
 
 ### Session closeout SOP
 
@@ -368,31 +376,31 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 ## Currently In Progress
 
-**Nothing in the repository.** Working tree clean, all validators pass, `main` 5 ahead of `origin/main` and unpushed per instruction.
+**Nothing in the repository.** Working tree clean, all 14 validator suites pass, Apps Script harness 178/178. `main` is **1 ahead of `origin/main`** (commit `c4cef24`) and unpushed — Aron has not authorized a push.
 
-**One thing outside it:** the lead pipeline is finished in code and **not deployed**. The live Apps Script still runs the pre-split version. That is the next action, and it is Aron's to take — see *Waiting on Aron*.
+**One thing outside it:** production runs the previous Apps Script version. See *Waiting on Aron*.
 
 ---
 
 ## Remaining Launch Work (priority order)
 
-1. **Deploy the new Apps Script and retest end to end.** The repo-side work is done; the deployment is a separately pasted copy and nothing reaches production without it. Exact steps in *Waiting on Aron* below and in `appsScript/README.md`. **The website must not go live ahead of this** — the current site sends `referenceId`, which the deployed script would file as a stray field, and it would POST photos to an endpoint that does not exist.
-2. **Restore `config!notificationEmail` to Chase's address.** Temporarily pointed at a test recipient for the live test; no repo-level record of whether it has been restored. Verify before any further real submissions.
-3. **Settle the production domain** — blocks 5–8 below. Canonicals say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`.
-4. **Page-by-page copy and browser QA.** No session has ever had a browser. Largest untested-by-eye items: **the photo uploader on a real phone over a real connection (`technicalDebt.md` item 4g — new, and the biggest of them)**, the three mega panels side by side, the process section, the hero typing, the process board on tablet, the estimate modal's new Step 1 (five fields under a heading that still says "Where's the property?" — item 10m).
-5. ~~**`robots.txt`**~~ — **created 2026-08-13.** Allows everything; there is no admin area or staging path to exclude. Carries a TODO on the sitemap origin.
-6. ~~**`sitemap.xml`**~~ — **created 2026-08-13, 28 URLs.** Generated from the canonical tag on each page by a scratchpad script, so the two cannot drift. Regenerate rather than hand-edit after the domain sweep.
-7. **Canonical URL finalization** — 28 pages, every one `TODO:`-marked so a single sweep catches them. `sitemap.xml` and `robots.txt` regenerate from the canonicals afterwards; do not hand-edit either.
-8. **Open Graph finalization** — same 28 pages; `og:url` and `og:image` must become absolute.
-9. **Competitor and search-intent research**, feeding into **final SEO implementation** on top of the intent map already in `seoPlan.md`.
-10. **Chase review / major revision pass** — the first time the client sees the site as a whole, after the pipeline and copy are solid. Expect a real round of change requests, not a formality.
-11. **Search Console** — property verification and sitemap submission, after 3, 5, 6.
-12. **Lighthouse mobile + desktop** — hero images are full-resolution `2048×1536` with no `srcset`; Google Fonts loads render-blocking.
-13. **Production deployment**, then **production performance / analytics / Search Console testing** against the live domain.
-14. **Final production lead test, with Chase restored as the recipient** — the real go-live confirmation, after everything above.
-15. **Location pages rows 7–11** — Jackson OH, Gallipolis OH, Waverly OH, Greenup KY, Louisa KY. Build to the shipped six, not a template.
-16. **Decide West Union, OH and Flatwoods, KY** — advertised in the nav but absent from `seoPlan.md`'s 11-city table.
-17. **Google Business Profile** — none exists. `docs/phasePrompts/phase6GoogleBusinessProfile.md` holds the playbook. Marketing artwork is already being staged locally in `graphics/GBP - Services/`.
+**Rewritten 2026-08-15. Items 1, 3, 5, 6 and 13 of the old list are done — the site is live and the pipeline is verified in production.**
+
+1. **Aron's P0 config check** — `notificationEmail` and `photoViewerEmail` must both name the real accounts. See *Waiting on Aron*.
+2. **Paste `config.gs` + `validation.gs`, deploy a new Apps Script version**, and redeploy the website so both halves agree on the format policy.
+3. **`og:image` absolute-URL sweep** — still relative on all 28 pages, so Facebook link previews render without an image. `technicalDebt.md` item 12. **Highest-value self-contained work available.**
+4. **Delete the stale `TODO: Replace canonical` / `TODO: Swap og:url` comments** on all 28 pages — that work is done and the comments now mislead. Same sweep as 3.
+5. **Verify apex vs `www`** — `CNAME` is the apex, every canonical says `www`. Confirm one 301s to the other and the survivor is the one the canonicals name. `technicalDebt.md` item 12a.
+6. **Page-by-page copy and browser QA.** The estimate flow and photo uploader have now been exercised in production; most layout still has not been seen. Item 10m (Step 1's heading) sits here.
+7. **Chase review / major revision pass** — expect a real round of change requests.
+8. **Search Console** — property verification and sitemap submission.
+9. **Competitor and search-intent research** — never done, and the homepage geographic decision is waiting on it. See *Open Decisions*.
+10. **Lighthouse mobile + desktop** — hero images are full-resolution `2048x1536` with no `srcset`; Google Fonts loads render-blocking.
+11. **Tree / brush clearing page** — `technicalDebt.md` item 3b. First-party supported by Chase's own advertising and the only advertised service with no page.
+12. **Location pages rows 7-11** — Gallipolis OH, Waverly OH, Greenup KY, Louisa KY. (Jackson shipped in the P0 pass.) Build to the shipped nine, not a template.
+13. **Decide West Union, OH and Flatwoods, KY** — advertised in the nav but absent from `seoPlan.md`'s 11-city table.
+14. **Google Business Profile** — none exists. `docs/phasePrompts/phase6GoogleBusinessProfile.md` holds the playbook; artwork is staged in the gitignored `graphics/GBP - Services/`.
+15. **Commit the validator toolchain** — `technicalDebt.md` item 10i, now the most fragile thing about how this project is worked on.
 
 ---
 
@@ -409,6 +417,10 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 ---
 
 ## Deployment Handover — the exact live steps
+
+> **HISTORICAL, as of 2026-08-15.** These steps were executed and the pipeline is live and verified in production. Kept because they document the first-deployment sequence and the reset-to-`BG-0001` procedure, which will matter again if the Sheet or the script project is ever rebuilt.
+>
+> **For a routine code update, the whole procedure is:** paste the changed `.gs` files → *Deploy → Manage deployments → pencil → New version → Deploy*. A **new deployment** mints a different URL and silently breaks all 28 forms.
 
 **Everything below happens in Google, by hand. No session can do any of it, and nothing in the repo is live until it is done.** Full detail in `appsScript/README.md`; this is the ordered summary.
 
@@ -435,7 +447,9 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 - **Real project photos** — ideally before/after pairs per service, tagged by location. Would unlock galleries on all 6 location pages and replace the Insights placeholders.
 - **Owner introduction video** — section is built and video-ready; two config fields.
 - **Badge artwork typo** — the official badge reads **"FORESTRV"**, not "FORESTRY". Off the website since 2026-08-11 (`technicalDebt.md` item 2); still wrong on any print/signage that uses the old artwork.
-- **Confirm phone** `(740) 464-2526` and **business email** `estimates@bluegridlandsolutions.com` — both placeholders.
+- ~~**Confirm phone** `(740) 464-2526`~~ — **confirmed 2026-08-13**, printed on his own advertisement (`graphics/images/whatTheyDo2.jpg`). **Business email** `estimates@bluegridlandsolutions.com` is **still a placeholder** and may route nowhere.
+- **Retention period for customer photographs.** `BlueGrid Lead Photos` keeps them indefinitely and nothing deletes them. Needs a decision before it becomes a quiet liability — `technicalDebt.md` item 24i.
+- **The pre-launch review of the whole site** — the first time he sees it end to end, now that it is actually live.
 - **Confirm the Facebook page renders in the Page Plugin** → flip `facebookPageConfigured`.
 - **Google Business Profile** — does not exist; the footer icon is hidden at runtime.
 - **May we name Chase on the site?** Copy says "the owner" throughout.
@@ -445,33 +459,44 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 ## Waiting on Aron
 
-- **Deploy the new Apps Script and run the migration** — the nine ordered steps in *Deployment Handover* above. This is the single thing standing between the finished code and a working pipeline.
-- **Decide `photoAccess` if the default misbehaves.** It defaults to `ownerEmail`, which shares each lead's photo folder view-only with `notificationEmail`. If Chase opens a link and hits a permission wall, change that one config cell to `anyoneWithLink` — no redeploy. `technicalDebt.md` item 24d.
-- **Restore `config!notificationEmail` to Chase's address** and confirm it — see Blocker 2.
-- **Get four claims confirmed or corrected by Chase** — see `technicalDebt.md` item 3a, which lists exactly what his own advertising does and does not support. The two that need him: whether he can commit to any estimate turnaround (the site's remaining hedged "most quotes within 24 hours" instances rest on nothing), and whether "we send a certificate of insurance before the machine leaves the shop" is accurate. Also still outstanding: the business email `estimates@bluegridlandsolutions.com`, which appears on no artwork and may route nowhere.
-- **Domain decision** — Blocker 3.
-- **A browser pass** on phone / tablet / desktop — see *Remaining Launch Work* item 4.
-- **Confirm the nav decision.** The 2026-08-04 brief spelled the resulting order out as four items, which excluded *Before & After*, so it was removed from the primary nav. It stays reachable from the homepage hero CTA and the footer Quick Links. **If a five-item nav was intended, restoring it is a one-line change** — the "Our Company" item already added a fifth.
-- **Decide whether to delete `phase2a-lead-capture`.** It is fully merged into `main`; it was kept deliberately.
-- **Redeploy discipline:** always *Deploy → Manage deployments → edit → New version*. A **new deployment** mints a different URL and silently breaks all 28 forms.
+**One of these is a P0 and the rest are not.**
+
+- **P0 — confirm `notificationEmail` and `photoViewerEmail` in the `config` tab both name the real accounts.** Acceptance testing deliberately used a *test recipient* for estimate email and a *separate test Google account* for Drive viewing. If either is still a test address the system looks perfectly healthy while Chase receives nothing, or cannot open a single photo. **Neither is verifiable from this repository.** Run `listRootFolderAccess()` from the Apps Script editor and read the config tab. Two minutes, and nothing else on this list matters until it is done.
+- **Paste `config.gs` and `validation.gs`, then deploy a new version.** The repo narrowed the accepted formats to JPEG/PNG/WebP; production still accepts HEIC until this is done. Not a vulnerability — the live policy is the safe superset minus one format — but repo and production disagree. *Deploy → Manage deployments → pencil → New version.* A **new deployment** mints a different URL and silently breaks all 28 forms.
+- **Redeploy the website** if the format change should take effect there too — `js/indexJS.js` changed. Ship both halves together so the front end and the API agree.
+- **Decide the homepage geographic target.** An audit was delivered 2026-08-15 recommending the homepage stay regional; Aron has neither accepted nor rejected it. See *Open Decisions* below.
+- **Get four claims confirmed or corrected by Chase** — `technicalDebt.md` item 3a lists exactly what his own advertising does and does not support. The two needing him: whether he can commit to any estimate turnaround, and whether the certificate-of-insurance sentence is accurate. Also still open: `estimates@bluegridlandsolutions.com`, which appears on no artwork and may route nowhere.
+- **A real browser pass** on phone, tablet and desktop. Parts of the site have now been seen — the estimate flow and the photo uploader were exercised in production — but most layout still has not.
+- **Decide whether to delete `phase2a-lead-capture`.** Fully merged into `main`, kept deliberately.
 
 ---
 
-## Planned Next Session
+## Open Decisions — recorded, not implemented
 
-**Depends on two answers: has the Apps Script been deployed, and has the domain been settled?**
+**1. Homepage geographic target.** Audited 2026-08-15 in response to a proposal to make Wheelersburg the homepage's primary signal. Recommendation: **keep the homepage regional.** There is no Wheelersburg page; Portsmouth already claims Wheelersburg in copy *and* FAQ schema; the homepage is the only page holding the two-state region; and `LocalBusiness` declares 12 counties with no address. The proposed eyebrow was rejected; the proposed supporting copy was approved for adding "land clearing", which is absent from the eyebrow today. **Full reasoning in the 2026-08-15 journal entry. Aron has not ruled.**
 
-- **If Aron has deployed and retested the pipeline:** act on what the real submission showed. Expect at least one thing to need adjusting on a real device — photo orientation, upload time on a weak connection, or Drive link permissions (item 24d) are the three most likely, and all three are cheap to change.
-- **If the domain is settled:** run the domain sweep. It is one pass over 28 pages of `TODO:`-marked canonicals and `og:url`/`og:image`, then **regenerate `robots.txt` and `sitemap.xml` rather than hand-editing them** — the sitemap is generated from the canonicals precisely so the two cannot drift.
-- **If neither:** the self-contained work is the tree/brush clearing page (debt item 3b — first-party supported by Chase's own advertising, and the only advertised service with no page), the duplicate FAQ question (item 10a), Step 1's heading (item 10m), or mega-menu current-page highlighting (item 19).
+**2. Competitor and search-intent research has never been done.** It is item 9 of the old Remaining Launch Work list and remains outstanding. **There is no search-volume, keyword-difficulty or competitor data anywhere in this repository** — the only prioritisation rationale ever recorded is one unquantified line in `seoPlan.md`. Any further geographic or keyword decision is being made without it.
 
-**Do not re-implement the photo, identifier, or P0 SEO work.** All three are complete in the repository. If something looks wrong, it is either a deployment step that has not run or a real defect found on a device — diagnose which before changing code.
+**3. Customer photo retention.** `BlueGrid Lead Photos` accumulates customer photographs and names indefinitely. Nothing deletes them and **nothing should be added that does** until a period is agreed with the client. `technicalDebt.md` item 24i.
 
-# NEXT SESSION SHOULD START HERE
+**4. Whether to re-accept HEIC.** Removed 2026-08-15. Watch early live traffic for iPhone users bouncing off the on-screen instruction. Two-line reversal. `technicalDebt.md` item 24h.
 
-1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. Multiple prior sessions have found this file's own header stale (commit hash, ahead/behind count, remote URL) within a day of being written; verify everything in the header block against `git` directly rather than trusting it.
-2. **Verify current Git/repository state** — branch, HEAD, `main` vs `origin/main` (check both directions; `origin/main` moved without a session recording it once already), remote URL, working tree, page count. Expect `main`, clean, **24 pages**. **Also run `git status` before trusting any hardcoded config value in `appsScript/`** — item 10l found one file with an uncommitted, undocumented edit sitting in the working tree.
-3. **The validator toolchain is not in the repository.** It lives in a scratchpad and has been carried forward by hand between sessions. It is `validateSite`, `validateNav`, `validateHeader`, `validateHero`, `validateLeadFlow`, `validateMegaMenus`, `validateProcessSequence`, `validateSeo`, `validateFloatingCta`, `validateEstimateCtas`, `simulateEstimateFlow`, `heroLoopHarness`, `validateAssets` — **thirteen suites**, named so the count in this line can be checked against the list rather than trusted on its own — plus `measureHeader`, `measureProcessFit`, the guarded assemblers, and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, **116 checks**) is committed and separate from all of this. **Locate the scratchpad toolchain before starting work, and re-run all thirteen suites plus the Apps Script harness to establish a baseline before changing anything.** `validateLeadFlow` and `simulateEstimateFlow` were both rewritten on 2026-08-13 for the new contract; an older copy would assert the pre-split architecture and pass a broken build.
-4. **Ask whether the Apps Script has been deployed** before planning anything that touches the pipeline. The repo and production genuinely disagree until it has, and *Planned Next Session* above branches on the answer.
-5. **`docs/sessionCloseout.md` exists locally and is gitignored — do not commit it, and do not recreate it if it's already there.**
-6. **Do not start Remaining Launch Work items below the deployment until the domain is settled** — several would be done twice otherwise.
+---
+
+## NEXT SESSION SHOULD START HERE
+
+1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. This file's header has been found stale within a day of being written more than once; verify it against `git` rather than trusting it. **Commit hashes recorded before 2026-08-15 no longer resolve** — history was rewritten during the production deployment.
+
+2. **Verify Git state.** Expect `main`, working tree clean, HEAD `c4cef24`, **1 ahead of `origin/main`** and 0 behind. Check both directions with `git rev-list --left-right --count origin/main...HEAD`; `origin/main` has moved without a session recording it before. **`c4cef24` is unpushed and Aron has not authorized a push.**
+
+3. **Locate the validator toolchain — it is still not in the repository.** It lives in a session scratchpad, carried forward by hand. **Fourteen suites:** `validateSite`, `validateAssets`, `validateSeo`, `validateNav`, `validateMegaMenus`, `validateHeader`, `validateHero`, `validateFloatingCta`, `validateEstimateCtas`, `validateLeadFlow`, `validateProcessSequence`, `simulateEstimateFlow`, `validateFollowTheWork`, `validateFrontendPhotoPolicy` — named so the count can be checked against the list rather than trusted. Plus `measureHeader`, `measureProcessFit`, the guarded assemblers and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, **178 checks**) *is* committed. **Re-run everything to establish a baseline before changing anything.** `technicalDebt.md` item 10i still recommends committing the validators, and this is now the single most fragile thing about how the project is worked on.
+
+4. **Ask whether Aron has done the P0 config check** (first item under *Waiting on Aron*) before planning anything touching the pipeline.
+
+5. **The highest-value self-contained work available is `og:image`** — still relative on all 28 pages, so every Facebook link Chase posts renders without an image, on a site whose stated distribution channel is Facebook. `technicalDebt.md` item 12. One mechanical sweep; `validateAssets` will not catch it because relative paths resolve locally.
+
+6. **Other self-contained work, in rough value order:** the tree/brush clearing page (item 3b — first-party supported, the only advertised service with no page), apex-vs-www verification (item 12a), a reporting-only `listOrphanPhotoFolders()` (item 24c), the duplicate FAQ question (10a), Step 1's heading (10m), mega-menu current-page highlighting (19).
+
+7. **Do not re-implement the photo, identifier, access-control or P0 SEO work.** All four are complete in the repository and three of them are verified in production. If something looks wrong, determine whether it is a deployment step that has not run before changing code.
+
+8. **`docs/sessionCloseout.md` exists locally and is gitignored — do not commit it, and do not recreate it if it is already there.**

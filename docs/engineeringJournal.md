@@ -114,6 +114,207 @@ that is decided with the client.**
 
 ---
 
+## 2026-08-15 — HOMEPAGE GEOGRAPHIC TARGET: AUDIT ONLY, NO CODE CHANGES
+
+Aron asked whether the homepage should target Wheelersburg, Portsmouth, another
+market, or stay regional. Audit only — nothing was modified. Recorded here
+because the finding matters more than the recommendation.
+
+**There is no search-volume, keyword-difficulty or competitor data in this
+repository.** `projectState.md`'s Remaining Launch Work item 9 —
+*"Competitor and search-intent research"* — has never been done. The only
+prioritisation rationale ever written down is one unquantified line in
+`seoPlan.md`: *"priority = market size + proximity to home base."* So the
+decision was being taken without the research scheduled to inform it, and no
+volume figures were invented to fill the gap.
+
+What the repo does prove:
+
+- The homepage carries **no city-level signal anywhere** — title, description,
+  H1, eyebrow, hero copy, OG and schema are all region- or county-level. That
+  is deliberate: the intent map assigns it "region-wide", and `LocalBusiness`
+  declares 12 counties with no address and no coordinates.
+- **There is no Wheelersburg page.** Six mentions exist, none of them a page.
+- **Portsmouth already claims Wheelersburg**, in rendered copy *and* FAQ
+  schema: *"Do you cover Wheelersburg, Lucasville, and Minford?" — "Yes."*
+- `validateSeo`'s `intentKey()` strips only **state**-level geography, so a
+  city on the homepage H1 would collide with nothing and the build would stay
+  green. **The mechanical anti-cannibalisation guard does not cover this
+  decision** — worth knowing before trusting it.
+- Photograph provenance, the only hard local-relevance evidence: Minford 11,
+  Jackson 2, Piketon 1, **Wheelersburg 0**, Portsmouth 0.
+
+Recommendation given: keep the homepage regional; leave the nine town pages
+owning their cities; leave Wheelersburg absorbed inside Portsmouth until it
+earns a page the way Minford, Piketon and Jackson did — with completed work
+and photographs. The proposed eyebrow was rejected, the proposed supporting
+copy approved for adding "land clearing" (the site's second money term, absent
+from the eyebrow today).
+
+**Aron has not accepted or rejected this yet.** Open decision, carried in
+`projectState.md`.
+
+---
+
+## 2026-08-15 — UPLOAD HARDENING: CONTENT SIGNATURES, CAPS, THROTTLE
+
+**Commit `1358b6a`** — 12 files, 2,444 insertions.
+
+### The vulnerability was that mimeType was a claim
+
+`validatePhotoPayload` checked `payload.mimeType` against an allowlist. That
+string comes from the browser, and `leads.addPhotos` is public and anonymous —
+so a direct POST could declare `image/jpeg` and send base64 of anything. An
+executable, an SVG carrying script, an HTML page, a ZIP: all stored in Drive
+under a `.jpg` name. SVG and HTML were "blocked" only by an allowlist the
+attacker controls.
+
+Not a website XSS vector — nothing is served from the site — but it made the
+studio's Drive an anonymous dropbox and put a payload one click from Chase.
+
+**The fix is to read the bytes.** `PHOTO_CONTENT_SIGNATURES` matches leading
+bytes; `REJECTED_CONTENT_SIGNATURES` names fourteen threat classes so a
+rejection is logged as what it actually was rather than a shrug.
+
+Three nuances that took thought:
+
+- **A missing `mimeType` is not fatal** when the bytes are a real image.
+  Android pickers and drag-and-drop routinely send none.
+- **A wrong-but-still-image type** (PNG announced as JPEG) is stored as what
+  the bytes are, and the disagreement logged. Rejecting it would invent a way
+  for honest uploads to fail without stopping an attacker, who would simply
+  claim `image/jpeg`.
+- **A non-image type** is refused outright even over valid photo bytes.
+  Nothing legitimate does that.
+
+### The aggregate cap had to come from Drive
+
+Each photo is its own POST, so no single request can see the total and a
+client-reported running total is worth nothing. `summarizeFolderContents()`
+sums what the lead folder already holds. An unreadable file size charges the
+per-photo maximum rather than counting as zero — otherwise one unreadable file
+silently raises the ceiling.
+
+### The throttle bounds damage, not attackers
+
+Apps Script gives a web app **no client IP**, so per-caller limiting is
+impossible. A `referenceId` is just `BG-<timestamp>`, trivially minted, so the
+per-lead caps bound one lead and not one attacker. The residual risk is filling
+the owning account's Drive. `photoUploadsPerHour` is a blunt global ceiling
+that fails **open** — a cache outage must not stop a real customer, and every
+per-lead cap still applies.
+
+### What the tests proved, and one that didn't
+
+Every threat was posted straight at `doPost`. One test I wrote was wrong and
+the code was right: a leak check searching for `"at "` to catch stack frames
+failed on the word **"That"** in a clean message. A test that rejects correct
+behaviour is worse than no test.
+
+The throttle test looked like it passed. It did not — see the 2026-08-15
+acceptance entry.
+
+---
+
+## 2026-08-15 — DRIVE ACCESS: rootInherited + THE OAUTH MANIFEST
+
+Same commit as above; separated here because it is a different decision.
+
+### Photo upload failed in production while leads succeeded
+
+Symptom: the lead arrived, the owner email said *"1 attached, but the upload
+did not complete."* The cause was **three layers each swallowing the Drive
+exception** — `handleAddPhoto` caught it, the frontend discarded the returned
+reason entirely, and `resolveLeadPhotos` returned an empty result
+*indistinguishable from "the customer attached nothing"*.
+
+`runSelfTest` reported 8/8 throughout, because it contained **zero Drive
+references**. Both test layers were structurally blind to it.
+
+### The actual fault was an OAuth scope, and the manifest is the fix
+
+`photoStorage.gs` was the file that first introduced `DriveApp`. Deploying a
+new web-app *version* does not re-prompt for newly required scopes, so the
+deployment kept its older scope set: Sheets and Mail worked, every `DriveApp`
+call threw.
+
+**Declaring `oauthScopes` explicitly replaces the auto-derived set rather than
+adding to it**, so the manifest had to name every scope, not just the missing
+one. Audited from the code — three, each taken from the relevant Apps Script
+reference page rather than memory:
+
+| Scope | Why the narrower option does not work |
+|---|---|
+| `.../auth/drive` | `drive.readonly` is the only narrower scope `DriveApp` accepts, and every operation here writes |
+| `.../auth/spreadsheets` | `spreadsheets.currentonly` would break `getSpreadsheet()`'s `openById` fallback |
+| `.../auth/script.send_mail` | already the narrow one; `GmailApp` would have forced `mail.google.com` |
+
+Nothing else needs a scope. `Session.getScriptTimeZone()` — the only `Session`
+call — requires none; had it been `getActiveUser()` this would also need
+`userinfo.email`.
+
+### rootInherited replaced per-lead sharing
+
+The old model called `addViewer()` on **every lead folder**: a sharing
+operation per estimate, a potential Drive notification per customer, one
+*Shared with me* entry per lead forever, and one more thing to fail silently on
+the submission path. One Viewer grant on the root replaces all of it, and
+inheritance does the rest.
+
+The security boundary is identical either way — Drive permissions apply to one
+item and inherit **downward only**, so the root grant exposes that folder and
+its descendants and nothing above or beside it. What changes is the number of
+moving parts.
+
+`photoViewerEmail` is deliberately **separate from `notificationEmail`**: they
+answer different questions, and during acceptance testing they were genuinely
+different addresses.
+
+### A correction worth recording
+
+The three admin helpers were first written into `photoStorage.gs` and did not
+appear in the Apps Script Run dropdown. The code was fine — all three were
+top-level, the file parsed, braces balanced. **The editor lists the functions
+of the file currently open, and skips functions that declare parameters.** They
+moved to `Code.gs` beside every other editor-run function, and
+`revokeRootFolderViewer` became zero-argument. My error, not a platform quirk.
+
+---
+
+## 2026-08-14 — TARGETED VISUAL QA CORRECTION PASS
+
+**Commit `1012f44`** — 29 files, +363/−769. Corrections from Aron's own browser
+inspection; no SEO architecture touched.
+
+**"Talk to the Owner" now dials.** It pointed at the estimate form, duplicating
+"Free Estimate". Now a `tel:` link bound to `businessConfig`, with the header's
+existing phone glyph reused through a new `.buttonIcon` primitive.
+
+**The Follow the Work defect had a precise cause.** `.postMeta` carried
+`flex: 1` — flex-basis `0` — so it volunteered to shrink to nothing while the
+`nowrap` tag never wrapped. Modelling the pre-fix CSS with real Inter metrics
+showed the meta column getting **6.2px against a 47px date**, which is why
+"July 8" broke into "July" over "8". Three declarations fixed it; verified
+across 13 viewports.
+
+**Two factual defects found while working, both fixed.** The third
+transformation card claimed *"Dusk in Greenup County, KY"* over a daylight
+photograph the filename places in **Minford, Ohio**. And the mobile drawer
+still routed Jackson to an anchor while omitting Minford and Piketon entirely
+— three P0 SEO pages unreachable from mobile navigation on all 28 pages.
+
+**Company dropdown reduced 6 rows to 4.** "Areas We Serve" and "Questions &
+Answers" each duplicated a dedicated top-level destination. The guarded script
+initially refused to write because the Company *page* also carries a body
+"Questions & Answers" card linking to the FAQ — in-body internal linking, not
+navigation, and correctly left alone. The guard earning its keep.
+
+**`validateMegaMenus` failed and was updated rather than weakened**: it hard-
+codes the Company panel's row count as a design contract. 6 → 4, with the
+reason written in. Panel height spread moved 24% → 36% against a 45% gate.
+
+---
+
 ## 2026-08-13 — P0 SEO IMPLEMENTATION
 
 **Commit `4b3df59`** — 33 files, 8,786 insertions.

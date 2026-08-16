@@ -1,6 +1,10 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-13 (session closeout after P0 SEO implementation — first-party claim evidence found in the client's own advertising; earlier same day: project photos renamed with locations; asset references repaired, asset validator added) (earlier same day: lead pipeline finalization — photo storage built, identifiers split; items 24 and 24a resolved, new photo-related debt recorded)
+**Last updated:** 2026-08-15 (closeout after production launch, upload hardening and the Drive access rework)
+
+**Resolved this closeout:** items 1 (domain), 11 (robots/sitemap), 24d (photo access — now `rootInherited`, externally verified).
+**Newly opened:** 12a (apex vs www), 24g (header-only content validation), 24h (HEIC removed — watch traffic), 24i (retention policy).
+**Sharpened:** 12 (`og:image` still relative on all 28 pages — the highest-value open item), 24b (worst case 96MB → 25MB), 24c (orphan reclamation).
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -8,10 +12,10 @@ Known debt, deferred work, and intentional trade-offs. Items are ordered by laun
 
 ## High Priority
 
-### 1. Production domain undecided
-**The only outright launch blocker.**
-Canonical tags say `https://www.bluegridlandsolutions.com/`; `CNAME` says `bluegridlandsolutions.nulostudio.com`. They disagree.
-Gates canonical URLs and `og:url` on **all 24 pages** (29 once the second location wave ships), plus `sitemap.xml` and `robots.txt` — neither exists. Settle it *before* writing the SEO files or the work is done twice. Every affected tag carries a `TODO:` comment so one sweep catches all of them.
+### 1. ~~Production domain undecided~~ — **RESOLVED 2026-08-15**
+`bluegridlandsolutions.com` is live and serving. `robots.txt` and `sitemap.xml` both exist (**28 URLs**, matching the 28 tracked HTML pages).
+
+**What may still be outstanding inside this item:** the canonical / `og:url` / `og:image` sweep was TODO-marked across every page head when the domain was undecided. Whether those TODOs were cleared during the production deployment is **not verifiable from this repository** — the deployment happened outside any recorded session. **Next session: grep for `TODO: Replace canonical` and `TODO: Swap og:url` and confirm.** See items 10k and 12, which were both explicitly deferred *to* this sweep.
 
 ### 2. ~~Badge artwork typo — "FORESTRV"~~ — OFF THE WEBSITE 2026-08-11
 The old badge (`bluegridBadge400.png`, `bluegridBadge192.png`) reads **"FORESTRV MULCHING & LAND CLEARING"** on its bottom arc, a V where the Y should be. Verified 2026-08-02 against the actual PNG.
@@ -116,7 +120,7 @@ Each cost FAQ instead answers with the factors that move the price on that count
 **Fix: get rough per-acre or per-day ranges from Chase.** The single highest-value upgrade available, and it costs one conversation.
 
 ### 8. Thin photo library
-13 images total for **24 pages**. Several are reused across service pages, location heroes, Insights heroes, and galleries.
+13 images total for **28 pages**. Several are reused across service pages, location heroes, Insights heroes, and galleries.
 Consequences already visible: two service pages (`stormCleanup`, `huntingPropertyPrep`) and **all 6 location pages** ship with no gallery, because no photo can be honestly captioned to a named town; and all 8 Insights pages use stand-in imagery (item 9).
 Needs a real photo drop — ideally before/after pairs per service, **tagged by where they were taken**.
 
@@ -173,7 +177,7 @@ Checked properly — every rendered title on all eight boards, uppercased as `te
 `origin` now points at `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, verified via `git remote -v`. No session recorded here ran the fix, and `origin/main` was also found to have moved ahead by a push this repository's history doesn't show — both point to activity happening outside these sessions, which is fine, just worth knowing the working tree isn't the only place this project changes.
 
 ### 10i. The validator toolchain lives outside the repository
-Thirteen suites, the guarded assemblers, the font-metric models, the copy-rewrite tables, the SEO intent checks, and now the estimate-CTA checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
+Fourteen suites (thirteen, plus validateFrontendPhotoPolicy added 2026-08-15), the guarded assemblers, the font-metric models, the copy-rewrite tables, the SEO intent checks, and now the estimate-CTA checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
 `projectState.md` tells the next session to locate it first, which is a mitigation rather than a fix. The reason it is out of the repo is item 17's decision not to ship half a generator; that reasoning covers the assemblers and does **not** obviously cover the validators.
 **Fix: commit the validators.** They are read-only over the site, they have no dependencies, and they would make the repository self-checking.
 
@@ -197,11 +201,23 @@ Three questions had already drifted before 2026-08-11 and were fixed; the copy s
 `seoPlan.md` specifies `provider` as an `@id` reference to the homepage `LocalBusiness`. What ships is an inline stub (`name`, `telephone`, `url`) on 13 pages. It is valid and does not create competing entities, so it was left alone.
 **Deliberately deferred to the domain sweep:** an `@id` is a URL, and adding 13 more production-domain-dependent values before the domain is settled would mean writing them twice. Do this in the same pass as item 1.
 
-### 11. `robots.txt` and `sitemap.xml` do not exist
-Deferred by instruction. Both depend on item 1. The sitemap needs **24 URLs**.
+### 11. ~~`robots.txt` and `sitemap.xml` do not exist~~ — **RESOLVED 2026-08-13**
+Both exist. Sitemap carries **28 URLs**, matching the 28 tracked HTML pages, generated from the canonical tag on each page so the two cannot drift. Regenerate rather than hand-edit.
 
-### 12. Open Graph not finalized
-`og:image` and `og:url` use relative or placeholder-domain paths across all **24 pages**. OG images must be absolute to render in Facebook/iMessage previews. TODO-marked in every page head.
+### 12. Open Graph images are still relative on all 28 pages — **STILL OPEN, verified 2026-08-15**
+`og:url` **is** finalized: all 28 pages carry an absolute `https://www.bluegridlandsolutions.com/...`.
+
+`og:image` is **not**. Measured this closeout: 27 pages use a `../graphics/...` relative path and 1 uses `graphics/...`. **Open Graph images must be absolute or the preview does not render** — a relative path is meaningless to Facebook's crawler.
+
+**This matters more for this client than the generic case.** BlueGrid's stated distribution channel is Facebook: the site links to the page in the header, footer, a dedicated section and the final CTA. Every link Chase posts will currently render without an image.
+
+**Fix:** one sweep prefixing `https://www.bluegridlandsolutions.com/` and flattening the `../`. Cheap, mechanical, and `validateAssets` will not catch it because the relative paths *do* resolve locally — that is exactly why it survived.
+
+**Also stale, same sweep:** all 28 pages still carry `<!-- TODO: Replace canonical ... -->` and `<!-- TODO: Swap og:url ... -->` comments whose work is already done for canonical and `og:url`. Delete the comments so the next reader is not misled into re-doing finished work.
+
+### 12a. Apex vs `www` — direction unverified
+`CNAME` is `bluegridlandsolutions.com` (apex). Every canonical, `og:url` and the `robots.txt` sitemap line point at `https://www.bluegridlandsolutions.com/` (**www**). Confirmed this closeout that `https://www.bluegridlandsolutions.com/` **does serve the real site**, so this is not broken — but which host is canonical and which redirects was **not** verifiable from here.
+**Next session or Aron:** `curl -I` both hosts and confirm one 301s to the other, and that the survivor is the one the canonicals name. Split host signals are a slow, quiet SEO cost.
 
 ### 13. Chase owner introduction video missing
 The section is built, video-ready, and ships a polished placeholder. Supplying it is a two-field config change — `introVideoUrl` + `introVideoConfigured` — with YouTube, Vimeo, and self-hosted all supported. No code debt; purely awaiting the asset.
@@ -221,7 +237,7 @@ Google does not require dates, but they help freshness signals and readers use t
 
 ## Low Priority
 
-### 17. Shared chrome is duplicated across 24 pages
+### 17. Shared chrome is duplicated across 28 pages
 Header, mobile drawer, estimate modal, footer, and floating actions are copied into every page — roughly 900 lines × 24. Inherent to a no-build static site.
 Mitigated: interior pages are generated by guarded assemblers, not hand-copied, and `applyBusinessConfig()` drives phone/email/social from one place at runtime. **A nav change now requires editing 24 files** — this session's two chrome passes each needed a scripted, guarded run to be safe. See *Consider a build step*.
 
@@ -231,9 +247,9 @@ Three separate one-shot generators have independently hit this — the second on
 It belongs in the Phase 13 generator rather than in each script's memory.
 
 ### 19. Current page is not highlighted in the mega menus
-`servicePageArchitecture.md` (Shared Template Anatomy, row 1) specifies it. Not implemented — the header block is byte-identical across all 24 pages. Confirmed at closeout: no `aria-current` or current-state class exists in either `js/indexJS.js` or `css/styleIndex.css`.
+`servicePageArchitecture.md` (Shared Template Anatomy, row 1) specifies it. Not implemented — the header block is byte-identical across all 28 pages. Confirmed at closeout: no `aria-current` or current-state class exists in either `js/indexJS.js` or `css/styleIndex.css`.
 Now that all four panels share `.megaRow`, this is **one rule and one small routine for the whole system** rather than four implementations: mark the row whose `href` resolves to `window.location.pathname` and style `.megaRow[aria-current]`.
-**Not done alongside the Our Company work on 2026-08-09**, though this note suggested it — that pass was held to its two stated objectives. Still worth doing, and now covers four panels and 24 pages.
+**Not done alongside the Our Company work on 2026-08-09**, though this note suggested it — that pass was held to its two stated objectives. Still worth doing, and now covers four panels and 28 pages.
 
 ### 20. ~~The 1150px header headroom is about to be spent~~ — SPENT AND RE-BUDGETED 2026-08-09
 "Our Company" cost **144px including its gap**. The compact header went 988px → **1131px** and full spacing 1080px → **1236px**.
@@ -277,19 +293,41 @@ Photos now upload to Drive before the lead is created, and the owner's notificat
 ### 24a. ~~Lead identifier has no internal/customer-facing split~~ — **RESOLVED 2026-08-13**
 `leadId` is now internal and sequential (`BG-0001`), server-assigned inside the existing `LockService` section and *after* the dedupe check; `referenceId` is the customer-facing long id the browser mints and the key create dedupes on. Both are columns in the sheet. See the journal entry.
 
-### 24b. `leads.addPhotos` is a public endpoint that writes to the owner's Drive
-Public for the same reason `leads.create` is: the browser posting photos cannot hold a secret. It is bounded — a well-formed `referenceId` no older than 24 hours, an allowed image MIME type, 8MB per file, 12 files per lead — but bounded is not the same as closed. A determined script can mint valid recent references and write up to 96MB per reference into `BlueGrid Lead Photos`.
-**Why it was accepted:** every alternative costs more than it saves. A shared secret in the page is not a secret; a server-issued upload token needs a round trip before the visitor can attach anything; a CAPTCHA on a rural contractor's estimate form costs real leads. The caps make abuse tedious and slow rather than free.
-**Watch for:** unexplained growth in `BlueGrid Lead Photos`, or folders whose `referenceId` matches no row in `leads`. If it ever happens, the cheapest fix is a scheduled trigger that deletes folders with no matching lead older than a few days.
+### 24b. `leads.addPhotos` is a public endpoint that writes to the owner's Drive — **substantially reduced 2026-08-15**
+Still public, for the same reason `leads.create` is: a browser cannot hold a secret. The bounds are now much tighter — **5 files per lead, 8MB each, 25MB aggregate, JPEG/PNG/WebP verified by content signature, a 24-hour reference window, and a 120-upload/hour global ceiling.** Worst case per reference fell from **96MB to 25MB**.
 
-### 24c. Abandoned submissions leave orphan photo folders
-Photos upload before the lead row is written, which is what lets the owner's email carry links. A visitor who attaches photos, presses Submit, and then closes the tab mid-upload leaves a folder with no lead behind it.
-Rare, harmless, and cheap to clean by hand. Deliberately not automated: a routine that deletes Drive folders on a schedule is a routine that can delete a real customer's photos if its "has no lead" test is ever wrong. Worth building only alongside 24b, and with a dry-run mode.
+**The residual is unchanged in kind:** a `referenceId` is `BG-<timestamp>` and trivially minted, so the per-lead caps bound one lead, not one attacker. Apps Script exposes **no client IP**, so per-caller limiting is impossible and the hourly ceiling is the only global brake. It fails **open** on a cache outage, deliberately — a cache failure must not stop a real customer.
 
-### 24d. `photoAccess` defaults assume the notification address can be granted Drive access
-The default `ownerEmail` shares each lead's folder, view-only, with whatever `config!notificationEmail` holds. That is the mode that works regardless of which Google account owns the script — but it has never been exercised against the real accounts.
-Two ways it can be wrong in practice: if the script owner and `notificationEmail` are the same account, `addViewer` throws (swallowed, and no grant was needed anyway); if the owner reads mail on an address that cannot be added as a Drive viewer, the links will open a permission wall.
-**Fix if it happens:** set `photoAccess` to `anyoneWithLink` in the config tab. No redeploy. Documented in `appsScript/README.md`.
+**Watch for:** unexplained growth in `BlueGrid Lead Photos`, or folders whose `referenceId` matches no row in `leads`.
+
+### 24c. Abandoned and orphaned photo folders — no reclamation
+Unchanged, and now the main residual of 24b. Photos upload before the lead row is written, so an abandoned submission — or a minted reference that never becomes a lead — leaves a folder with no lead behind it. Nothing reclaims that space.
+
+Deliberately not automated: a routine that deletes Drive folders on a schedule is a routine that can delete a real customer's photographs if its "has no lead" test is ever wrong.
+
+**Recommended next step, not implemented:** a **reporting-only** `listOrphanPhotoFolders()` beside the other editor-run admin helpers in `Code.gs`. Read-only, no deletion, no schedule. Decide on deletion only after seeing what it actually reports.
+
+### 24d. ~~`photoAccess` defaults assume the notification address can be granted Drive access~~ — **RESOLVED 2026-08-15**
+The `ownerEmail` mode this described no longer exists. Access is now `rootInherited`: one Viewer grant on the `BlueGrid Lead Photos` root, applied once by `shareRootFolderWithOwner()`, inherited by every lead folder and photo. **Customer submissions perform no Drive sharing call at all.**
+
+`photoViewerEmail` is a separate config key from `notificationEmail` precisely so the two can differ — which they did throughout acceptance testing.
+
+**Verified externally 2026-08-15, and this is the part that had never been true before:** Aron tested with a **separate real Google account**. Unauthorized account → Google denied access. Authorized account → the same links opened. Both halves of the boundary exercised. Attributed to Aron's manual test; not provable from this repository.
+
+### 24g. Content validation checks headers, not full image structure
+`detectPhotoContentType()` decodes the first 48 bytes and matches magic numbers. A file with a valid JPEG header and arbitrary bytes appended passes.
+
+**Accepted deliberately.** Full image parsing is not available in Apps Script without adding infrastructure, which is out of scope by instruction. This stops every practical disguised-file attack — executable, script, markup, archive, document — and is not a malware scanner. Do not let a future session mistake it for one.
+
+### 24h. HEIC removed — watch early live traffic
+JPEG/PNG/WebP only as of 2026-08-15. iPhones on the default *Most Compatible* setting send JPEG, so this should be invisible; iPhones set to *Current*, and Files-app picks, will now be refused with on-screen instructions to change the setting.
+
+**This is the one refusal a real customer is likely to hit.** If early submissions show people bouncing off it, re-accepting is two lines — `image/heic` back into `ALLOWED_PHOTO_MIME_TYPES` and its `PHOTO_CONTENT_SIGNATURES` entry restored — at the cost of reintroducing the only brand-allowlist signature rule and the only format that bypasses browser downscaling.
+
+### 24i. Customer photo retention — **unresolved policy decision, deliberately unimplemented**
+`BlueGrid Lead Photos` accumulates customer photographs and customer names indefinitely. Nothing in this codebase deletes them, and **nothing should be added that does until a retention period is agreed with the client.**
+
+Open questions: how long photos are kept after a job closes or a lead goes cold; whether deletion is manual or scheduled; and what the customer was told at submission. Raised at every photo-related session since 2026-08-14 and still unanswered.
 
 ### 24e. The owner's HTML email interpolates some field values without escaping
 Pre-existing, found while adding the photo links. `buildOwnerEmailHtml()` builds its table rows as raw HTML and several cells — `fullName`, `propertyAddress`, `serviceNeeded`, `sourcePage` — go in unescaped, so a lead submitting `<b>` in their name gets bold text in the owner's inbox.
@@ -321,7 +359,7 @@ Copy says "the owner" throughout because naming Chase publicly was never approve
 - **`locations/` hub page** — the six location pages have no index of their own; the homepage `#serviceAreas` block and the Forestry Mulching "Where We Work" section stand in. Specced as part of Phase 13.
 - **Insights growth** — the section is built to scale. A new article needs only a record in the content data; the uniqueness gate and the no-dates check already apply.
 - **Structured data expansion** — `LocalBusiness` omits a street address (service-area business); revisit if the client wants one public.
-- **Consider a build step** — the site is at 24 pages and item 17's duplication already costs scripted, guarded passes for any nav change. Phase 13 (`phasePrompts/phase13ServiceAreaExpansion.md`) specifies the generator; its stated trigger is "hand-maintenance of location pages exceeds ~12 files", and the shared chrome has arguably hit that first.
+- **Consider a build step** — the site is at 28 pages and item 17's duplication already costs scripted, guarded passes for any nav change. Phase 13 (`phasePrompts/phase13ServiceAreaExpansion.md`) specifies the generator; its stated trigger is "hand-maintenance of location pages exceeds ~12 files", and the shared chrome has arguably hit that first.
 
 ---
 
