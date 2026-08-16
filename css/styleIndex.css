@@ -393,8 +393,27 @@ button
    BUTTONS  (reusable CTA system)
 ============================================================ */
 
+/* The primary fill lives on a pseudo-element rather than on the button
+   box itself, so the skew hover below can reshape the visible surface
+   without touching a single layout value. Nothing in the box model
+   animates, so the effect cannot cause layout shift, and the label is
+   never transformed — it stays perfectly straight by construction
+   rather than needing a counter-transform wrapper inside all 322 CTA
+   instances on the site.
+
+   --ctaFill / --ctaFillHover are the hook for any future variant that
+   needs a different colour: set the token, not the background. */
+
 .buttonPrimary
 {
+
+    --ctaFill: var(--colorSky);
+
+    --ctaFillHover: var(--colorSkyLight);
+
+    position: relative;
+
+    isolation: isolate;
 
     display: inline-flex;
 
@@ -406,7 +425,7 @@ button
 
     padding: 0.85rem 1.7rem;
 
-    background-color: var(--colorSky);
+    background-color: transparent;
 
     color: var(--colorNearBlack);
 
@@ -421,16 +440,41 @@ button
     border-radius: 8px;
 
     transition:
-        background-color 0.25s var(--easePremium),
-        transform 0.25s var(--easePremium),
-        box-shadow 0.25s var(--easePremium);
+        transform 0.28s var(--easePremium),
+        box-shadow 0.28s var(--easePremium);
 
 }
 
-.buttonPrimary:hover
+.buttonPrimary::before
 {
 
-    background-color: var(--colorSkyLight);
+    content: '';
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: -1;
+
+    background-color: var(--ctaFill);
+
+    border-radius: inherit;
+
+    transition:
+        background-color 0.28s var(--easePremium),
+        transform 0.28s var(--easePremium);
+
+}
+
+/* ── Primary CTA hover: skew ──
+   The fill layer shears into a shallow parallelogram while the button
+   box, its text, and its focus ring all stay square. -4deg is enough
+   to read as a deliberate angle at a glance without tipping into
+   novelty; the lift and shadow that were already here carry over. */
+
+.buttonPrimary:hover,
+.buttonPrimary:focus-visible
+{
 
     transform: translateY(-2px);
 
@@ -438,8 +482,47 @@ button
 
 }
 
+.buttonPrimary:hover::before,
+.buttonPrimary:focus-visible::before
+{
+
+    background-color: var(--ctaFillHover);
+
+}
+
+@media (hover: hover) and (pointer: fine)
+{
+
+    /* Skew is gated to real pointers. On touch, :hover latches after a
+       tap and would leave the button stuck mid-shear behind the
+       keyboard or a newly opened modal. */
+
+    .buttonPrimary:hover::before,
+    .buttonPrimary:focus-visible::before
+    {
+
+        transform: skewX(-4deg);
+
+    }
+
+    /* The floating mobile bar is a pill and sits in a fixed-width row
+       where a sheared edge would collide with the call button beside
+       it. It keeps the colour change and drops the shear. */
+
+    .mobileFloatingEstimate:hover::before,
+    .mobileFloatingEstimate:focus-visible::before
+    {
+
+        transform: none;
+
+    }
+
+}
+
 .buttonGhost
 {
+
+    position: relative;
 
     display: inline-flex;
 
@@ -465,21 +548,171 @@ button
 
     border-radius: 8px;
 
+    /* Paint only — no box-model property is animated, so the engaged
+       state below cannot move the button or anything beside it. The
+       resting border-color no longer animates because the accent edge
+       is drawn by the overlay rather than by recolouring this border;
+       the contact-section variant declares its own list and keeps it. */
+
     transition:
-        border-color 0.25s var(--easePremium),
+        color 0.25s var(--easePremium),
         background-color 0.25s var(--easePremium),
         transform 0.25s var(--easePremium);
 
 }
 
-.buttonGhost:hover
+/* ── Secondary CTA engaged state ──
+   White fill, dark label, bold blue perimeter drawn around it.
+
+   Split into two rules on purpose. Keyboard focus gets the treatment
+   on every device. Hover is gated to real pointers, because on touch
+   :hover latches after a tap and a button left filled solid white
+   reads as broken — most visibly the modal's Back button, which
+   stays on screen after it is pressed. */
+
+.buttonGhost:focus-visible
 {
 
-    border-color: var(--colorSky);
+    background-color: var(--colorWhite);
 
-    background-color: rgba(91, 155, 213, 0.12);
+    color: var(--colorNearBlack);
 
-    transform: translateY(-2px);
+}
+
+@media (hover: hover) and (pointer: fine)
+{
+
+    .buttonGhost:hover
+    {
+
+        background-color: var(--colorWhite);
+
+        color: var(--colorNearBlack);
+
+        transform: translateY(-2px);
+
+    }
+
+}
+
+/* ── Secondary CTA border draw ──
+   The thin resting outline stays exactly where it is — it is never
+   widened, so the box model never moves. The bold accent edge is
+   drawn by two overlay pieces that sit on top of it: ::before starts
+   at the top-left and travels right-then-down, ::after starts at the
+   bottom-right and travels left-then-up. They run at the same time
+   from opposite corners and meet, so the stroke visibly travels the
+   perimeter instead of the whole border simply recolouring.
+
+   Each piece is a full-size box with only two adjacent edges coloured
+   and border-radius inherited, so the drawn line follows the button's
+   rounded corners. Total travel is ~320ms, split evenly between the
+   horizontal and vertical legs.
+
+   GEOMETRY — why the thickness is free. box-sizing is border-box
+   globally, so calc(100% + 3px) with a -1.5px offset makes each
+   overlay's border box exactly cover the button's border box. The
+   accent is drawn INWARD from that edge, which means the stroke can
+   be any weight without spilling outside the button or touching a
+   single layout value. 4px is the bold weight this CTA wants; it is
+   the one number to change if it ever wants a different one.
+
+   COLOUR — the deeper of the two brand blues. The engaged state
+   fills white, and --colorSky is too light to carry an outline
+   against it; --colorSkyDeep holds its weight on the white fill. */
+
+.buttonGhost::before,
+.buttonGhost::after
+{
+
+    content: '';
+
+    position: absolute;
+
+    width: 0;
+
+    height: 0;
+
+    border: 0 solid var(--colorSkyDeep);
+
+    border-radius: inherit;
+
+    pointer-events: none;
+
+    opacity: 0;
+
+    transition:
+        width 0.16s var(--easePremium),
+        height 0.16s var(--easePremium) 0.16s,
+        opacity 0.08s linear;
+
+}
+
+.buttonGhost::before
+{
+
+    top: -1.5px;
+
+    left: -1.5px;
+
+    border-top-width: 4px;
+
+    border-right-width: 4px;
+
+}
+
+.buttonGhost::after
+{
+
+    right: -1.5px;
+
+    bottom: -1.5px;
+
+    border-bottom-width: 4px;
+
+    border-left-width: 4px;
+
+}
+
+.buttonGhost:focus-visible::before,
+.buttonGhost:focus-visible::after
+{
+
+    width: calc(100% + 3px);
+
+    height: calc(100% + 3px);
+
+    opacity: 1;
+
+}
+
+@media (hover: hover) and (pointer: fine)
+{
+
+    .buttonGhost:hover::before,
+    .buttonGhost:hover::after
+    {
+
+        width: calc(100% + 3px);
+
+        height: calc(100% + 3px);
+
+        opacity: 1;
+
+    }
+
+}
+
+/* The outlined actions in the contact section are a deliberate,
+   scoped exception documented further down this file: they carry the
+   brand blue on their edge at rest and fill with it on hover, so a
+   drawn accent edge would be drawing a line that is already there. */
+
+.contactActions .buttonGhost::before,
+.contactActions .buttonGhost::after
+{
+
+    content: none;
 
 }
 
@@ -4691,6 +4924,25 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* Closes the owner-operated story with somewhere to take it. Ghost,
+   not primary, on purpose: the page already has one primary action
+   and it is the estimate. Making this solid would put two competing
+   fills in the same column and flatten the hierarchy the CTA system
+   exists to hold. */
+
+.whyActions
+{
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 0.8rem;
+
+    margin-top: 2rem;
+
+}
+
 .whyStat
 {
 
@@ -6587,16 +6839,24 @@ html.jsEnabled .processArrow.isResting
 
 }
 
+/* Three intentional zones: copyright left, legal links centred, the
+   developer credit right.
+
+   A 1fr auto 1fr grid is what actually centres the middle zone. With
+   flex and space-between, the legal links would sit wherever the two
+   outer blocks happened to leave room — and because the copyright and
+   the credit are different widths, that is never the middle. The two
+   1fr tracks are equal regardless of their content, so the auto track
+   between them lands on the centre line of the footer. */
+
 .footerBottomInner
 {
 
-    display: flex;
+    display: grid;
 
-    flex-wrap: wrap;
+    grid-template-columns: 1fr auto 1fr;
 
     align-items: center;
-
-    justify-content: space-between;
 
     gap: 0.8rem 1.5rem;
 
@@ -6608,6 +6868,77 @@ html.jsEnabled .processArrow.isResting
 
 }
 
+.footerCopyright
+{
+
+    justify-self: start;
+
+}
+
+.footerLegalNav
+{
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 0.5rem;
+
+    justify-self: center;
+
+}
+
+.footerLegalSeparator
+{
+
+    color: rgba(247, 249, 251, 0.3);
+
+    font-size: 0.84rem;
+
+}
+
+.footerBottomInner .devCredit
+{
+
+    justify-self: end;
+
+}
+
+/* Below the point where three columns stop fitting, the zones stack
+   and centre. Order is kept — copyright, legal, credit — so the
+   reading order matches the desktop layout and the tab order. */
+
+@media (max-width: 860px)
+{
+
+    .footerBottomInner
+    {
+
+        grid-template-columns: 1fr;
+
+        justify-items: center;
+
+        gap: 1rem;
+
+        text-align: center;
+
+    }
+
+    .footerCopyright,
+    .footerLegalNav,
+    .footerBottomInner .devCredit
+    {
+
+        justify-self: center;
+
+    }
+
+}
+
 .footerBottomBar p
 {
 
@@ -6616,6 +6947,455 @@ html.jsEnabled .processArrow.isResting
     font-size: 0.84rem;
 
     color: rgba(247, 249, 251, 0.45);
+
+}
+
+/* Sits inline in the copyright line. It reads a step brighter than
+   the text around it so it is findable as a link, without competing
+   with the footer's real navigation above it. */
+
+.footerLegalLink
+{
+
+    color: rgba(247, 249, 251, 0.62);
+
+    text-decoration: underline;
+
+    text-underline-offset: 2px;
+
+    transition: color 0.25s var(--easePremium);
+
+}
+
+.footerLegalLink:hover,
+.footerLegalLink:focus-visible
+{
+
+    color: var(--colorSky);
+
+}
+
+/* Cookie Settings is a real <button>, because it performs an action
+   rather than going anywhere. It borrows the legal link's type so the
+   two read as one pair, and it is hidden without JavaScript — with no
+   script there is no analytics to have a choice about. */
+
+.consentSettingsButton
+{
+
+    padding: 0;
+
+    background: none;
+
+    border: none;
+
+    font-family: inherit;
+
+    font-size: inherit;
+
+    cursor: pointer;
+
+    display: none;
+
+}
+
+html.jsEnabled .consentSettingsButton
+{
+
+    display: inline;
+
+}
+
+/* The privacy page's own withdrawal control. It sits in the prose
+   rather than the footer, so it gets margin of its own and is hidden
+   without JavaScript for the same reason the footer control is. */
+
+.consentInlineControl
+{
+
+    margin: 1.4rem 0;
+
+    display: none;
+
+}
+
+html.jsEnabled .consentInlineControl
+{
+
+    display: block;
+
+}
+
+/* ============================================================
+   CONSENT BANNER
+============================================================ */
+
+/* A region pinned to the bottom of the viewport, not a modal. It does
+   not cover the page, does not trap focus, and does not have to be
+   answered before the site can be used — the visitor can read, browse
+   and request an estimate with it still open.
+
+   It sits above the floating mobile bar (260) and below the mobile
+   menu (350) and the estimate modal (500), so anything the visitor
+   deliberately opens still comes out on top of it. */
+
+.consentBanner
+{
+
+    position: fixed;
+
+    right: 0;
+
+    bottom: 0;
+
+    left: 0;
+
+    z-index: 340;
+
+    padding: 0 max(1rem, env(safe-area-inset-right, 0px))
+        calc(1rem + env(safe-area-inset-bottom, 0px))
+        max(1rem, env(safe-area-inset-left, 0px));
+
+    opacity: 0;
+
+    transform: translate3d(0, 16px, 0);
+
+    pointer-events: none;
+
+    transition:
+        opacity 0.32s var(--easePremium),
+        transform 0.32s var(--easePremium);
+
+}
+
+.consentBanner.isVisible
+{
+
+    opacity: 1;
+
+    transform: translate3d(0, 0, 0);
+
+    pointer-events: auto;
+
+}
+
+.consentBannerInner
+{
+
+    position: relative;
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 1rem 1.75rem;
+
+    max-width: var(--maxWidth);
+
+    margin: 0 auto;
+
+    /* The right gutter is reserved for the close button, which is
+       positioned into it. Reserving the space rather than letting the
+       button float over the content is what stops it landing on top
+       of the action buttons on a short banner. */
+
+    padding: 1.05rem 3.4rem 1.05rem 1.35rem;
+
+    background-color: rgba(16, 18, 20, 0.96);
+
+    border: 1px solid var(--colorLineDark);
+
+    border-radius: var(--radiusCard);
+
+    box-shadow: 0 20px 50px rgba(16, 18, 20, 0.45);
+
+}
+
+/* ── Close ──
+   A refusal, not a dismissal: it carries the same data-consentreject
+   hook the Decline button does. Styled quietly so it does not read as
+   a third choice competing with the two real ones, but sized to a
+   proper touch target rather than a decorative glyph. */
+
+.consentBannerClose
+{
+
+    position: absolute;
+
+    top: 0.6rem;
+
+    right: 0.6rem;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 38px;
+
+    height: 38px;
+
+    padding: 0;
+
+    background-color: transparent;
+
+    color: rgba(247, 249, 251, 0.6);
+
+    border: 1px solid transparent;
+
+    border-radius: 50%;
+
+    cursor: pointer;
+
+    transition:
+        color 0.25s var(--easePremium),
+        background-color 0.25s var(--easePremium),
+        border-color 0.25s var(--easePremium);
+
+}
+
+.consentBannerClose:hover,
+.consentBannerClose:focus-visible
+{
+
+    color: var(--colorWhite);
+
+    background-color: rgba(247, 249, 251, 0.12);
+
+    border-color: rgba(247, 249, 251, 0.28);
+
+}
+
+.consentBannerClose svg
+{
+
+    width: 16px;
+
+    height: 16px;
+
+    fill: none;
+
+    stroke: currentColor;
+
+    stroke-width: 2;
+
+    stroke-linecap: round;
+
+    /* Clicks land on the button, never on the glyph, so the
+       delegated handler always resolves to the element carrying the
+       consent hook. */
+
+    pointer-events: none;
+
+}
+
+.consentBannerCopy
+{
+
+    flex: 1 1 22rem;
+
+    min-width: 0;
+
+}
+
+.consentBannerHeading
+{
+
+    margin: 0 0 0.3rem;
+
+    color: var(--colorWhite);
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1.12rem;
+
+    font-weight: 700;
+
+    letter-spacing: 0.01em;
+
+}
+
+.consentBannerText
+{
+
+    margin: 0;
+
+    color: rgba(247, 249, 251, 0.72);
+
+    font-size: 0.88rem;
+
+    line-height: 1.55;
+
+}
+
+.consentBannerLink
+{
+
+    color: var(--colorSky);
+
+    text-decoration: underline;
+
+    text-underline-offset: 2px;
+
+    transition: color 0.25s var(--easePremium);
+
+}
+
+.consentBannerLink:hover,
+.consentBannerLink:focus-visible
+{
+
+    color: var(--colorSkyLight);
+
+}
+
+/* Two equal columns, sized to whichever label is longer. "Allow
+   Analytics Cookies" is a good deal longer than "Necessary Only", and
+   left to size themselves the accept button would be visibly the
+   bigger target — so the grid gives both the same width instead of
+   letting the copy decide which choice looks like the default. */
+
+.consentBannerActions
+{
+
+    display: grid;
+
+    grid-auto-flow: column;
+
+    grid-auto-columns: 1fr;
+
+    align-items: center;
+
+    gap: 0.65rem;
+
+}
+
+/* ── Consent buttons ──
+   Both choices are the same element, the same size, the same radius
+   and the same weight of type. Only the fill differs, so accepting is
+   not one tap easier or one size larger than declining. That parity
+   is the point: it is why these do not reuse .buttonPrimary and
+   .buttonGhost, whose whole job is to be an unequal pair. */
+
+.consentButton
+{
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    padding: 0.72rem 1.35rem;
+
+    font-family: var(--fontBody);
+
+    font-size: 0.92rem;
+
+    font-weight: 700;
+
+    border: 1px solid transparent;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.25s var(--easePremium),
+        border-color 0.25s var(--easePremium),
+        color 0.25s var(--easePremium);
+
+}
+
+.consentButtonAccept
+{
+
+    background-color: var(--colorSky);
+
+    color: var(--colorNearBlack);
+
+}
+
+.consentButtonAccept:hover,
+.consentButtonAccept:focus-visible
+{
+
+    background-color: var(--colorSkyLight);
+
+}
+
+.consentButtonReject
+{
+
+    background-color: rgba(247, 249, 251, 0.12);
+
+    color: var(--colorWhite);
+
+    border-color: rgba(247, 249, 251, 0.28);
+
+}
+
+.consentButtonReject:hover,
+.consentButtonReject:focus-visible
+{
+
+    background-color: rgba(247, 249, 251, 0.2);
+
+    border-color: rgba(247, 249, 251, 0.45);
+
+}
+
+@media (max-width: 600px)
+{
+
+    /* The right gutter comes off the container here and moves onto
+       the copy block alone. The layout has stacked by this width, so
+       the close button only ever sits beside the heading — and the
+       action buttons below it get the full width instead of being
+       inset by a gutter reserved for something that is no longer
+       level with them. */
+
+    .consentBannerInner
+    {
+
+        padding: 1rem 1.1rem;
+
+    }
+
+    .consentBannerCopy
+    {
+
+        padding-right: 2.3rem;
+
+    }
+
+    /* Full width, still two equal columns, so neither choice is the
+       bigger target on the screen where target size matters most. */
+
+    .consentBannerActions
+    {
+
+        width: 100%;
+
+    }
+
+    .consentButton
+    {
+
+        min-width: 0;
+
+        padding: 0.72rem 0.9rem;
+
+        font-size: 0.86rem;
+
+    }
 
 }
 
@@ -7396,7 +8176,15 @@ html.jsEnabled .processArrow.isResting
 
         right: max(1rem, env(safe-area-inset-right, 0px));
 
-        bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+        /* --consentBannerOffset is set by js/consent.js to the live
+           height of the consent banner while it is on screen, and
+           removed when it is dismissed. Without it the banner would
+           sit on top of the call and estimate buttons — the two most
+           important controls on a phone — until the visitor answered
+           it. Defaults to 0px, so this is the normal offset whenever
+           no banner is showing. */
+
+        bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px) + var(--consentBannerOffset, 0px));
 
         left: max(1rem, env(safe-area-inset-left, 0px));
 
@@ -7550,7 +8338,7 @@ html.jsEnabled .processArrow.isResting
 
         right: max(1rem, env(safe-area-inset-right, 0px));
 
-        bottom: calc(0.95rem + env(safe-area-inset-bottom, 0px));
+        bottom: calc(0.95rem + env(safe-area-inset-bottom, 0px) + var(--consentBannerOffset, 0px));
 
         z-index: 270;
 
@@ -7685,6 +8473,47 @@ html.jsEnabled .processArrow.isResting
     {
 
         scroll-behavior: auto;
+
+    }
+
+    /* ── CTA interactions ──
+       Both CTA hovers still change state, because the state change is
+       feedback rather than decoration — what goes away is the travel.
+       The primary drops its shear and lift and simply changes colour;
+       the ghost's accent edge appears at full size instead of being
+       drawn around the perimeter. */
+
+    .buttonPrimary,
+    .buttonPrimary::before,
+    .buttonGhost,
+    .buttonGhost::before,
+    .buttonGhost::after
+    {
+
+        transition: none;
+
+    }
+
+    .buttonPrimary:hover,
+    .buttonPrimary:focus-visible
+    {
+
+        transform: none;
+
+    }
+
+    .buttonPrimary:hover::before,
+    .buttonPrimary:focus-visible::before
+    {
+
+        transform: none;
+
+    }
+
+    .buttonGhost:hover
+    {
+
+        transform: none;
 
     }
 

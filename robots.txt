@@ -6,5 +6,4 @@
 User-agent: *
 Allow: /
 
-# TODO: Confirm this matches the live production domain before launch.
-Sitemap: https://www.bluegridlandsolutions.com/sitemap.xml
+Sitemap: https://bluegridlandsolutions.com/sitemap.xml

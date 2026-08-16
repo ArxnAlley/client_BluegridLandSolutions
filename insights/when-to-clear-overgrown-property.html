@@ -18,8 +18,7 @@
         content="The best season to clear overgrown land in Ohio and Kentucky, and the signals that say do it now rather than next year. Free estimates."
     >
 
-    <!-- TODO: Replace canonical with the live production domain before launch. -->
-    <link rel="canonical" href="https://www.bluegridlandsolutions.com/insights/when-to-clear-overgrown-property.html">
+    <link rel="canonical" href="https://bluegridlandsolutions.com/insights/when-to-clear-overgrown-property.html">
 
     <!-- ── Open Graph ── -->
 
@@ -34,12 +33,23 @@
         content="Winter is the best clearing weather of the year, and the reasons have nothing to do with the calendar being convenient."
     >
 
-    <!-- TODO: Swap og:url and og:image for absolute production URLs before launch. -->
-    <meta property="og:url" content="https://www.bluegridlandsolutions.com/insights/when-to-clear-overgrown-property.html">
+    <meta property="og:url" content="https://bluegridlandsolutions.com/insights/when-to-clear-overgrown-property.html">
 
-    <meta property="og:image" content="../graphics/images/work2JacksonOH.jpg">
+    <meta property="og:image" content="https://bluegridlandsolutions.com/graphics/images/work2JacksonOH.jpg">
 
     <meta name="twitter:card" content="summary_large_image">
+
+    <!-- ============================================================
+         ANALYTICS CONSENT
+
+         Google Analytics and Microsoft Clarity are NOT loaded here.
+         js/consent.js owns both loaders and injects them only after
+         the visitor accepts, so nothing is collected before a choice
+         is made. It is deferred and sits before indexJS.js, which
+         asks it for permission before sending any event.
+    ============================================================ -->
+
+    <script src="../js/consent.js" defer></script>
 
     <!-- ============================================================
          FAVICONS
@@ -112,7 +122,7 @@
         "articleSection": "Planning",
         "mainEntityOfPage": {
             "@type": "WebPage",
-            "@id": "https://www.bluegridlandsolutions.com/insights/when-to-clear-overgrown-property.html"
+            "@id": "https://bluegridlandsolutions.com/insights/when-to-clear-overgrown-property.html"
         },
         "author": {
             "@type": "Organization",
@@ -121,7 +131,7 @@
         "publisher": {
             "@type": "Organization",
             "name": "BlueGrid Land Solutions",
-            "url": "https://www.bluegridlandsolutions.com/"
+            "url": "https://bluegridlandsolutions.com/"
         }
     }
     </script>
@@ -135,8 +145,8 @@
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.bluegridlandsolutions.com/" },
-            { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://www.bluegridlandsolutions.com/insights/" },
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://bluegridlandsolutions.com/" },
+            { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://bluegridlandsolutions.com/insights/" },
             { "@type": "ListItem", "position": 3, "name": "When to Clear Overgrown Property" }
         ]
     }
@@ -1175,6 +1185,7 @@
                                     class="formInput"
                                     type="text"
                                     id="fullName"
+                                    data-clarity-mask="true"
                                     name="fullName"
                                     autocomplete="name"
                                     required
@@ -1193,6 +1204,7 @@
                                     class="formInput"
                                     type="tel"
                                     id="phone"
+                                    data-clarity-mask="true"
                                     name="phone"
                                     autocomplete="tel"
                                     required
@@ -1306,6 +1318,7 @@
                             class="formInput"
                             type="text"
                             id="modalFullName"
+                            data-clarity-mask="true"
                             name="fullName"
                             autocomplete="name"
                             required
@@ -1324,6 +1337,7 @@
                             class="formInput"
                             type="tel"
                             id="modalPhone"
+                            data-clarity-mask="true"
                             name="phone"
                             autocomplete="tel"
                             required
@@ -1368,6 +1382,7 @@
                             class="formInput"
                             type="text"
                             id="propertyAddress"
+                            data-clarity-mask="true"
                             name="propertyAddress"
                             autocomplete="street-address"
                             required
@@ -1389,6 +1404,7 @@
                             class="formInput"
                             type="number"
                             id="estimatedAcres"
+                            data-clarity-mask="true"
                             name="estimatedAcres"
                             inputmode="decimal"
                             min="0"
@@ -1419,6 +1435,7 @@
                         <textarea
                             class="formInput formTextarea"
                             id="projectDescription"
+                            data-clarity-mask="true"
                             name="projectDescription"
                             rows="6"
                             placeholder="How thick is the growth? Brush, saplings, or bigger trees? Any access notes, fences, or wet spots we should know about?"
@@ -1442,6 +1459,7 @@
                             class="formInput"
                             type="email"
                             id="email"
+                            data-clarity-mask="true"
                             name="email"
                             autocomplete="email"
                             required
@@ -1521,6 +1539,7 @@
                                 class="visuallyHidden"
                                 type="file"
                                 id="propertyPhotos"
+                                data-clarity-mask="true"
                                 name="propertyPhotos"
                                 multiple
                                 accept="image/*"
@@ -1534,7 +1553,7 @@
                             estimate remotely, often with no site visit needed.
                         </p>
 
-                        <ul class="photoPreviewGrid" id="photoPreviewGrid"></ul>
+                        <ul class="photoPreviewGrid" id="photoPreviewGrid" data-clarity-mask="true"></ul>
 
                     </div>
 
@@ -1546,7 +1565,7 @@
 
                     <h3 class="modalStepHeading">Look it over</h3>
 
-                    <dl class="reviewSummaryList" id="reviewSummaryList"></dl>
+                    <dl class="reviewSummaryList" id="reviewSummaryList" data-clarity-mask="true"></dl>
 
                 </section>
 
@@ -1751,7 +1770,19 @@
 
             <div class="footerBottomInner">
 
-                <p data-animate="fadeUp" data-animatedelay="360">&copy; 2026 BlueGrid Land Solutions &middot; All Rights Reserved.</p>
+                <p class="footerCopyright" data-animate="fadeUp" data-animatedelay="360">
+                    &copy; 2026 BlueGrid Land Solutions &middot; All Rights Reserved.
+                </p>
+
+                <nav class="footerLegalNav" aria-label="Legal and privacy" data-animate="fadeUp" data-animatedelay="410">
+
+                    <a class="footerLegalLink" href="../privacy/index.html">Privacy Policy</a>
+
+                    <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
+
+                    <button class="footerLegalLink consentSettingsButton" type="button" data-consentsettings>Cookie Settings</button>
+
+                </nav>
 
                 <a class="devCredit" href="https://nulostudio.com" target="_blank" rel="noopener" data-animate="fadeUp" data-animatedelay="460">
 

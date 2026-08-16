@@ -18,8 +18,7 @@
         content="Practical land management writing for Southern Ohio and Eastern Kentucky landowners: mulching vs brush hogging, when to clear, preparing to build, storm cleanup."
     >
 
-    <!-- TODO: Replace canonical with the live production domain before launch. -->
-    <link rel="canonical" href="https://www.bluegridlandsolutions.com/insights/">
+    <link rel="canonical" href="https://bluegridlandsolutions.com/insights/">
 
     <!-- ── Open Graph ── -->
 
@@ -34,12 +33,23 @@
         content="Written by the people running the machine, for landowners deciding what to do with a piece of ground."
     >
 
-    <!-- TODO: Swap og:url and og:image for absolute production URLs before launch. -->
-    <meta property="og:url" content="https://www.bluegridlandsolutions.com/insights/">
+    <meta property="og:url" content="https://bluegridlandsolutions.com/insights/">
 
-    <meta property="og:image" content="../graphics/images/whatTheyDo2.jpg">
+    <meta property="og:image" content="https://bluegridlandsolutions.com/graphics/images/whatTheyDo2.jpg">
 
     <meta name="twitter:card" content="summary_large_image">
+
+    <!-- ============================================================
+         ANALYTICS CONSENT
+
+         Google Analytics and Microsoft Clarity are NOT loaded here.
+         js/consent.js owns both loaders and injects them only after
+         the visitor accepts, so nothing is collected before a choice
+         is made. It is deferred and sits before indexJS.js, which
+         asks it for permission before sending any event.
+    ============================================================ -->
+
+    <script src="../js/consent.js" defer></script>
 
     <!-- ============================================================
          FAVICONS
@@ -110,43 +120,43 @@
             {
                 "@type": "ListItem",
                 "position": 1,
-                "url": "https://www.bluegridlandsolutions.com/insights/benefits-of-forestry-mulching.html",
+                "url": "https://bluegridlandsolutions.com/insights/benefits-of-forestry-mulching.html",
                 "name": "The Real Benefits of Forestry Mulching"
             },
             {
                 "@type": "ListItem",
                 "position": 2,
-                "url": "https://www.bluegridlandsolutions.com/insights/brush-hogging-vs-forestry-mulching.html",
+                "url": "https://bluegridlandsolutions.com/insights/brush-hogging-vs-forestry-mulching.html",
                 "name": "Brush Hogging vs Forestry Mulching: Which One Do You Need?"
             },
             {
                 "@type": "ListItem",
                 "position": 3,
-                "url": "https://www.bluegridlandsolutions.com/insights/when-to-clear-overgrown-property.html",
+                "url": "https://bluegridlandsolutions.com/insights/when-to-clear-overgrown-property.html",
                 "name": "When to Clear Overgrown Property"
             },
             {
                 "@type": "ListItem",
                 "position": 4,
-                "url": "https://www.bluegridlandsolutions.com/insights/preparing-land-for-building.html",
+                "url": "https://bluegridlandsolutions.com/insights/preparing-land-for-building.html",
                 "name": "Preparing Land for Building: What Comes First"
             },
             {
                 "@type": "ListItem",
                 "position": 5,
-                "url": "https://www.bluegridlandsolutions.com/insights/storm-cleanup-best-practices.html",
+                "url": "https://bluegridlandsolutions.com/insights/storm-cleanup-best-practices.html",
                 "name": "Storm Cleanup: What to Do First, and What to Leave Alone"
             },
             {
                 "@type": "ListItem",
                 "position": 6,
-                "url": "https://www.bluegridlandsolutions.com/insights/fence-line-clearing-tips.html",
+                "url": "https://bluegridlandsolutions.com/insights/fence-line-clearing-tips.html",
                 "name": "Fence Line Clearing: Getting Your Acres Back"
             },
             {
                 "@type": "ListItem",
                 "position": 7,
-                "url": "https://www.bluegridlandsolutions.com/insights/signs-your-property-needs-land-management.html",
+                "url": "https://bluegridlandsolutions.com/insights/signs-your-property-needs-land-management.html",
                 "name": "Seven Signs Your Property Needs Land Management"
             }
         ]
@@ -162,7 +172,7 @@
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.bluegridlandsolutions.com/" },
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://bluegridlandsolutions.com/" },
             { "@type": "ListItem", "position": 2, "name": "Insights" }
         ]
     }
@@ -1249,6 +1259,7 @@
                                     class="formInput"
                                     type="text"
                                     id="fullName"
+                                    data-clarity-mask="true"
                                     name="fullName"
                                     autocomplete="name"
                                     required
@@ -1267,6 +1278,7 @@
                                     class="formInput"
                                     type="tel"
                                     id="phone"
+                                    data-clarity-mask="true"
                                     name="phone"
                                     autocomplete="tel"
                                     required
@@ -1380,6 +1392,7 @@
                             class="formInput"
                             type="text"
                             id="modalFullName"
+                            data-clarity-mask="true"
                             name="fullName"
                             autocomplete="name"
                             required
@@ -1398,6 +1411,7 @@
                             class="formInput"
                             type="tel"
                             id="modalPhone"
+                            data-clarity-mask="true"
                             name="phone"
                             autocomplete="tel"
                             required
@@ -1442,6 +1456,7 @@
                             class="formInput"
                             type="text"
                             id="propertyAddress"
+                            data-clarity-mask="true"
                             name="propertyAddress"
                             autocomplete="street-address"
                             required
@@ -1463,6 +1478,7 @@
                             class="formInput"
                             type="number"
                             id="estimatedAcres"
+                            data-clarity-mask="true"
                             name="estimatedAcres"
                             inputmode="decimal"
                             min="0"
@@ -1493,6 +1509,7 @@
                         <textarea
                             class="formInput formTextarea"
                             id="projectDescription"
+                            data-clarity-mask="true"
                             name="projectDescription"
                             rows="6"
                             placeholder="How thick is the growth? Brush, saplings, or bigger trees? Any access notes, fences, or wet spots we should know about?"
@@ -1516,6 +1533,7 @@
                             class="formInput"
                             type="email"
                             id="email"
+                            data-clarity-mask="true"
                             name="email"
                             autocomplete="email"
                             required
@@ -1595,6 +1613,7 @@
                                 class="visuallyHidden"
                                 type="file"
                                 id="propertyPhotos"
+                                data-clarity-mask="true"
                                 name="propertyPhotos"
                                 multiple
                                 accept="image/*"
@@ -1608,7 +1627,7 @@
                             estimate remotely, often with no site visit needed.
                         </p>
 
-                        <ul class="photoPreviewGrid" id="photoPreviewGrid"></ul>
+                        <ul class="photoPreviewGrid" id="photoPreviewGrid" data-clarity-mask="true"></ul>
 
                     </div>
 
@@ -1620,7 +1639,7 @@
 
                     <h3 class="modalStepHeading">Look it over</h3>
 
-                    <dl class="reviewSummaryList" id="reviewSummaryList"></dl>
+                    <dl class="reviewSummaryList" id="reviewSummaryList" data-clarity-mask="true"></dl>
 
                 </section>
 
@@ -1825,7 +1844,19 @@
 
             <div class="footerBottomInner">
 
-                <p data-animate="fadeUp" data-animatedelay="360">&copy; 2026 BlueGrid Land Solutions &middot; All Rights Reserved.</p>
+                <p class="footerCopyright" data-animate="fadeUp" data-animatedelay="360">
+                    &copy; 2026 BlueGrid Land Solutions &middot; All Rights Reserved.
+                </p>
+
+                <nav class="footerLegalNav" aria-label="Legal and privacy" data-animate="fadeUp" data-animatedelay="410">
+
+                    <a class="footerLegalLink" href="../privacy/index.html">Privacy Policy</a>
+
+                    <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
+
+                    <button class="footerLegalLink consentSettingsButton" type="button" data-consentsettings>Cookie Settings</button>
+
+                </nav>
 
                 <a class="devCredit" href="https://nulostudio.com" target="_blank" rel="noopener" data-animate="fadeUp" data-animatedelay="460">
 

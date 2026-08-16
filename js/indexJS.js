@@ -399,6 +399,127 @@ function getSourcePage()
 
 }
 
+/* ============================================================
+   ANALYTICS
+
+   GA4 (G-VLELCYHTQ8) and Microsoft Clarity (y30pzk1nix) are
+   loaded by the snippet in each page's <head>. This section owns
+   every custom event the site sends, so there is one place to
+   read to know exactly what leaves the browser.
+
+   The measured funnel is deliberately narrow:
+
+       estimate_open          -> intent
+       estimate_submit_success-> an accepted lead
+       phone_click            -> phone intent
+
+   Nothing else is instrumented. Scroll depth, field focus, step
+   advances and hover state are all left alone on purpose — noise
+   in a report this small costs more than it explains.
+============================================================ */
+
+/* NOTHING CUSTOMER-ENTERED IS EVER SENT.
+
+   No name, phone, email, property address, project description,
+   photo filename, Drive URL, lead id or reference id is passed to
+   gtag from anywhere in this file. The only parameters used are
+   the page path, which CTA opened the flow, and the service the
+   visitor picked from a fixed <select> — an enum from a list this
+   repository defines, not free text they typed.
+
+   The helper is deliberately tolerant. If gtag never loaded —
+   blocked by an extension, offline, or the snippet stripped — the
+   call becomes a no-op instead of throwing, so a missing analytics
+   script can never take the lead form down with it. */
+
+function trackAnalyticsEvent(eventName, parameters)
+{
+
+    /* Consent is checked first, and checked on every call rather than
+       cached, so a withdrawal part-way through a visit takes effect
+       immediately instead of at the next page load.
+
+       js/consent.js defines window.gtag as a dataLayer stub before
+       any decision is made, so the typeof check below is no longer
+       enough on its own: without this gate a declining visitor's
+       events would still be pushed onto the dataLayer. Nothing would
+       transmit them today, but it is the wrong shape — a denied
+       visitor should generate no analytics work at all.
+
+       If the consent module failed to load, there is no decision to
+       honour, so nothing is sent. */
+
+    if (!window.blueGridConsent || !window.blueGridConsent.analyticsGranted())
+    {
+
+        return;
+
+    }
+
+    if (typeof window.gtag !== 'function')
+    {
+
+        return;
+
+    }
+
+    try
+    {
+
+        window.gtag('event', eventName, parameters || {});
+
+    }
+    catch (analyticsError)
+    {
+
+        /* Analytics is never allowed to interrupt the lead flow. */
+
+        console.warn('BlueGrid: analytics event failed:', analyticsError);
+
+    }
+
+}
+
+/* The bare path, without the #estimateForm suffix getSourcePage()
+   adds for the sheet, and without any query string — a stray
+   ?email= on an inbound link must not ride into an event. */
+
+function getAnalyticsPagePath()
+{
+
+    return window.location.pathname || '/';
+
+}
+
+/* The service enum, read from whichever of the two forms holds a
+   value. Returns '' rather than guessing, so an unset select never
+   reports a service the visitor did not choose. */
+
+function getAnalyticsServiceSelection()
+{
+
+    const modalSelect = document.getElementById('modalServiceNeeded');
+
+    if (modalSelect && modalSelect.value)
+    {
+
+        return modalSelect.value;
+
+    }
+
+    const miniSelect = document.getElementById('serviceNeeded');
+
+    if (miniSelect && miniSelect.value)
+    {
+
+        return miniSelect.value;
+
+    }
+
+    return '';
+
+}
+
 function showFieldError(input, errorId, showIt)
 {
 
@@ -2722,7 +2843,18 @@ function updateModalStep()
 
 }
 
-function openEstimateModal()
+/* openContext records which door the visitor came through: 'cta' for
+   the estimate buttons in the header, hero, floating bar, footer and
+   final CTA, 'miniForm' when they completed the three-field mini form
+   first. It is optional and defaults to 'unknown' so existing callers
+   — including the test harness, which calls this bare — keep working.
+
+   Both call sites are real user gestures (a click, a validated form
+   submit). Nothing calls this from a passive state change, so the
+   event cannot fire on its own. Re-opening after a close does fire
+   again, which is intended: that is a second act of intent. */
+
+function openEstimateModal(openContext)
 {
 
     lastFocusedBeforeModal = document.activeElement;
@@ -2732,6 +2864,14 @@ function openEstimateModal()
     lockBodyScroll(true);
 
     updateModalStep();
+
+    trackAnalyticsEvent('estimate_open', {
+
+        page_path: getAnalyticsPagePath(),
+
+        cta_context: openContext || 'unknown'
+
+    });
 
 }
 
@@ -3107,6 +3247,27 @@ function submitEstimateRequest()
 
             if (result && result.success)
             {
+
+                /* The only place this event fires. It sits inside the
+                   success branch of the parsed API response, so it
+                   cannot report a lead that was not actually accepted:
+                   a non-2xx response throws before reaching here, a
+                   rejected payload falls through to showSubmissionError,
+                   and a network failure lands in .catch below.
+
+                   It is deliberately NOT wired into
+                   showSubmissionSuccess(), which is also called for a
+                   tripped honeypot and for the unconfigured-endpoint
+                   path — both show the visitor a success panel while
+                   creating no lead at all. */
+
+                trackAnalyticsEvent('estimate_submit_success', {
+
+                    page_path: getAnalyticsPagePath(),
+
+                    service_selected: getAnalyticsServiceSelection()
+
+                });
 
                 showSubmissionSuccess();
 
@@ -4624,7 +4785,7 @@ estimateFormCtas.forEach(function (cta)
 
             event.preventDefault();
 
-            openEstimateModal();
+            openEstimateModal('cta');
 
         }
     );
@@ -4659,12 +4820,55 @@ if (estimateMiniForm)
 
             copyMiniFormIntoModal();
 
-            openEstimateModal();
+            openEstimateModal('miniForm');
 
         }
     );
 
 }
+
+/* ── phone_click ──
+   Delegated from the document because tel: links appear 141 times
+   across the site — header chip, hero, floating mobile bar, contact
+   section, the Talk to the Owner CTA and every page's footer — and
+   binding each one individually would mean re-binding anything the
+   site ever renders later.
+
+   closest() is used so a click on the icon or label inside a phone
+   CTA still resolves to the anchor. The event is reported, never
+   intercepted: no preventDefault, so the call still places exactly
+   as it did before.
+
+   cta_context reports the CTA's own class rather than its text, so
+   the parameter cannot pick up a phone number that happens to be
+   the link's visible label. */
+
+document.addEventListener(
+    'click',
+    function (event)
+    {
+
+        const phoneLink = event.target.closest
+            ? event.target.closest('a[href^="tel:"]')
+            : null;
+
+        if (!phoneLink)
+        {
+
+            return;
+
+        }
+
+        trackAnalyticsEvent('phone_click', {
+
+            page_path: getAnalyticsPagePath(),
+
+            cta_context: phoneLink.className || 'link'
+
+        });
+
+    }
+);
 
 if (modalNextButton)
 {
