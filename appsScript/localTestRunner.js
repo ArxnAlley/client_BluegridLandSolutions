@@ -785,7 +785,54 @@ const sandbox = {
 
     Utilities: {
 
-        formatDate: function (date) { return date.toISOString(); },
+        /* Honours the format pattern, which the previous one-liner did
+           not: it returned a full ISO string and ignored both the
+           timezone and the pattern. The upload throttle keys its cache
+           on formatDate(now, 'Etc/UTC', 'yyyyMMddHH'), so under the old
+           mock every call produced a DIFFERENT millisecond-precision
+           key, the counter never incremented, and the throttle test
+           passed or failed depending on how many uploads happened to
+           land in the same millisecond. Production was always correct;
+           the test was measuring nothing. */
+
+        formatDate: function (date, timeZone, pattern)
+        {
+
+            if (!pattern)
+            {
+
+                return date.toISOString();
+
+            }
+
+            const pad = function (value, width)
+            {
+
+                return String(value).padStart(width, '0');
+
+            };
+
+            /* UTC throughout — every caller in this project asks for
+               Etc/UTC, and a mock that silently used local time would
+               hide an off-by-one-hour bucket bug. */
+
+            const parts = {
+                yyyy: String(date.getUTCFullYear()),
+                MM: pad(date.getUTCMonth() + 1, 2),
+                dd: pad(date.getUTCDate(), 2),
+                HH: pad(date.getUTCHours(), 2),
+                mm: pad(date.getUTCMinutes(), 2),
+                ss: pad(date.getUTCSeconds(), 2)
+            };
+
+            return pattern.replace(/yyyy|MM|dd|HH|mm|ss/g, function (token)
+            {
+
+                return parts[token];
+
+            });
+
+        },
 
         base64Decode: function (base64)
         {
@@ -887,7 +934,8 @@ vm.runInContext(
     + ' DEFAULT_PHOTO_ACCESS: DEFAULT_PHOTO_ACCESS,'
     + ' DEFAULT_PHOTO_VIEWER_EMAIL: DEFAULT_PHOTO_VIEWER_EMAIL,'
     + ' MAX_TOTAL_PHOTO_BYTES: MAX_TOTAL_PHOTO_BYTES,'
-    + ' DEFAULT_PHOTO_UPLOADS_PER_HOUR: DEFAULT_PHOTO_UPLOADS_PER_HOUR'
+    + ' DEFAULT_PHOTO_UPLOADS_PER_HOUR: DEFAULT_PHOTO_UPLOADS_PER_HOUR,'
+    + ' ALLOWED_PHOTO_MIME_TYPES: ALLOWED_PHOTO_MIME_TYPES'
     + ' };',
     sandbox
 );
@@ -2072,8 +2120,7 @@ const fixtures = {
 [
     ['JPEG', 'jpeg', 'image/jpeg'],
     ['PNG', 'png', 'image/png'],
-    ['WebP', 'webp', 'image/webp'],
-    ['HEIC', 'heic', 'image/heic']
+    ['WebP', 'webp', 'image/webp']
 ].forEach(function (entry, position)
 {
 
@@ -2087,11 +2134,38 @@ const fixtures = {
 
 });
 
-check('HEIF may declare the shared HEIC container',
-    uploadPhoto('BG-' + (Date.now() + 410), 1, 'p.heif', {
-        mimeType: 'image/heif',
-        dataBase64: fixtures.heic
-    }).success === true);
+check('the accepted-format list is exactly JPEG, PNG, WebP',
+    sandbox.constants.ALLOWED_PHOTO_MIME_TYPES.join(',')
+        === 'image/jpeg,image/png,image/webp',
+    sandbox.constants.ALLOWED_PHOTO_MIME_TYPES.join(','));
+
+/* HEIC was accepted until 2026-08-15 and is now refused by content,
+   whatever it declares — including when it declares itself honestly. */
+
+check('HEIC is refused by its container bytes',
+    (function ()
+    {
+
+        const asHeic = uploadPhoto('BG-' + (Date.now() + 410), 1, 'p.heic', {
+            mimeType: 'image/heic',
+            dataBase64: fixtures.heic
+        });
+
+        const asJpeg = uploadPhoto('BG-' + (Date.now() + 411), 1, 'p.jpg', {
+            mimeType: 'image/jpeg',
+            dataBase64: fixtures.heic
+        });
+
+        return asHeic.success === false && asJpeg.success === false;
+
+    })());
+
+check('an MP4/MOV container is refused by the same rule',
+    uploadPhoto('BG-' + (Date.now() + 412), 1, 'clip.jpg', {
+        mimeType: 'image/jpeg',
+        dataBase64: base64FromBytes(padTo(
+            [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32], 64))
+    }).success === false);
 
 /* ── disguised and dangerous content ── */
 

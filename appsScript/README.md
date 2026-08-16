@@ -117,7 +117,7 @@ See *Upload policy* below for everything this endpoint enforces. The browser dow
 | Photos per estimate | **5** | Counted from the lead folder's real contents |
 | Per photo | **8 MB** | Base64 length, checked before any decode |
 | Combined per estimate | **25 MB** | Summed from the folder, since each photo is its own POST |
-| Formats | JPEG, PNG, WebP, HEIC/HEIF | **Content signature**, not the declared type |
+| Formats | **JPEG, PNG, WebP** | **Content signature**, not the declared type |
 | Reference age | 24 hours | `isReferenceIdRecent` |
 | Global ceiling | 120 uploads/hour | `photoUploadsPerHour`, script cache |
 
@@ -133,9 +133,17 @@ Three deliberate nuances:
 - **A wrong-but-still-image `mimeType`** (a PNG announced as JPEG) is stored as what the bytes are, and the disagreement is logged. Refusing it would invent a way for honest uploads to fail without preventing anything an attacker could not trivially avoid.
 - **A non-image `mimeType`** (`application/pdf`, `image/svg+xml`) is refused outright even when the bytes are a valid photo. Nothing legitimate does that.
 
-### HEIC/HEIF
+### HEIC/HEIF — removed 2026-08-15
 
-Kept, and worth understanding: canvas usually cannot decode HEIC, so the browser's downscale step falls back to the original bytes and the file uploads full size. The 8 MB cap is what bounds it. Rejecting the format would fail a large share of iPhone submissions, so it stays — but it is the one accepted format that arrives un-downscaled.
+Accepted until then. Now refused, for three reasons that only add up together:
+
+1. **iOS already converts.** On the default *Automatic* / *Most Compatible* camera setting an iPhone hands a file input a JPEG. HEIC arrives only from the non-default *Current* setting or a Files-app pick.
+2. **It was the one format bypassing our own downscaling.** Canvas cannot decode HEIC, so the browser fell back to the original bytes and it uploaded full size while everything else arrived at 1600px.
+3. **Its signature was the weakest rule here.** HEIC is ISO-BMFF — the same container as MP4/MOV — so it needed a brand allowlist at offset 8 rather than an exact magic number. Removing it left every accepted format on an exact byte match.
+
+The container signature is **kept in the rejected list**, so an iPhone photo logs as `HEIC/HEIF or MP4/MOV container` rather than `unrecognised binary`, and the front end gives the customer the fix (*Settings › Camera › Formats › Most Compatible*) instead of a flat refusal.
+
+**Watch this in early live traffic.** If real iPhone users are being turned away, re-accepting is a two-line change: add `image/heic` back to `ALLOWED_PHOTO_MIME_TYPES` and restore its `PHOTO_CONTENT_SIGNATURES` entry.
 
 ### Throttle
 

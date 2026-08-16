@@ -4,6 +4,116 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-15 — PRODUCTION ACCEPTANCE + UPLOAD SECURITY CLOSEOUT
+
+### The acceptance test passed on the live domain
+
+Performed manually by Aron against **bluegridlandsolutions.com**, not a local
+copy and not the admin account. Recorded here because most of it is not
+verifiable from the repository and would otherwise be lost:
+
+- A public visitor submitted an estimate **from an incognito browser on the
+  production domain**.
+- **Five photos uploaded**, stored, and viewable.
+- Attempting a **sixth photo produced the five-photo limit warning** — the
+  client-side half of the policy confirmed in a real browser.
+- **Open all photos** works from the owner email.
+- **Individual photo links** work from the owner email.
+
+### The permission boundary was tested from the outside, which matters
+
+Every previous "the links work" observation was made from
+`admin@nulostudio.com`, which **owns** the files — so it proved storage and
+link generation and nothing at all about authorization. This time:
+
+- A **separate real Google account** was used.
+- Signed into an **unauthorized** account, **Google denied access**.
+- Signed into the **explicitly authorized** account, the same folder and photo
+  links opened.
+
+That is the first genuine external verification of the `rootInherited` model.
+Both halves were exercised — the deny and the allow — which is the pair that
+actually demonstrates a boundary. Attribute this to Aron's manual test; the
+repository cannot prove it.
+
+### A test that had been passing was measuring nothing
+
+The harness's `Utilities.formatDate` mock was `function (date) { return
+date.toISOString(); }` — it ignored both the timezone and the pattern it was
+handed. The upload throttle keys its cache on
+`formatDate(now, 'Etc/UTC', 'yyyyMMddHH')`, so under that mock **every call
+produced a different millisecond-precision key**, the counter never
+incremented, and nothing was ever throttled.
+
+The test still passed about half the time, because several uploads in a tight
+loop occasionally landed inside the same millisecond and collided into one
+bucket. That is why it read as flaky rather than broken: 8 runs gave 177, 177,
+176, 176, 177, 176, 176, 177.
+
+**Production was always correct** — real Apps Script returns `2026081519` for
+that call. The defect was entirely in the mock, and its effect was to make a
+security control look tested when it was not. Fixed by making `formatDate`
+honour its pattern in UTC. Ten consecutive runs now give 177/177.
+
+Worth stating plainly: a green test whose mock does not model the thing under
+test is worse than no test, because it stops anyone looking.
+
+### HEIC removed from the accepted formats
+
+Accepted until today. Removed, and the reasoning is worth keeping because the
+obvious objection — "you will break iPhone uploads" — turns out to be mostly
+wrong:
+
+1. **iOS already converts.** With the default *Automatic* / *Most Compatible*
+   camera setting, an iPhone hands a file input a JPEG. HEIC arrives only from
+   the non-default *Current* setting or a Files-app pick.
+2. **It was the one format bypassing our own downscaling.** Canvas cannot
+   decode HEIC, so the browser fell back to the original bytes and it uploaded
+   full size while every other format arrived reduced to 1600px.
+3. **Its signature was the weakest rule we had.** HEIC is ISO-BMFF — the same
+   container as MP4 and MOV — so it needed a *brand allowlist* at offset 8
+   rather than an exact magic number. Dropping it removed the only
+   non-exact-match entry in `PHOTO_CONTENT_SIGNATURES`.
+
+The container signature was **kept, moved to the rejected list**, so an iPhone
+photo is logged as `HEIC/HEIF or MP4/MOV container` rather than `unrecognised
+binary`. The front end detects it separately and tells the customer how to fix
+it — *Settings › Camera › Formats › Most Compatible* — instead of refusing
+without explanation. A refusal a real customer can act on is worth more than a
+correct one they cannot.
+
+Reversible in two lines if real submissions show iPhone users being turned
+away. **That is the thing to watch in the first weeks of live traffic.**
+
+### The audit, run rather than reasoned about
+
+Twenty-three threats posted straight at `doPost`, bypassing the browser
+entirely, because the browser is not a control. All 23 mitigated: executable
+renamed `.jpg`, HTML+JS renamed `.jpg`, SVG carrying script, spoofed MIME in
+both directions, malformed base64, oversized single file, nine photos on one
+estimate, 5×7MB aggregate, six flavours of path-traversal filename, replayed
+upload, expired/malformed/far-future references, a 25-request flood on 25
+fresh referenceIds, missing payload fields, and a formula-injection filename.
+
+Two results worth recording:
+
+- **The aggregate cap works across requests**, which is the only interesting
+  case: each photo is its own POST, so no single request can see the total.
+  Three of five 7MB files stored, 21MB, fourth refused.
+- **A formula-injection filename is inert twice over.** It survives as a Drive
+  filename, where nothing evaluates it, and reaches the sheet only inside a
+  `JSON.stringify` array — so the cell begins with `[`, not `=`.
+
+### Retention is still an open decision
+
+Unchanged and deliberately unimplemented. These folders accumulate customer
+photographs and names indefinitely; nothing deletes them. How long they are
+kept, whether deletion is manual or scheduled, and what the customer was told
+at submission are all still unanswered. **Do not add automatic deletion until
+that is decided with the client.**
+
+---
+
 ## 2026-08-13 — P0 SEO IMPLEMENTATION
 
 **Commit `4b3df59`** — 33 files, 8,786 insertions.

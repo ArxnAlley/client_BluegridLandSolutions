@@ -600,22 +600,17 @@ function detectPhotoContentType(base64)
 
 }
 
-/* HEIC and HEIF share one container and one signature, so a file whose
-   bytes say heic may legitimately be declared either. Everything else
-   must agree exactly. */
+/* Every accepted format now has a one-to-one signature, so the claim
+   either matches the bytes exactly or it does not.
+
+   This used to carry a HEIC/HEIF alias, because those two share a
+   container and a signature. Dropping HEIC removed the only case where
+   two declared types could legitimately resolve to one detected type. */
 
 function contentTypeMatchesClaim(detectedType, claimedType)
 {
 
-    if (detectedType === claimedType)
-    {
-
-        return true;
-
-    }
-
-    return detectedType === 'image/heic'
-        && (claimedType === 'image/heic' || claimedType === 'image/heif');
+    return detectedType === claimedType;
 
 }
 

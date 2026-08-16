@@ -153,22 +153,38 @@ const MAX_TOTAL_PHOTO_BYTES = 25 * 1024 * 1024;
      image/jpeg   downscaled in-browser, stored, previewed in Drive
      image/png    same
      image/webp   same
-     image/heic   iPhone default. Canvas usually cannot decode it, so
-     image/heif   downscaling falls back to the original bytes and it
-                  uploads full size — the 8MB cap is what bounds it.
-                  Drive previews it. Kept because rejecting it would
-                  fail a large share of iPhone submissions.
 
-   Deliberately absent: SVG (markup, scriptable), GIF, BMP, TIFF, and
-   anything not an image. See PHOTO_CONTENT_SIGNATURES — the list below
-   is only the CLAIMED type, and a claim is not evidence. */
+   HEIC/HEIF was accepted until 2026-08-15 and is now deliberately NOT,
+   for three reasons that only became clear together:
+
+     1. iOS already converts. With the default "Automatic" / "Most
+        Compatible" setting, an iPhone hands a file input a JPEG, not a
+        HEIC. HEIC arrives only from the non-default "Current" setting
+        or a Files-app pick, so accepting it buys far less than it
+        appears to.
+     2. It is the ONE format that bypasses our own downscaling. Canvas
+        cannot decode HEIC, so the browser falls back to the original
+        bytes and it uploads full size. Every other accepted format
+        arrives reduced to 1600px.
+     3. Its signature is the weakest one we can write. HEIC is
+        ISO-BMFF — the same container as MP4 and MOV — so the check has
+        to be a brand allowlist at offset 8 rather than a fixed magic
+        number, which is materially more permissive than the exact
+        byte matches JPEG, PNG and WebP allow.
+
+   Narrow first, widen on evidence. Re-accepting it is a one-line
+   change here plus its signature entry, if real submissions show
+   iPhone users being turned away.
+
+   Deliberately absent for the whole life of this list: SVG (markup,
+   scriptable), GIF, BMP, TIFF, and anything not an image. See
+   PHOTO_CONTENT_SIGNATURES — the list below is only the CLAIMED type,
+   and a claim is not evidence. */
 
 const ALLOWED_PHOTO_MIME_TYPES = [
     'image/jpeg',
     'image/png',
-    'image/webp',
-    'image/heic',
-    'image/heif'
+    'image/webp'
 ];
 
 /* ============================================================
@@ -178,8 +194,9 @@ const ALLOWED_PHOTO_MIME_TYPES = [
    anything, so the bytes are checked rather than the claim. Each
    entry tests the leading bytes of the decoded file.
 
-   offset/bytes are matched literally; `brands` (HEIF family) matches
-   any one of several four-character brands at offset 8.
+   Every entry is an EXACT byte match at a fixed offset. There is no
+   brand-allowlist entry any more — the HEIC one was the only such
+   rule, and dropping HEIC removed it.
 ============================================================ */
 
 const PHOTO_CONTENT_SIGNATURES = [
@@ -191,16 +208,7 @@ const PHOTO_CONTENT_SIGNATURES = [
     /* RIFF....WEBP — the four size bytes between the two markers are
        skipped, which is why this needs two anchored fragments. */
 
-    { type: 'image/webp', offset: 0, bytes: [0x52, 0x49, 0x46, 0x46], also: { offset: 8, bytes: [0x57, 0x45, 0x42, 0x50] } },
-
-    /* ISO-BMFF: "ftyp" at 4, then the brand at 8 decides the flavour. */
-
-    {
-        type: 'image/heic',
-        offset: 4,
-        bytes: [0x66, 0x74, 0x79, 0x70],
-        brands: ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1']
-    }
+    { type: 'image/webp', offset: 0, bytes: [0x52, 0x49, 0x46, 0x46], also: { offset: 8, bytes: [0x57, 0x45, 0x42, 0x50] } }
 
 ];
 
@@ -224,7 +232,17 @@ const REJECTED_CONTENT_SIGNATURES = [
     { label: 'PDF document', offset: 0, bytes: [0x25, 0x50, 0x44, 0x46] },
     { label: 'shell script', offset: 0, bytes: [0x23, 0x21] },
     { label: 'GIF image (not an accepted format)', offset: 0, bytes: [0x47, 0x49, 0x46, 0x38] },
-    { label: 'BMP image (not an accepted format)', offset: 0, bytes: [0x42, 0x4D] }
+    { label: 'BMP image (not an accepted format)', offset: 0, bytes: [0x42, 0x4D] },
+
+    /* ISO-BMFF: "ftyp" at offset 4. Covers HEIC/HEIF and the MP4/MOV
+       family in one rule, since they share the container. Listed so a
+       rejected iPhone photo is logged as "HEIC" rather than
+       "unrecognised binary" — that distinction is the difference
+       between diagnosing a real customer problem and shrugging at it.
+       Matched on the container alone, deliberately: no brand
+       allowlist, because nothing in this family is accepted now. */
+
+    { label: 'HEIC/HEIF or MP4/MOV container (not an accepted format)', offset: 4, bytes: [0x66, 0x74, 0x79, 0x70] }
 
 ];
 

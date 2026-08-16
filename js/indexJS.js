@@ -3744,7 +3744,15 @@ const photoPolicy = {
        still choose "all files" in most browsers, and drag-and-drop
        bypasses accept entirely. */
 
-    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+
+    /* HEIC is refused, but it is the one refusal a real customer is
+       likely to hit rather than an attacker — an iPhone set to
+       "Current" instead of "Most Compatible" hands over .heic files.
+       Detected separately so the notice can tell them how to fix it
+       instead of just saying no. */
+
+    heicPattern: /\.(heic|heif)$/i
 
 };
 
@@ -3784,7 +3792,18 @@ function looksLikeAcceptedImage(file)
 
     }
 
-    return /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name || '');
+    return /\.(jpe?g|png|webp)$/i.test(file.name || '');
+
+}
+
+function looksLikeHeic(file)
+{
+
+    const type = String(file.type || '').toLowerCase();
+
+    return type === 'image/heic'
+        || type === 'image/heif'
+        || photoPolicy.heicPattern.test(file.name || '');
 
 }
 
@@ -3810,7 +3829,11 @@ function addPhotoFiles(fileList)
         if (!looksLikeAcceptedImage(file))
         {
 
-            rejections.push(file.name + ' is not a JPG, PNG, WebP or HEIC photo.');
+            rejections.push(looksLikeHeic(file)
+                ? file.name + ' is an iPhone HEIC photo. On your iPhone open '
+                    + 'Settings › Camera › Formats and choose Most Compatible, then retake '
+                    + 'or re-save the photo. A screenshot of it works too.'
+                : file.name + ' is not a JPG, PNG or WebP photo.');
 
             return;
 

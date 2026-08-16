@@ -1,13 +1,19 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-13 (P0 SEO implementation)
+**Last updated:** 2026-08-15 (production acceptance + upload security closeout)
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
-**Last content commit:** `4b3df59` — SEO: implement BlueGrid launch search strategy
-**HEAD:** `4b3df59`. This session produced four commits: `18c8845` (lead pipeline), `9990055` (docs), `8fadfe0` (image-reference repair), `4b3df59` (P0 SEO).
-**Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git` — **current, verified via `git remote -v`.** The old stale-URL debt (item 10h) is resolved; someone corrected it outside any session recorded here.
-**Sync:** **0 behind / 5 ahead**, verified this closeout with `git rev-list --left-right --count origin/main...HEAD`. The five unpushed commits are `afb7868` (previous closeout) plus this session's four. Nothing has been pushed, per instruction. Re-verify with that command rather than trusting this line — `origin/main` has moved without a session recording it before.
-**Working tree:** clean
+**Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`
+**Sync:** the previous session's work was committed **and pushed** during the production-domain deployment. Commit hashes recorded before 2026-08-15 no longer resolve — history was rewritten at some point in that deployment, so `4b3df59`, `18c8845`, `9990055` and `8fadfe0` are stale references. Re-derive with `git log`, never trust a hash quoted here.
+**Working tree:** clean at the start of this session; this session's changes committed locally and **not pushed**.
+
+## THE SITE IS LIVE
+
+`bluegridlandsolutions.com` is serving, the Apps Script is deployed, and the
+full estimate-with-photos path has been **verified end to end in production by
+a public visitor in an incognito browser** — see the 2026-08-15 journal entry.
+Several older sections below still describe the pre-launch world; where this
+header and a later section disagree, this header is right.
 
 > Source of truth for resuming work. Only verified, completed work is recorded here.
 > Read this file first. `engineeringJournal.md` has the reasoning; `technicalDebt.md` has what is knowingly deferred.
@@ -394,9 +400,10 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 | # | Blocker | Impact |
 |---|---|---|
-| 1 | **The new Apps Script is not deployed** | The repo and production disagree: production cannot store a photo and does not know `referenceId`. Publishing the website before the redeploy would break photo upload outright. Aron's action — see below. |
-| 2 | **`config!notificationEmail` may still point at a test address** | Unverifiable from this repo. If not restored, a real customer submission would not reach Chase. |
-| 3 | **Production domain undecided** | Gates canonicals and OG URLs across 28 pages, the origin baked into `robots.txt` and `sitemap.xml`, and Search Console. |
+| ~~1~~ | ~~**The new Apps Script is not deployed**~~ | **RESOLVED 2026-08-15.** Deployed and verified in production by a public incognito submission with five photos. |
+| ~~3~~ | ~~**Production domain undecided**~~ | **RESOLVED.** `bluegridlandsolutions.com` is live. |
+| 2 | **`config!notificationEmail` and `photoViewerEmail` must both name the real accounts** | Still unverifiable from this repo. `notificationEmail` was pointed at a test recipient for the live test and `photoViewerEmail` at a test Google account. **If either is still a test address, Chase gets nothing / cannot open photos.** Confirm both in the config tab before handing the site over. |
+| 4 | **Apps Script is one version behind the repo** | This session narrowed the accepted formats to JPEG/PNG/WebP. Until the four `.gs` files are pasted and a new version deployed, production still accepts HEIC. Not a vulnerability — the old policy is the safe superset minus one format — but the repo and production disagree. |
 | 4 | `MODULE_API_KEY` state unknown | Cannot be checked from outside — `leads.list` returns `UNAUTHORIZED` whether the key is unset or merely not supplied. Blocks only a future dashboard, never the public form. |
 
 ---
