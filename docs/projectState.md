@@ -5,8 +5,8 @@
 **Branch:** `main`
 **Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`
 **Host:** **GitHub Pages.** See *Hosting* below.
-**HEAD:** `5403394` — "Session closeout: hero estimate UX, favicon audit, process breakpoint" (2026-08-20, **docs only, local, unpushed**)
-**Last code commit:** `db750b8` — "Final touches". **This is what production is running.** Every code change in the working tree post-dates it.
+**Closeout commit:** `12aa329` — "Session closeout: hero estimate UX, favicon audit, process breakpoint" (2026-08-20). **Docs only, local, unpushed.** HEAD is this commit or the small `docs:` commit that records this hash immediately after it — a hash cannot cite itself, so this repo records it in a follow-up, as it did at `8165cb4`.
+**Last CODE commit:** `db750b8` — "Final touches". **This is what production is running.** Every code change in the working tree post-dates it and none of it is committed.
 **Sync:** `main` is **level with `origin/main`** (0 ahead, 0 behind) — confirmed at closeout with `git fetch` + `git rev-list --left-right --count origin/main...HEAD`, not carried over. Commit hashes recorded before 2026-08-15 no longer resolve — history was rewritten during the production deployment. Re-derive with `git log`, never trust a hash quoted here.
 **Working tree:** **NOT clean.** **39 modified, 3 deleted, 43 untracked** (41 tracked files changed: +3,797 / −1,045). It holds **five stacked bodies of work** — mobile UX pass, WebP migration, production hardening, tablet/mobile hero estimate UX, and the process breakpoint — plus the favicon audit, whose artwork change was reverted.
 
