@@ -1,11 +1,34 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-15 (production acceptance + upload security closeout)
+**Last updated:** 2026-08-20 (session closeout — hardening, hero estimate UX, favicon audit + artwork revert, process breakpoint)
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
 **Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`
-**Sync:** the previous session's work was committed **and pushed** during the production-domain deployment. Commit hashes recorded before 2026-08-15 no longer resolve — history was rewritten at some point in that deployment, so `4b3df59`, `18c8845`, `9990055` and `8fadfe0` are stale references. Re-derive with `git log`, never trust a hash quoted here.
-**Working tree:** clean at the start of this session; this session's changes committed locally and **not pushed**.
+**Host:** **GitHub Pages.** See *Hosting* below.
+**HEAD:** `5403394` — "Session closeout: hero estimate UX, favicon audit, process breakpoint" (2026-08-20, **docs only, local, unpushed**)
+**Last code commit:** `db750b8` — "Final touches". **This is what production is running.** Every code change in the working tree post-dates it.
+**Sync:** `main` is **level with `origin/main`** (0 ahead, 0 behind) — confirmed at closeout with `git fetch` + `git rev-list --left-right --count origin/main...HEAD`, not carried over. Commit hashes recorded before 2026-08-15 no longer resolve — history was rewritten during the production deployment. Re-derive with `git log`, never trust a hash quoted here.
+**Working tree:** **NOT clean.** **39 modified, 3 deleted, 43 untracked** (41 tracked files changed: +3,797 / −1,045). It holds **five stacked bodies of work** — mobile UX pass, WebP migration, production hardening, tablet/mobile hero estimate UX, and the process breakpoint — plus the favicon audit, whose artwork change was reverted.
+
+**Only `docs/` is committed.** The closeout commit below carries the three continuity files and nothing else; **all site, CSS, JS, Apps Script and asset changes remain uncommitted by standing instruction** pending Aron's review. **Nothing is pushed or deployed.** Production is running `db750b8`, which includes none of it.
+
+## Hosting — decided and recorded 2026-08-18
+
+**This site is hosted on GitHub Pages, and that is the intended host.** The
+evidence is in the repository: a `CNAME` file (the Pages custom-domain
+mechanism) and no Netlify configuration of any kind — no `netlify.toml`, no
+`_redirects`, no `_headers`.
+
+Two behaviours the rest of this document depends on:
+
+- **`www` → apex is handled by Pages**, not by a config file. Verified live.
+  If the host is ever changed, that redirect must be reimplemented or every
+  canonical on the site starts disagreeing with the served URL.
+- **`404.html` is served for a miss at any depth *without* a redirect**, with
+  the browser's base URL still pointing at the missing directory. This is why
+  every path in `404.html` is root-absolute and must stay that way.
+
+**No migration is planned or in progress.**
 
 ## THE SITE IS LIVE
 
@@ -24,6 +47,23 @@ header and a later section disagree, this header is right.
 ---
 
 ## Current Phase
+
+**FINAL PRODUCTION HARDENING IS COMPLETE IN THE REPOSITORY.**
+
+Every code-side item in the hardening queue is done and validated. What remains
+between here and handing the site to Chase is **not repository work**:
+
+1. Resolve the working tree — review in a browser, decide the commit split,
+   commit. Nothing may be committed without Aron saying so.
+2. The Google-side steps only Aron can do (config tab, Apps Script redeploy).
+3. Page-by-page browser QA and the Chase review.
+
+See *Final Production Hardening — the work queue* for what was done, and
+*Waiting on Aron* for the exact manual steps.
+
+**Historical note (superseded):** the line below described the state at the
+2026-08-15 closeout and is kept because the phase table under it is still
+accurate.
 
 **LAUNCHED. Between phases, working tree clean.**
 
@@ -142,9 +182,55 @@ Every header dimension is a `:root` custom property overridden in the two header
 
 ---
 
-## Verification State — all green at `c4cef24`, re-run at this closeout
+## Verification State — all green, re-run 2026-08-20 at closeout
 
-**14 validator suites, 178/178 Apps Script harness, `runSelfTest` 9/9, `node --check` clean, 72 JSON-LD blocks parse.** Page counts below are 28.
+**26 validator suites + 180/180 Apps Script harness. Everything passes.**
+`node --check` clean on all 8 `.gs` and both browser JS files, CSS braces
+balanced (667/667, 126/126), `git diff --check` clean, 80 JSON-LD blocks parse.
+
+**Page count is 33** — 32 indexable pages plus `404.html`, which is `noindex`
+and correctly excluded from the sitemap (32 `<loc>` entries). **116 tracked
+files.**
+
+**Six suites are new across this session, and one was rewritten:**
+
+| Suite | What it covers |
+|---|---|
+| `validate404Page` | Drives real Chrome. Requests a deep missing URL, proves the error page renders styled from any depth, 3-column grid collapsing to 1, 48px touch targets, no horizontal overflow — **and that body never becomes a scroll container on 11 pages × 3 viewports, with both scroll locks still holding.** |
+| `validateResponsiveImages` | Static contract (every candidate resolves at its *declared* width, explicit dimensions intact, original always the largest candidate) **plus** what Chrome actually downloads at DPR 1/2/3. |
+| `validateContrast` | Every text role computed against the WCAG relative-luminance formula. |
+| `validateHeroEstimateUx` | Seven viewports in Chrome: exactly one estimate system visible at each, the address field's semantics, and the typed address reaching the modal. |
+| `validateFavicons` | Coverage on all 33 pages at every path depth, `.ico` frames square with a ≥48px frame, **transparency preserved** (injection-proven), SVG icons rasterise non-blank, root `/favicon.ico` byte-identical, manifest icons resolving relative to the manifest, robots.txt, schema logo/image, and a live HTTP fetch of all 8 icon URLs. |
+| `validateProcessLayout` | Thirteen viewports: horizontal above the breakpoint and vertical below, no mid-word title breaks, no collision or overflow, CTA intact, the reveal sequencer still reaching 5/5 — **and that the ≥1280px computed values still equal the pre-change desktop design.** |
+| `validateFollowTheWork` | **Rewritten.** Its subject section was deleted, so it now proves the *removal* stayed complete rather than asserting deleted CSS exists. |
+
+**A real browser is now part of the toolchain** — `browserSession.js` (Chrome
+over CDP, no dependencies) and `serveSite.js` (serves the repo the way GitHub
+Pages does, including the no-redirect 404). Several things in this project are
+not checkable any other way, and **five suites will not run without them.**
+
+**Four suites were taught about `404.html`'s root-absolute paths** rather than
+worked around: `validateAssets`, `validateSeo`, `validateMegaMenus`,
+`validateEstimateCtas`. They were failing on a page that is correct.
+
+**Three suites had their media-query parsing hardened** — `validateMobileLayout`,
+`validateFloatingCta`, `validateProcessSequence` located blocks with a plain
+`indexOf`, so a CSS *comment* mentioning a breakpoint made them slice the wrong
+block and report confident, wrong failures. They now match a declaration at the
+start of a line. See `technicalDebt.md` item 43.
+
+---
+
+### The pre-hardening verification table, kept for its detail
+
+**Historical snapshot from 2026-08-18, superseded by the section above.** It read: 19 validator suites, 178/178 Apps Script harness, `runSelfTest` 9/9, page count 29. Current figures are **26 suites, 180/180, 33 pages** — the table below is kept only for the per-check detail, not for its counts.
+
+**Six suites added since the table below was written:** `validateFollowTheWork`, `validateFrontendPhotoPolicy`, `validateAnalytics`, `validateCtaInteractions`, `validateMobileLayout`, and `simulateConsentFlow`. A **23-check upload security audit** also runs against `doPost` directly — see the 2026-08-15 journal entry.
+
+**Independently verified 2026-08-18, not from documentation:**
+- Live site: apex 200, `www` 301 → apex, `/sitemap.xml` 200, bad path returns a real 404.
+- Lead endpoint: `?action=ping` returns `{"success":true,"data":{"module":"forestryModule","clientId":"bluegrid",...}}` — the pipeline is live, not merely configured.
+- 0 broken internal links, 0 broken or case-mismatched assets, sitemap 29/29 with no orphans or duplicates.
 
 **Two additions since the table below was written:** `validateFollowTheWork` (layout arithmetic against real Inter metrics) and `validateFrontendPhotoPolicy` (drives the shipped `addPhotoFiles()` in a mocked DOM). A **23-check upload security audit** also runs against `doPost` directly — see the 2026-08-15 journal entry.
 
@@ -376,22 +462,108 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 ## Currently In Progress
 
-**Nothing in the repository.** Working tree clean, all 14 validator suites pass, Apps Script harness 178/178. `main` is **1 ahead of `origin/main`** (commit `c4cef24`) and unpushed — Aron has not authorized a push.
+**The working tree holds five bodies of finished, validated, uncommitted work.** Resolving it is the next task.
 
-**One thing outside it:** production runs the previous Apps Script version. See *Waiting on Aron*.
+All of it passes: **26/26 validator suites**, Apps Script harness **180/180**,
+`node --check` clean on both browser JS files and all 8 `.gs`, CSS braces
+balanced, 0 broken or case-mismatched assets, `git diff --check` clean.
+
+**39 modified, 3 deleted, 43 untracked** — 41 tracked files changed,
++3,797 / −1,045.
+
+| Work | Files | State |
+|---|---|---|
+| **Mobile UX pass** | `index.html`, `css/styleIndex.css`, `js/indexJS.js` | Complete, validated, injection-proven |
+| **WebP optimization** | 30 files with rewritten refs + 12 `.webp` | Complete, validated, refs verified |
+| **Production hardening** | ~40 files, `404.html`, 4 legal pages, 26 image variants, 3 deletions | Complete, validated, exercised in a real browser |
+| **Hero estimate UX (tablet/mobile)** | `index.html`, `css/styleIndex.css`, `js/indexJS.js` | Complete, verified across 7 viewports in Chrome |
+| **Process breakpoint 1167px → 699px** | `css/styleIndex.css` | Complete, verified across 13 viewports; desktop asserted unchanged |
+
+Plus the **favicon audit**, whose structural fixes were kept and whose artwork
+change was **reverted to the exact committed bytes** — `graphics/favicons/` is
+byte-identical to `HEAD`, and the only favicon-related addition is the new root
+`/favicon.ico`.
+
+They overlap in `index.html`, `css/styleIndex.css` and `js/indexJS.js`, so
+`git diff` on those files contains several at once. **Decide whether to split
+them or ship one commit.**
+
+**What has and has not been seen in a browser** — the distinction matters for
+the review:
+
+- **Seen and verified:** the 404 page at three widths, the scrollbar fix across
+  11 pages × 3 viewports, both scroll locks, responsive image selection at
+  DPR 1/2/3, the estimate modal opening and locking scroll, the compact hero
+  row at 375–1024px, the process board at 700–1440px, and every favicon size
+  from 16 to 512 on light and dark.
+- **Still unseen:** general layout and copy across the other 32 pages. The
+  mobile UX pass and the WebP migration have still never been reviewed
+  visually.
+
+**Only `docs/` has been committed** (the closeout commit). **No site, CSS, JS,
+Apps Script or asset change may be committed, pushed, or deployed until Aron
+says so.**
+
+**Outside the repository:** production runs the previous Apps Script version,
+and the `config` tab still needs checking. See *Waiting on Aron*.
 
 ---
 
-## Remaining Launch Work (priority order)
+## Final Production Hardening — the work queue
 
-**Rewritten 2026-08-15. Items 1, 3, 5, 6 and 13 of the old list are done — the site is live and the pipeline is verified in production.**
+**Rewritten 2026-08-18 from the pre-launch audit.** Items 3, 4 and 5 of the
+previous list are **done** — `og:image` is absolute, the stale canonical/OG
+TODOs are gone, and apex-vs-`www` is verified (`www` 301s to the apex, which
+is what every canonical names).
 
-1. **Aron's P0 config check** — `notificationEmail` and `photoViewerEmail` must both name the real accounts. See *Waiting on Aron*.
-2. **Paste `config.gs` + `validation.gs`, deploy a new Apps Script version**, and redeploy the website so both halves agree on the format policy.
-3. **`og:image` absolute-URL sweep** — still relative on all 28 pages, so Facebook link previews render without an image. `technicalDebt.md` item 12. **Highest-value self-contained work available.**
-4. **Delete the stale `TODO: Replace canonical` / `TODO: Swap og:url` comments** on all 28 pages — that work is done and the comments now mislead. Same sweep as 3.
-5. **Verify apex vs `www`** — `CNAME` is the apex, every canonical says `www`. Confirm one 301s to the other and the survivor is the one the canonicals name. `technicalDebt.md` item 12a.
-6. **Page-by-page copy and browser QA.** The estimate flow and photo uploader have now been exercised in production; most layout still has not been seen. Item 10m (Step 1's heading) sits here.
+Ordered by launch impact.
+
+**STATUS: items 1–9 are COMPLETE and validated. Items 10–12 are not repository
+work and remain open.** Item 0 is the immediate next action.
+
+**Three further pieces of work landed after this queue was written** and are
+also complete and validated — they are not part of the original queue but are
+in the same uncommitted tree:
+
+- **Tablet/mobile hero estimate UX.** The compact estimate row switched on at
+  640px while the two-column hero ended at 1080px, so every tablet got the
+  desktop CTAs pointing at an estimate card stacked below the fold. The switch
+  now happens at 1080px, declared once. The compact field also asked for
+  "address or ZIP" while writing into the modal's Property Address — now an
+  address field throughout. Fixed a pre-existing 375px clipping bug on the way
+  (`size="1"`, see `technicalDebt.md` item 38).
+- **Favicon audit.** Structural fixes kept (root `/favicon.ico`, `mask-icon`
+  removed, schema `logo`/`image` absolute, coverage verified on 33 pages). The
+  artwork change was **unauthorised and has been reverted** — see item 39.
+- **Process breakpoint 1167px → 699px.** The five-step row now scales via
+  `clamp()` instead of collapsing, and holds down to 700px. Desktop is
+  asserted unchanged at ≥1280px. See item 42.
+
+0. **Resolve the working tree.** ⟵ **THE NEXT ACTION.** Three bodies of work now sit in one tree: the mobile UX pass, the WebP migration, and this hardening pass. Review in a browser, decide the commit split, commit. **Nothing may be committed, pushed or deployed without Aron saying so.**
+
+1. ~~**Replace the public email address.**~~ **DONE.** `bluegridls@gmail.com` in `businessConfig`; zero occurrences of `estimates@bluegridlandsolutions.com` anywhere in the tree.
+
+2. ~~**Fix the three contrast tokens.**~~ **DONE** by the interrupted session. `--colorSkyDeep` `#3E7CB8`→`#356CA3`, `--colorSteel` `#7C8894`→`#68737E`. A new `validateContrast` suite computes every text role against the WCAG formula and passes.
+
+3. ~~**Strip the TODO comments from shipped HTML.**~~ **DONE**, and extended: the sweep only covered HTML, so `robots.txt` and `sitemap.xml` were still shipping a "confirm the production domain" TODO. Both are clean, and `buildSitemap.js` now **refuses to write** if any unfinished marker appears in either output.
+
+4. ~~**Add a custom `404.html`.**~~ **DONE.** Root-absolute throughout, `noindex`, three recovery routes, full site chrome and a working estimate modal. Verified in Chrome by requesting a deep missing URL.
+
+5. ~~**Responsive image sizing and delivery.**~~ **DONE.** 640/1024/1280 variants with `srcset` + measured `sizes` on **75 `<img>` tags**. **41% lighter** against the pre-srcset baseline across every page and viewport measured. Format never changed; the six JPEG holdouts were not reconverted.
+
+6. ~~**Trim over-length metadata.**~~ **DONE — and the count was wrong.** Only **two** titles were genuinely over 60 rendered characters; the other two counted `&amp;` as five characters and were already inside budget. Descriptions were already compliant.
+
+7. ~~**Add `twitter:image`.**~~ **DONE.** All 33 pages declaring `summary_large_image` now carry exactly one `twitter:image`, matching their own `og:image`. Also fixed `privacy/index.html`, whose `og:image` still pointed at a pre-WebP `.jpg`.
+
+8. ~~**Prune unreferenced assets.**~~ **DONE — and the ~16.2 MB figure no longer holds.** Only 6.35 MB is genuinely unreferenced. **4.34 MB removed** (`graphics/logos/oldLogo/`). Favicon masters kept as source art; `graphics/GBP - Services/` is gitignored and never deployed.
+
+9. ~~**Confirm the host.**~~ **DONE — GitHub Pages.** Recorded under *Hosting* at the top of this file. No migration planned.
+
+10. **Aron's P0 config check** — `notificationEmail` and `photoViewerEmail` must both name the real accounts. **Still open. Not doable from this repository.** See *Waiting on Aron*.
+
+11. **Paste the changed `.gs` files, deploy a new Apps Script version.** **Still open.** `config.gs` and `localTestRunner.js` changed this session on top of the earlier `validation.gs` change.
+
+12. **Page-by-page copy and browser QA.** **Still open.** The estimate flow, the uploader, the 404 page, the scrollbar fix and responsive image selection have all now been exercised in a real browser; **general layout and copy across 33 pages still has not been reviewed by a human.** Item 10m (Step 1's heading) sits here.
 7. **Chase review / major revision pass** — expect a real round of change requests.
 8. **Search Console** — property verification and sitemap submission.
 9. **Competitor and search-intent research** — never done, and the homepage geographic decision is waiting on it. See *Open Decisions*.
@@ -445,9 +617,10 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 - **Price ranges.** `seoPlan.md` calls cost transparency the biggest opening in this trade. No page quotes a dollar figure because none has been approved. **Rough per-acre or per-day ranges are the single highest-value upgrade available to the location pages** and cost one conversation.
 - **Confirm Rowan County / Morehead coverage.** If Chase does not work Rowan County, the Morehead page and all four data entries come back out.
 - **Real project photos** — ideally before/after pairs per service, tagged by location. Would unlock galleries on all 6 location pages and replace the Insights placeholders.
-- **Owner introduction video** — section is built and video-ready; two config fields.
+- **Owner introduction video — OR a suitable owner photo.** Still outstanding as of 2026-08-18. The section is built and video-ready (two config fields, `introVideoUrl` + `introVideoConfigured`); a good photograph of Chase would also serve. This is now the main content gap in the owner/intro section, which the mobile pass deliberately lifted higher on phones.
 - **Badge artwork typo** — the official badge reads **"FORESTRV"**, not "FORESTRY". Off the website since 2026-08-11 (`technicalDebt.md` item 2); still wrong on any print/signage that uses the old artwork.
-- ~~**Confirm phone** `(740) 464-2526`~~ — **confirmed 2026-08-13**, printed on his own advertisement (`graphics/images/whatTheyDo2.jpg`). **Business email** `estimates@bluegridlandsolutions.com` is **still a placeholder** and may route nowhere.
+- ~~**Confirm phone** `(740) 464-2526`~~ — **confirmed 2026-08-13**, printed on his own advertisement (`graphics/images/whatTheyDo2.jpg`).
+- ~~**Confirm business email**~~ — **RESOLVED 2026-08-18. The confirmed public business email is `bluegridls@gmail.com`.** `estimates@bluegridlandsolutions.com` is **not a confirmed mailbox** and must not remain the public-facing address. The swap is queue item 1 under *Final Production Hardening*; it has **not been made yet**.
 - **Retention period for customer photographs.** `BlueGrid Lead Photos` keeps them indefinitely and nothing deletes them. Needs a decision before it becomes a quiet liability — `technicalDebt.md` item 24i.
 - **The pre-launch review of the whole site** — the first time he sees it end to end, now that it is actually live.
 - **Confirm the Facebook page renders in the Page Plugin** → flip `facebookPageConfigured`.
@@ -462,8 +635,20 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 **One of these is a P0 and the rest are not.**
 
 - **P0 — confirm `notificationEmail` and `photoViewerEmail` in the `config` tab both name the real accounts.** Acceptance testing deliberately used a *test recipient* for estimate email and a *separate test Google account* for Drive viewing. If either is still a test address the system looks perfectly healthy while Chase receives nothing, or cannot open a single photo. **Neither is verifiable from this repository.** Run `listRootFolderAccess()` from the Apps Script editor and read the config tab. Two minutes, and nothing else on this list matters until it is done.
-- **Paste `config.gs` and `validation.gs`, then deploy a new version.** The repo narrowed the accepted formats to JPEG/PNG/WebP; production still accepts HEIC until this is done. Not a vulnerability — the live policy is the safe superset minus one format — but repo and production disagree. *Deploy → Manage deployments → pencil → New version.* A **new deployment** mints a different URL and silently breaks all 28 forms.
-- **Redeploy the website** if the format change should take effect there too — `js/indexJS.js` changed. Ship both halves together so the front end and the API agree.
+- **THE EXACT GOOGLE-SIDE STEPS, in this order.** The repo now sets `DEFAULT_PHOTO_VIEWER_EMAIL = 'bluegridls@gmail.com'` and lowercases `DEFAULT_NOTIFICATION_EMAIL` to match. **Neither change reaches production on its own** — those constants only *seed* config keys that do not already exist, and the live sheet has had both keys since the 2026-08-15 deployment.
+
+  1. **Paste the changed `.gs` files** — `config.gs` this session, `validation.gs` from the earlier photo-format change — then **Deploy → Manage deployments → pencil → Version: New version → Deploy.** Never "New deployment": it mints a different URL and silently breaks all 33 forms. (`localTestRunner.js` is a local harness and is never pasted.)
+  2. **Open the `config` tab and read `photoViewerEmail`.**
+     - **Blank** → nothing more to do. `getConfig()` applies a sheet value only when it is non-empty, so a blank cell now falls through to `bluegridls@gmail.com`.
+     - **Holds the test Google account** from acceptance testing → **edit it by hand to `bluegridls@gmail.com`.** A non-blank cell always beats the constant. This is the case that fails silently: everything looks healthy while Chase cannot open a single photo.
+  3. **Check `notificationEmail`** in the same tab. Acceptance testing pointed it at a *test recipient*; if it is not Chase's address he receives nothing.
+  4. **Run `shareRootFolderWithOwner()`** to grant Viewer on the photo root.
+  5. **Run `syncRootFolderAccess()`** to revoke the temporary test account, then **`listRootFolderAccess()`** to confirm the viewer list is exactly who it should be.
+
+  **The two keys stay separate on purpose** and merely hold the same address in production — the owner both receives the leads and opens the photographs. Do not collapse them into one setting.
+
+- **The same redeploy carries the photo-format change.** Production still accepts HEIC until step 1 is done. Not a vulnerability — the live policy is the safe superset minus one format — but repo and production disagree.
+- **Redeploy the website** so the front end and the API agree — `js/indexJS.js` changed. Ship both halves together.
 - **Decide the homepage geographic target.** An audit was delivered 2026-08-15 recommending the homepage stay regional; Aron has neither accepted nor rejected it. See *Open Decisions* below.
 - **Get four claims confirmed or corrected by Chase** — `technicalDebt.md` item 3a lists exactly what his own advertising does and does not support. The two needing him: whether he can commit to any estimate turnaround, and whether the certificate-of-insurance sentence is accurate. Also still open: `estimates@bluegridlandsolutions.com`, which appears on no artwork and may route nowhere.
 - **A real browser pass** on phone, tablet and desktop. Parts of the site have now been seen — the estimate flow and the photo uploader were exercised in production — but most layout still has not.
@@ -485,18 +670,44 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 ## NEXT SESSION SHOULD START HERE
 
-1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. This file's header has been found stale within a day of being written more than once; verify it against `git` rather than trusting it. **Commit hashes recorded before 2026-08-15 no longer resolve** — history was rewritten during the production deployment.
+**The repository-side hardening work is DONE.** What remains is a review
+decision, then Google-side steps only Aron can take, then the Chase review.
 
-2. **Verify Git state.** Expect `main`, working tree clean, HEAD `c4cef24`, **1 ahead of `origin/main`** and 0 behind. Check both directions with `git rev-list --left-right --count origin/main...HEAD`; `origin/main` has moved without a session recording it before. **`c4cef24` is unpushed and Aron has not authorized a push.**
+1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. **Commit hashes recorded before 2026-08-15 no longer resolve.**
 
-3. **Locate the validator toolchain — it is still not in the repository.** It lives in a session scratchpad, carried forward by hand. **Fourteen suites:** `validateSite`, `validateAssets`, `validateSeo`, `validateNav`, `validateMegaMenus`, `validateHeader`, `validateHero`, `validateFloatingCta`, `validateEstimateCtas`, `validateLeadFlow`, `validateProcessSequence`, `simulateEstimateFlow`, `validateFollowTheWork`, `validateFrontendPhotoPolicy` — named so the count can be checked against the list rather than trusted. Plus `measureHeader`, `measureProcessFit`, the guarded assemblers and the copy-rewrite tables. The Apps Script harness (`appsScript/localTestRunner.js`, **178 checks**) *is* committed. **Re-run everything to establish a baseline before changing anything.** `technicalDebt.md` item 10i still recommends committing the validators, and this is now the single most fragile thing about how the project is worked on.
+2. **Verify Git state.** Expect `main`, HEAD = the closeout commit below, **level with `origin/main`** (0 ahead, 0 behind — the closeout commit is local and unpushed, so if this reads 1 ahead, that is it), and a **dirty working tree**: 39 modified, 3 deleted (`graphics/logos/oldLogo/`), 43 untracked (`404.html`, `favicon.ico`, three legal-page directories, 36 image files, 2 logo `.webp`). Check both directions with `git fetch` + `git rev-list --left-right --count origin/main...HEAD`. If the tree is unexpectedly clean, someone committed between sessions — find out what before proceeding.
 
-4. **Ask whether Aron has done the P0 config check** (first item under *Waiting on Aron*) before planning anything touching the pipeline.
+3. **THE FIRST TASK: review the working tree in a browser and decide the commit split.** It holds five finished, validated bodies of work (see *Currently In Progress*). They overlap in `index.html`, `css/styleIndex.css` and `js/indexJS.js`. **Nothing but `docs/` may be committed, and nothing may be pushed or deployed, without Aron saying so.**
 
-5. **The highest-value self-contained work available is `og:image`** — still relative on all 28 pages, so every Facebook link Chase posts renders without an image, on a site whose stated distribution channel is Facebook. `technicalDebt.md` item 12. One mechanical sweep; `validateAssets` will not catch it because relative paths resolve locally.
+   Everything named under "Still unseen" in *Currently In Progress* is what the review is for — chiefly general layout and copy across the 32 pages that have not been looked at.
 
-6. **Other self-contained work, in rough value order:** the tree/brush clearing page (item 3b — first-party supported, the only advertised service with no page), apex-vs-www verification (item 12a), a reporting-only `listOrphanPhotoFolders()` (item 24c), the duplicate FAQ question (10a), Step 1's heading (10m), mega-menu current-page highlighting (19).
+4. **Locate the validator toolchain — it is still not in the repository** (`technicalDebt.md` item 10i, still the most fragile thing about this project). It lives in a session scratchpad, carried by hand, and **one suite was already lost in transit once** — `validateFollowTheWork.js` had to be recovered from an older scratchpad.
 
-7. **Do not re-implement the photo, identifier, access-control or P0 SEO work.** All four are complete in the repository and three of them are verified in production. If something looks wrong, determine whether it is a deployment step that has not run before changing code.
+   **Twenty-six suites** as of 2026-08-20: `validateSite`, `validateAssets`, `validateSeo`, `validateNav`, `validateMegaMenus`, `validateHeader`, `validateHero`, `validateFloatingCta`, `validateEstimateCtas`, `validateLeadFlow`, `validateProcessSequence`, `validateFollowTheWork`, `validateFrontendPhotoPolicy`, `validateAnalytics`, `validateCtaInteractions`, `validateMobileLayout`, `validateInsightsSection`, `validateContrast`, `validate404Page`, `validateResponsiveImages`, **`validateHeroEstimateUx`**, **`validateFavicons`**, **`validateProcessLayout`**, `heroLoopHarness`, `simulateEstimateFlow`, `simulateConsentFlow` — named so the count can be checked rather than trusted.
 
-8. **`docs/sessionCloseout.md` exists locally and is gitignored — do not commit it, and do not recreate it if it is already there.**
+   Plus the supporting modules: `measureHeader`, the font metrics in `fonts/`, the content modules (`navContent`, `faqContent`, `insightsContent`), and — **new and load-bearing** — `browserSession.js` (Chrome over CDP, no dependencies) and `serveSite.js` (serves the repo the way GitHub Pages does). The last two suites will not run without them.
+
+   Generators also live there: `build404Page`, `buildSitemap`, `buildResponsiveVariants`, `installResponsiveImages`, `installTwitterImage`, `fixImageDimensions`, `buildLegalPages`, and others. The Apps Script harness (`appsScript/localTestRunner.js`, **180 checks**) *is* committed.
+
+   **Re-run everything to establish a baseline before changing anything.**
+
+5. **After the tree is resolved, the remaining work is not in this repository** — Aron's Google-side steps (see *Waiting on Aron*), then page-by-page browser QA, then the Chase review.
+
+### Do NOT redo any of this
+
+- **WebP conversion is complete.** 12 of 18 images converted, 183 references migrated, verified. **Do not blindly reconvert the six JPEG holdouts** — `after_minfordOH`, `cleanCut_minfordOH`, `freshMulching_minfordOH`, `hero_b4_minfordOH`, `overGrowthCleanedup_minfordOH`, `overGrowth_minfordOH`. WebP was measured larger than the source on all six even at q60, confirmed with two independent encoders. The win on those is **resizing**, not re-encoding.
+- **Responsive images are done, and the ladder is deliberate.** 640/1024/1280 rungs, generated only where a rung beats the original by ≥10%. **Do not "complete" the ladder by adding 1536** — it was generated, measured at 1–65% *larger* than the 2048 originals at matched quality, and discarded. The originals are already q92/progressive/2×2-subsampled and sit at their compression floor. Likewise do not drop quality to q82 to buy more savings; matching the source quality was the point.
+- **The double scrollbar is fixed at the root.** `body` deliberately carries **no** `overflow-x`. Re-adding `overflow-x: hidden` there re-creates the second scroll container and the bug. `html`'s declaration is the site's entire horizontal clipping policy.
+- **The 404 page must stay root-absolute.** Every `href`, `src` and `srcset` candidate in `404.html` starts with `/`. GitHub Pages renders it for a miss at any depth without redirecting, so a relative path resolves against the missing directory and the page loads unstyled with no JavaScript.
+- **The favicon artwork is Aron's and is approved as-is.** It is transparent and it bleeds to the canvas edge by design. A previous pass judged it "illegible at 16px" and regenerated the tab icons from `apple-touch-icon.png` — which is opaque black for iOS — putting a **black square** behind the mark. That was unauthorised, was rejected, and has been reverted to the exact committed bytes. **Do not recompose, recolour, crop or add a background.** The master is `graphics/favicons/Bluegrid_Favicon1.png`; `validateFavicons` now fails on an opaque corner. See `technicalDebt.md` item 39.
+- **The process breakpoint is 699px and is measured, not chosen.** Do not "tidy" it to a round tablet number, and do not re-add process rules to the 1080px query. Every `clamp()` upper bound equals the original desktop value — changing one changes the desktop design. See item 42.
+- **The hero compact-estimate switch is declared once, at 1080px.** Do not re-hide `.estimateFormCard` or `.heroActions` at 640px; duplicating the switch is what disguised the tablet defect. And **do not remove `size="1"`** from the hero address input — it is load-bearing (item 38).
+- **`og:image`, canonical/OG TODO cleanup, and apex-vs-`www`** — all done and verified.
+- **The photo, identifier, access-control and P0 SEO work** — complete, three of the four verified in production.
+- **Analytics, consent and the estimate/CTA architecture** — complete and injection-proven.
+- **The lead form and its automated reply are confirmed working** (endpoint ping verified from this repo; the auto-reply confirmed by Aron). **Do not disturb the submission path** while hardening.
+
+If something looks wrong in any of the above, determine whether it is a
+deployment step that has not run before changing code.
+
+6. **`docs/sessionCloseout.md` exists locally and is gitignored — do not commit it, and do not recreate it if it is already there.**

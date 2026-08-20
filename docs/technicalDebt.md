@@ -1,10 +1,16 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-15 (closeout after production launch, upload hardening and the Drive access rework)
+**Last updated:** 2026-08-20 (session closeout)
 
-**Resolved this closeout:** items 1 (domain), 11 (robots/sitemap), 24d (photo access — now `rootInherited`, externally verified).
-**Newly opened:** 12a (apex vs www), 24g (header-only content validation), 24h (HEIC removed — watch traffic), 24i (retention policy).
-**Sharpened:** 12 (`og:image` still relative on all 28 pages — the highest-value open item), 24b (worst case 96MB → 25MB), 24c (orphan reclamation).
+**Resolved by the hardening pass (2026-08-18):** items 3 (email — swapped to `bluegridls@gmail.com`), 22 (unreferenced assets — re-audited and pruned), 25 (responsive image delivery — shipped), 28 (contrast — all three tokens fixed), 29 (TODOs — stripped from HTML *and* from `robots.txt`/`sitemap.xml`), 30 (custom 404 — built), 31 (host — confirmed GitHub Pages and recorded in `projectState.md`).
+
+**Earlier on 2026-08-18:** items 12 (`og:image` absolute), 12a (apex vs `www` verified).
+
+**Newly opened by the hardening pass:** 33 (the second scrollbar — fixed, recorded so it is not reintroduced), 34 (three `<img>` tags declared dimensions their files did not have — fixed), 35 (`graphics/favicons/New folder/` — kept deliberately, needs an owner decision), 36 (high-DPR phones still pull the full-size JPEG holdouts — a compression floor, not a bug).
+
+**Newly opened 2026-08-19:** 37 (tablet hero estimate gap — fixed), 38 (`size="1"` on the hero address input is load-bearing), 39 (favicon artwork is approved and must not be recomposed), 40 (no `WebSite`/`Organization` schema node), 41 (`favicon.svg` is 300KB — Aron's call), 42 (process breakpoint 699px is measured), 43 (validators located media queries by `indexOf` — fixed).
+
+**Sharpened:** 10i (validator toolchain now **26 suites** outside the repo, and **it has already lost a suite in transit once**).
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -24,9 +30,17 @@ The old badge (`bluegridBadge400.png`, `bluegridBadge192.png`) reads **"FORESTRV
 
 **Still open outside the website:** the misspelled badge files remain on disk, and if the client has that artwork on a truck wrap, signage, business cards, or a GBP profile photo, it is still wrong there. `newBG_logo.png` spells **FORESTRY** correctly and is the asset to hand anyone who asks for print artwork.
 
-### 3. ~~Placeholder contact details~~ — PHONE CONFIRMED 2026-08-13, EMAIL STILL OPEN
+### 3. ~~Placeholder contact details~~ — **FULLY RESOLVED 2026-08-18**
+**The email swap is done.** `bluegridls@gmail.com` is in `businessConfig`, and `estimates@bluegridlandsolutions.com` appears **nowhere** in the working tree. The accompanying TODO went with it.
+
+`DEFAULT_NOTIFICATION_EMAIL` in `appsScript/config.gs` was lowercased to match the site (it read `Bluegridls@`). Gmail is case-insensitive so nothing was broken, but the two now agree.
+
+Original detail kept below.
+
+
 - Phone `(740) 464-2526` — **confirmed.** It is printed on Chase's own advertisement, `graphics/images/whatTheyDo2.jpg`, which is first-party marketing material sitting in this repository. Previous sessions recorded it as an unconfirmed flyer number; the flyer *is* the evidence, and nobody had opened it.
-- Email `estimates@bluegridlandsolutions.com` — **still a placeholder.** It appears on no client artwork and may not route anywhere. Shipping an unrouted address loses leads silently.
+- Email `estimates@bluegridlandsolutions.com` — **must be removed. The confirmed public business email is `bluegridls@gmail.com`** (confirmed by Aron 2026-08-18). `estimates@…` is not a confirmed mailbox, appears on no client artwork, and currently ships in **29 `mailto:` links / 60 occurrences** across the live site. An unrouted address loses leads silently.
+  **The fix is one token:** `businessConfig.email` and `businessConfig.emailHref` in `js/indexJS.js` drive every page. Delete the accompanying `// TODO: Replace with the real business email address.` in the same edit — it is currently being served to the public (item 29). **Not yet done.**
 
 Wired through `businessConfig`, so the email is a one-line fix once confirmed.
 
@@ -176,8 +190,18 @@ Checked properly — every rendered title on all eight boards, uppercased as `te
 ### 10h. ~~The Git remote URL is stale~~ — RESOLVED, confirmed at 2026-08-13 closeout
 `origin` now points at `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, verified via `git remote -v`. No session recorded here ran the fix, and `origin/main` was also found to have moved ahead by a push this repository's history doesn't show — both point to activity happening outside these sessions, which is fine, just worth knowing the working tree isn't the only place this project changes.
 
-### 10i. The validator toolchain lives outside the repository
-Fourteen suites (thirteen, plus validateFrontendPhotoPolicy added 2026-08-15), the guarded assemblers, the font-metric models, the copy-rewrite tables, the SEO intent checks, and now the estimate-CTA checks exist only in a session scratchpad, carried forward by hand between sessions. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
+### 10i. The validator toolchain lives outside the repository — **AND IT HAS NOW LOST A SUITE IN TRANSIT**
+**Twenty-six suites as of 2026-08-20**, plus two supporting modules that five of them will not run without: **`browserSession.js`** (drives the installed Chrome over CDP with no dependencies) and **`serveSite.js`** (serves the repo the way GitHub Pages does, including the no-redirect 404). `validate404Page`, `validateResponsiveImages`, `validateHeroEstimateUx`, `validateFavicons` and `validateProcessLayout` are useless without both.
+
+**The predicted failure has now actually happened.** `validateFollowTheWork.js` did not survive the hand-off into the hardening session's scratchpad and had to be recovered from an *older* scratchpad — found only because a count was checked against a written list. Had nobody counted, the suite would simply have ceased to exist with no error anywhere. This is no longer a hypothetical risk in this item; it is a recorded incident.
+
+**The other half of the lesson:** when recovered, the suite *failed* — because the section it validated had been deliberately deleted. A validator carried outside the repo also drifts out of sync with the code it guards, and nothing reconciles them. It was rewritten to prove the removal stayed complete rather than deleted, but only because someone was looking.
+
+Original analysis below, and it still stands.
+
+**Nineteen suites as of 2026-08-18** (up from fourteen: `validateAnalytics`, `validateCtaInteractions`, `validateMobileLayout` and `simulateConsentFlow` were added 2026-08-16 to 2026-08-18), plus the guarded assemblers, the font-metric models and TTFs in `fonts/`, the content modules (`navContent`, `faqContent`, `insightsContent`), the copy-rewrite tables, the SEO intent checks and the estimate-CTA checks — all existing only in a session scratchpad, carried forward by hand between sessions.
+
+**The cost of losing it went up sharply this month.** The newer suites encode things no other artifact records: that neither analytics vendor can load from the markup, that the consent close button carries the *reject* hook rather than the accept one, that a skew never lands on a CTA's box, and that the mobile hero cannot hide the estimate card without showing its replacement. Several are injection-proven — they were verified by breaking the code and confirming the check fired. **This is the most fragile thing about how this project is worked on.** Losing it would cost more than any single feature in the repo: `validateSeo` alone encodes the intent map, the FAQ schema contract, and the anti-cannibalisation rule.
 `projectState.md` tells the next session to locate it first, which is a mitigation rather than a fix. The reason it is out of the repo is item 17's decision not to ship half a generator; that reasoning covers the assemblers and does **not** obviously cover the validators.
 **Fix: commit the validators.** They are read-only over the site, they have no dependencies, and they would make the repository self-checking.
 
@@ -204,20 +228,15 @@ Three questions had already drifted before 2026-08-11 and were fixed; the copy s
 ### 11. ~~`robots.txt` and `sitemap.xml` do not exist~~ — **RESOLVED 2026-08-13**
 Both exist. Sitemap carries **28 URLs**, matching the 28 tracked HTML pages, generated from the canonical tag on each page so the two cannot drift. Regenerate rather than hand-edit.
 
-### 12. Open Graph images are still relative on all 28 pages — **STILL OPEN, verified 2026-08-15**
-`og:url` **is** finalized: all 28 pages carry an absolute `https://www.bluegridlandsolutions.com/...`.
+### 12. ~~Open Graph images relative on all 28 pages~~ — **RESOLVED 2026-08-16**
+All `og:image` and `twitter:image` values are now absolute on the production origin, each page keeping its own intended image. The stale `TODO: Replace canonical` / `TODO: Swap og:url` comments were deleted in the same sweep. Enforced going forward by `validateAnalytics`, which fails on a relative social image, an off-origin canonical, or a file whose casing does not match disk.
 
-`og:image` is **not**. Measured this closeout: 27 pages use a `../graphics/...` relative path and 1 uses `graphics/...`. **Open Graph images must be absolute or the preview does not render** — a relative path is meaningless to Facebook's crawler.
+**Still open, and separate:** 28 of 29 pages declare `twitter:card="summary_large_image"` without a `twitter:image`. Only the homepage has one. See the hardening queue in `projectState.md`.
 
-**This matters more for this client than the generic case.** BlueGrid's stated distribution channel is Facebook: the site links to the page in the header, footer, a dedicated section and the final CTA. Every link Chase posts will currently render without an image.
+### 12a. ~~Apex vs `www` — direction unverified~~ — **RESOLVED 2026-08-16**
+Measured with `curl -I`: **`https://www.bluegridlandsolutions.com/` returns 301 → `https://bluegridlandsolutions.com/`.** The apex is the survivor, which is what `CNAME` names.
 
-**Fix:** one sweep prefixing `https://www.bluegridlandsolutions.com/` and flattening the `../`. Cheap, mechanical, and `validateAssets` will not catch it because the relative paths *do* resolve locally — that is exactly why it survived.
-
-**Also stale, same sweep:** all 28 pages still carry `<!-- TODO: Replace canonical ... -->` and `<!-- TODO: Swap og:url ... -->` comments whose work is already done for canonical and `og:url`. Delete the comments so the next reader is not misled into re-doing finished work.
-
-### 12a. Apex vs `www` — direction unverified
-`CNAME` is `bluegridlandsolutions.com` (apex). Every canonical, `og:url` and the `robots.txt` sitemap line point at `https://www.bluegridlandsolutions.com/` (**www**). Confirmed this closeout that `https://www.bluegridlandsolutions.com/` **does serve the real site**, so this is not broken — but which host is canonical and which redirects was **not** verifiable from here.
-**Next session or Aron:** `curl -I` both hosts and confirm one 301s to the other, and that the survivor is the one the canonicals name. Split host signals are a slow, quiet SEO cost.
+The canonicals were pointing at the **redirecting** host. All 29 canonicals, all 29 `og:url` values, the 29 sitemap URLs and the `robots.txt` sitemap line were normalized to the apex. `validateAnalytics` now fails on any `https://www.` reappearing in a canonical, `og:url`, sitemap or robots line.
 
 ### 13. Chase owner introduction video missing
 The section is built, video-ready, and ships a polished placeholder. Supplying it is a two-field config change — `introVideoUrl` + `introVideoConfigured` — with YouTube, Vimeo, and self-hosted all supported. No code debt; purely awaiting the asset.
@@ -267,7 +286,35 @@ Both breakpoints moved, and neither typography, the phone chip, the CTA nor any 
 `heroDuetConfig.forwardSweepMs` (1400) and `reverseDissolveMs` (1800) in `js/indexJS.js` must stay in lockstep with `transition: --heroSweepPos 1400ms` and `transition: opacity 1800ms` in `css/styleIndex.css`. Nothing enforces the pairing.
 They agree today, and the loop now awaits the dissolve so a drift would show as a visible gap rather than a desync — but it would still be wrong. Cleanest fix: read the durations from CSS custom properties via `getComputedStyle`.
 
-### 22. Six project photos are on disk but referenced nowhere
+### 22. ~~Unreferenced assets~~ — **RE-AUDITED AND PRUNED 2026-08-18**
+**The ~16.2 MB figure below no longer holds.** It counted the full-size originals, which are still referenced — as `srcset` fallbacks and as `og:image`/`twitter:image` targets. A fresh audit found **6.35 MB genuinely unreferenced**, and classifies rather than just lists, because "unreferenced" and "safe to delete" are not the same thing:
+
+| | |
+|---|---|
+| **Removed — 4.34 MB** | `graphics/logos/oldLogo/` (3 files). Superseded by the completed primary-logo migration, referenced nowhere including docs, and tracked — so recoverable from git history with one command. |
+| **Kept — 0.46 MB** | Both 512×512 favicon masters. They are distinct source artwork for the generated favicon set (different checksums, not duplicates), and source art was deliberately out of scope. See item 35. |
+| **Kept — 1.55 MB** | `graphics/GBP - Services/` is gitignored and therefore never deployed. Nothing to do. |
+
+`auditUnreferencedAssets.js` in the scratchpad re-runs the classification. It is conservative on purpose: a filename appearing anywhere — even in a comment — counts as referenced, because a false "unreferenced" deletes something the site needs.
+
+Original analysis kept below.
+
+
+**Widened again 2026-08-18.** The problem is much larger than the project photos this item originally tracked. A full sweep of `graphics/` against every shipped `.html`, `.css`, `.js` and `.webmanifest` found **~16.2 MB referenced by nothing**:
+
+- `graphics/logos/oldLogo/` — 4.4 MB (three superseded logos)
+- `Bluegrid_mainLogo.svg` + `Bluegrid_mainLogo1.svg` — 2.1 MB each
+- `BG_secondaryLogo.png` — 2.07 MB
+- `devCredit/MasterLogo.png` + `TPNulo_StudioLogo.png` — 2.1 MB combined
+- `bgLogo_transparent.png`, `newBG_logo.png`, `circleBG_logo.png`, `logo.jpg`, `logo2.jpg`
+- **`graphics/favicons/New folder/`** — a directory literally named "New folder"
+- `graphics/images/whatTheyDo.jpg`, `b4ForestryMulch_minfordOH.jpg`
+
+None of it is served to visitors, so it costs no page weight — but all of it deploys, and `New folder` is the kind of thing a client or another developer browsing the repo will notice.
+
+**Care needed on two:** `whatTheyDo2.jpg` (referenced, keep) is the first-party evidence for the confirmed phone number, and `docs/` cites it. The original JPEGs behind the 2026-08-18 WebP conversion are also unreferenced now but are **deliberately retained as masters** — they are needed for the responsive resize work (item 25) and must not be swept up in a prune.
+
+### 22a. Six project photos are on disk but referenced nowhere
 `graphics/images/after_minfordOH.JPG` (427KB, renamed from `after.JPG` on 2026-08-13) was committed in `fb15070` alongside the hero refresh. **Re-verified 2026-08-13: still referenced nowhere** in any HTML, CSS, or JS. It appears to be the previous `hero_after` image kept as a backup.
 Harmless but it ships to visitors' hosting. Left in place because it is the client's asset, not one this project created — the 2026-08-07 GBP cleanup deliberately removed only the asset Aron named.
 
@@ -338,9 +385,179 @@ Low severity: it lands in one mailbox, Gmail strips scripting from mail, and the
 `photoCount` is what the browser said it was attaching; `photoUrls` is what actually reached storage. They differ whenever an upload fails, and that difference is deliberate — it is how the owner's email knows to say "3 photos attached, upload did not complete" rather than silently reporting none.
 Recorded because a future dashboard reading `photoCount` as the number of viewable images would be wrong. **Use `photoUrls.length` for anything that counts images; use `photoCount` only to detect the shortfall.**
 
-### 25. No Lighthouse / performance pass yet
-Deferred until the higher-priority items clear. Known candidates: hero images are full-resolution `2048×1536` with no responsive `srcset`; Google Fonts loads render-blocking.
-**The hero typing animation is no longer on this list** — it was profiled and optimized on 2026-08-06 (see the journal entry and items 10c/10d). The two above are what remain.
+### 25. ~~Performance — responsive image delivery~~ — **RESOLVED 2026-08-18**
+**`srcset` + measured `sizes` now ship on 75 `<img>` tags, 240 candidates.** Result against the true baseline (the same page with every slot served the original, which is what shipped until now): **41% lighter across every page and viewport measured** — 72–82% at DPR 1, 32–53% at DPR 2, 12–27% at DPR 3.
+
+**How the ladder was chosen, so nobody "improves" it back:**
+
+- **640 / 1024 / 1280**, and a rung is generated only if it beats the original by **≥10%**. Nothing is hand-picked per file.
+- **1536 was generated, measured and discarded.** Every source is already q92, progressive, 2×2-subsampled — at matched quality a 1536 re-encode came out **1–65% larger** than the 2048 original. The original *is* the better 1536 candidate.
+- **1280 exists for high-DPR phones**, which nearly got missed: a 390px phone at DPR 3 asks for ~1170px, skips the 1024 rung and would otherwise land on the 2048 original. It pays on the WebP sources and loses on the JPEG holdouts, and the ≥10% rule sorts that out by itself.
+- **Quality is matched at 92**, with the JPEG sampling and progressive settings copied from the sources. The saving is entirely resolution, not fidelity. Dropping to q82 would have saved more and been a quality regression.
+- **Format is never changed** — the six JPEG holdouts stay JPEG (item 32).
+
+`sizes` values are **measured, not guessed**: `measureImageSlots.js` reads the widest CSS width each slot actually renders at 1440/820/390 in real Chrome. `validateResponsiveImages` re-checks the static contract *and* what Chrome actually downloads at DPR 1/2/3.
+
+**Still open from this item:** Google Fonts loads render-blocking from a third party; CSS and JS ship unminified. See item 36 for what responsive images could *not* fix.
+
+Original analysis kept below.
+
+
+
+**Done:** WebP conversion. 12 of 18 referenced images converted, 183 references migrated, served image library **6.51 MB → 5.89 MB**. See item 32 for the six that could not be converted and must not be retried blindly.
+
+**The largest remaining performance item is responsive image delivery, and it is untouched.** There is **zero `srcset`, `sizes` or `<picture>` anywhere on the site**. Sources are still `2048×1536`, so a 375px phone downloads a full-resolution desktop image. Converting the format without fixing the dimensions captured only part of the available win — for the six holdouts it captured none of it.
+
+This is the real mobile LCP fix and should be treated as the performance item, not a follow-up to it.
+
+**Also still open:** Google Fonts loads render-blocking from a third party (`preconnect` and `display=swap` are already correct); CSS and JS ship unminified (144 KB + 17 KB CSS, 120 KB + 17 KB JS); 59 images are neither `loading="lazy"` nor `fetchpriority="high"` (above-fold ones are correctly marked).
+
+**The hero typing animation is no longer on this list** — profiled and optimized 2026-08-06 (items 10c/10d).
+
+### 28. ~~WCAG AA contrast failures on body copy~~ — **RESOLVED 2026-08-18**
+All three fixes applied: `--colorSteel` → `#68737E`, `--colorSkyDeep` → `#356CA3`, footer alpha raised. A new **`validateContrast`** suite now computes every text role against the WCAG formula on every run, so a regression fails a validator rather than waiting for the next audit. Original analysis kept below.
+
+Opened 2026-08-18. Computed with the WCAG relative-luminance formula, not estimated:
+
+| Token | On | Ratio | Needs |
+|---|---|---|---|
+| `--colorSteel #7C8894` | `#F7F9FB` | **3.43:1** | 4.5:1 |
+| `--colorSteel #7C8894` | `#FFFFFF` | **3.62:1** | 4.5:1 |
+| `--colorSkyDeep #3E7CB8` | `#F7F9FB` | **4.16:1** | 4.5:1 |
+| `.footerBottomBar p` (0.45 alpha) | `#101214` | **4.35:1** | 4.5:1 |
+
+`--colorSteel` is not incidental — it carries `.sectionLede`, `.serviceCardCopy`, `.whyItemCopy`, `.whyStat dt`, `.faqPanel p`, `.serviceAreaTownsLabel` and `.reviewsPendingCopy`, i.e. the primary body copy on every light section (`servicesSection`, `whySection`, `serviceAreaSection`, `faqSection`, `reviewsSection`) across all 29 pages. `--colorSkyDeep` is the section kicker at 1.05rem/600, which is below the large-text threshold, so 4.5:1 applies.
+
+**Why it matters beyond compliance:** this is a contractor's site read outdoors on phones by landowners. Low-contrast grey body text is worst exactly where the audience is.
+
+**Fix — three one-line token changes:** `--colorSteel` → `#68737E` (4.58:1) or `#616C77` (5.08:1); `--colorSkyDeep` → `#356CA3` (5.20:1); footer alpha `0.45` → `0.5` (5.10:1). Dark sections already override these, so nothing else moves.
+
+### 29. ~~Developer TODO comments are served to the public~~ — **RESOLVED 2026-08-18**
+Stripped from all HTML. **The sweep initially missed two files:** `buildSitemap.js` stamped a "confirm the production domain" TODO into `robots.txt` *and* `sitemap.xml`, and the HTML-only strip did not cover `.txt`/`.xml`. Both are clean now, and the generator **refuses to write** if `TODO`, `FIXME` or `placeholder` appears in either output, or if the origin does not look like a real https host — so it cannot reintroduce what it introduced. Original analysis kept below.
+
+Opened 2026-08-18. **Confirmed in the live HTML, not just locally** — 4–5 per page across all 29. They include `TODO: Replace with the real business email address`, `TODO: Confirm phone number with the owner`, `TODO: Client has no Google Business Profile yet`, and `TODO: PLACEHOLDER IMAGE`.
+
+Two specific problems beyond untidiness: the email one **advertises to anyone viewing source that the published address is fake**, and the phone one is **stale** — the number was confirmed 2026-08-13 from Chase's own flyer, so it instructs a future reader to redo finished work.
+
+**Fix:** strip TODOs from shipped HTML; the information belongs in this file, which is where a future session looks anyway.
+
+### 30. ~~No custom 404 page~~ — **RESOLVED 2026-08-18**
+`404.html` is built from the `company/index.html` chrome by a guarded generator: `noindex`, excluded from the sitemap, three recovery routes (services / service areas / elsewhere), full header and footer, and a working estimate modal so the header CTA does not dead-end.
+
+**Every path in it is root-absolute and must stay that way.** GitHub Pages renders it for a miss at ANY depth *without redirecting*, so the browser's base URL is still the missing directory — a relative path there loads nothing, and it fails silently. `validate404Page` requests a deep missing URL in real Chrome and checks the page renders styled, collapses 3→2→1 columns, keeps 48px touch targets, and never overflows horizontally.
+
+Original note kept below.
+
+Opened 2026-08-18. There is no `404.html`. GitHub Pages serves its own generic branded 404 — correct status code, but no BlueGrid chrome and no route back into the site. A mistyped URL or a stale Facebook link currently dead-ends.
+**Fix:** a `404.html` built from the existing page chrome, the same way `privacy/index.html` was. Works identically on GitHub Pages and Netlify.
+
+### 31. ~~The host is GitHub Pages, not Netlify~~ — **CONFIRMED AND RECORDED 2026-08-18**
+**GitHub Pages is the intended host.** Recorded under *Hosting* at the top of `projectState.md`. **No migration is planned.**
+
+Two Pages behaviours the site now actively depends on, either of which would have to be reimplemented elsewhere: the `www` → apex 301, and `404.html` being served for a miss at any depth *without* a redirect. Original analysis kept below.
+
+Opened 2026-08-18. The repository is configured for **GitHub Pages**: a `CNAME` file, and **no** `netlify.toml`, `_redirects` or `_headers`. A session brief described this as a Netlify deployment; it is not.
+
+This matters for one concrete reason: the `www` → apex 301 (item 12a) is currently provided by GitHub Pages. **On Netlify that redirect does not exist by default** and would need a `_redirects` rule, or every canonical on the site would point at a host that no longer redirects.
+
+All asset paths are relative, so the site itself is portable to either host. Only the redirect and DNS differ.
+
+### 32. Six JPEGs that WebP cannot beat — **do not reconvert blindly**
+Opened 2026-08-18. `after_minfordOH`, `cleanCut_minfordOH`, `freshMulching_minfordOH`, `hero_b4_minfordOH`, `overGrowthCleanedup_minfordOH`, `overGrowth_minfordOH` were **deliberately left as JPEG**.
+
+All six are JPEG Q=92, `2048×1536`, with measured entropy **0.95–0.98** — dense foliage and fresh mulch, the worst case for WebP's intra-prediction against JPEG's DCT. At `-quality 80` WebP was **40–69% larger** than the source; even at q60 it still lost.
+
+**Verified as a content property, not a tool problem:** re-encoded through ffmpeg's libwebp independently and got 702.7 KB against ImageMagick's 700.4 KB on the same file. Two encoders, same answer.
+
+**A future session that runs a blanket "convert everything to WebP" pass will make the site heavier.** The win available on these six is **resizing** (item 25), not re-encoding.
+
+**Established tooling:** ImageMagick 7.1.2-29 Q16-HDRI with libwebp 1.6.0, at `C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\`. No standalone `cwebp`. Convention lives in `client_HesterAsphalt/tools/optimizeImages.ps1` (`-strip -quality 80`), but note that quality 80 is wrong for this photo set — the working settings were `-define webp:method=6` with quality stepped per image, and **lossless for the alpha logos** (verified pixel-identical by compositing over white, then diffing: 0 differing pixels, RMSE 0).
+
+### 42. Process board breakpoint is 699px and is measured — **do not "tidy" it to a round tablet number**
+The five-step horizontal process hands over to the vertical timeline at **699px**, moved down from 1167px on 2026-08-19. 1167 was the width at which the board stopped fitting *at its fixed design size*; it said nothing about whether five columns still read. With `clamp()` scaling on the board padding, gaps, discs and type, the row holds to ~660px.
+
+**699 rather than 660 for two structural reasons:** the `@media (max-width: 640px)` block owns vertical-timeline rules (`.processSteps::before`, `.processStep` as a grid, `.processStepNumber` positioning) and handing over at 660 would leave only 20px between two contradictory layout systems; and the widest title word is 83px in the display face, ~88px in the ~6%-wider fallback during font swap, which needs more than the 94px column that 660px yields.
+
+**Every `clamp()` upper bound equals the original desktop value and is reached at 1200px**, so the large-width design is unchanged by construction. `validateProcessLayout` asserts that at ≥1280px the computed padding, gap, disc, icon and type still match the pre-change values.
+
+**If the step copy or titles are ever edited, re-run `measureProcessFloor.js`** — the floor is a function of the longest title word, and new copy can move it.
+
+### 43. Validators located media queries by `indexOf` — fixed, but the pattern is worth avoiding
+`validateMobileLayout`, `validateFloatingCta` and `validateProcessSequence` found their blocks with `css.indexOf('@media (max-width: NNNpx)')`. When the process breakpoint comment began *mentioning* `@media (max-width: 640px)` to explain why it keeps clear of that block, all three started slicing from the comment and produced five confident, wrong failures — including safe-area complaints about CSS that had not changed.
+
+They now scan for a declaration at the **start of a line**. Worth remembering generally: a validator that parses CSS by substring will eventually be defeated by a comment that documents the thing it is looking for.
+
+### 39. Favicon system — **AUDITED 2026-08-19. THE ARTWORK IS APPROVED AND MUST NOT BE RECOMPOSED.**
+
+**The approved master is `graphics/favicons/Bluegrid_Favicon1.png`** — 512×512, transparent, pixel-identical to `web-app-manifest-512x512.png` (compare AE 0.22px). It is unreferenced by any page, so **it must not be pruned as a spare** (this nearly happened under item 22). `New folder/Bluegrid_Favicon.png` is a flattened-on-white export and is **not** the master.
+
+**What happened, so it does not happen again:** the audit judged the approved mark "illegible at 16px" because it bleeds to the canvas edge, and regenerated the tab icons from `apple-touch-icon.png` — the only fully contained asset, and contained *because it has an opaque black fill baked in for iOS, which cannot render transparency*. That put a **black square behind the mark** in browser tabs and Google's small icon. It was an unauthorised visual change, rejected, and reverted to the exact pre-audit bytes.
+
+**The rule: the favicon artwork is Aron's. Do not recompose, recolour, crop, or add a background to it.** Regenerate a derivative size only if technically required, from `Bluegrid_Favicon1.png`, with `-background none`, preserving alpha.
+
+**`apple-touch-icon.png` is legitimately opaque** and is exempt from the transparency guard. iOS home-screen icons do not support transparency; the black fill there is intentional and is the client's own artwork.
+
+**Do not "fix" the manifest icons.** `web-app-manifest-192x192.png` and `-512x512.png` are `"purpose": "any maskable"`; a maskable icon must bleed to the canvas edge because the platform applies its own mask and only the centre 80% is safe. Their edge-to-edge composition is correct.
+
+**Structural work from the audit that stands:** `mask-icon` removed from `index.html` (it pointed at a raster-in-SVG; Safari's pinned-tab mask needs a monochrome vector, and Safari 13+ uses the standard icons); root `/favicon.ico` added as the stable probe URL, byte-identical to the linked file; coverage verified on 33/33 pages at every path depth; manifest icons verified to resolve relative to the manifest; nothing blocked by robots.txt. The approved `.ico` already carried 48/32/16 frames, so Google's ≥48px requirement was always met.
+
+**`validateFavicons` now guards the artwork itself**, not just the plumbing: transparent icons must keep transparent corners and mean alpha below 0.95. Injection-proven. `rebuildFavicons.js` is retired to a tombstone that refuses to run.
+
+### 41. `favicon.svg` is 300KB — Aron's call, not a compatibility fix
+It is not a vector. It is a RealFaviconGenerator wrapper around a single base64-encoded 512px raster, and Chrome prefers `type="image/svg+xml"` when a page offers one — so it is downloaded to paint a 16px tab icon.
+
+A 192px rebuild measured **38KB, an 87% saving**, visually identical at tab sizes. It was reverted with the rest of the artwork restoration because shrinking it means **re-encoding Aron's artwork**, which is a brand decision rather than a defect fix.
+
+**If it is ever approved:** rebuild from `Bluegrid_Favicon1.png` with `-background none`, embed with `xlink:href` (SVG 1.1 — a file carrying only the SVG 2 `href` renders blank in non-browser consumers while `magick identify` still reports the declared size), and re-run `validateFavicons`, which rasterises SVG icons and fails on a blank canvas.
+
+### 40. No `WebSite` or `Organization` schema node — observation, not yet actioned
+The site declares exactly one `LocalBusiness` node (homepage) and no `WebSite` or `Organization` node anywhere. Its `image` was relative and it had no `logo`; both were fixed 2026-08-19 (absolute URLs, `logo` → the square 290×290 brand lockup).
+
+A `WebSite` node is what Google reads for the **site name** in search results, and `Organization` is the conventional home for brand identity. Adding either is a deliberate schema decision rather than a defect fix, so it was left for Aron. Naming is already consistent across the site — "BlueGrid Land Solutions", one declaration, no variants.
+
+### 37. The tablet hero estimate gap — **FIXED 2026-08-19, recorded so it is not reintroduced**
+`.heroInner` stops being two columns at **1080px**; the compact estimate system used to switch on at **640px**. Between them — most tablets — the desktop hero CTAs were shown while the estimate card they point at had already stacked below the fold. At 768/960/1024 the card's top edge measured exactly 800 in an 800px viewport: not one pixel visible.
+
+**The switch now lives in one place, the 1080px block**, and 640px only changes the compact row's shape. `validateMobileLayout` fails if `.estimateFormCard` or `.heroActions` are hidden at 640px again — duplicating the switch is what disguised the defect, by making 640 look like where the system began. `validateHeroEstimateUx` drives seven widths in a real browser and asserts exactly one estimate system at each.
+
+### 38. `size="1"` on the hero address input is load-bearing — **do not remove it**
+An `<input>` carries an intrinsic width of about 20 characters — 218px here — and that is the figure the hero's grid track uses as its automatic minimum. Without the attribute `.heroContent` is floored at **380px inside a 375px viewport**, and 29px of hero is clipped out of sight by `.heroSection`'s `overflow: hidden`. Real 375/390px phones lost the right edge of the copy, the Get Estimate button and a stat column.
+
+**This was pre-existing**, confirmed by force-restoring the old rules in the browser and measuring the identical 380.2px.
+
+**CSS cannot fix it.** `min-width: 0` and `flex-basis: 0` were both measured and neither moved it — they govern flex layout, not the intrinsic size the outer grid measures. Only the attribute does. Flex still sets the rendered width, so the field fills its row exactly as before.
+
+### 33. The double scrollbar — **FIXED 2026-08-18, recorded so it is not reintroduced**
+`css/styleIndex.css` carried `overflow-x: hidden` on **both** `html` and `body`. Once the root's overflow is not `visible`, body stops propagating its overflow to the viewport and keeps it — and a hidden value on one axis forces the other axis to compute to `auto`. The duplicate declaration quietly made body a **second scroll container** inside the viewport's.
+
+It only needed something to overflow, and the site supplies that on every page: every `[data-animate]` element rests at `translateY(24px)` until revealed, and the last one in the document pushes 24px past the footer's 19.2px of bottom padding. **24 − 19.2 = 4.8px**; body measured exactly 5px of scrollable slack. That is what the second bar scrolled — which is why it appeared while reading and vanished at the bottom of the page.
+
+**`body` now has no `overflow-x` at all, deliberately.** `html`'s declaration is the site's entire horizontal clipping policy, and it is load-bearing — at 390px the page genuinely has ~10px of horizontal overflow. **Do not re-add `overflow-x` to `body`**; `overflow-x: clip` was considered and rejected as the more complex answer to the same problem, with a Safari <16 caveat that plain removal does not have.
+
+`validate404Page` asserts on 11 pages × 3 viewports that body never becomes a scroll container and that `document.scrollingElement` is always `html`. Both the modal and drawer scroll locks were re-tested after the change and still hold.
+
+### 34. Three `<img>` tags declared dimensions their files did not have — **FIXED 2026-08-18**
+`faq/index.html` and `insights/index.html` declared `width="2048" height="1536"` for photographs that are **1536×1024**, and `locations/forestry-mulching-minford-oh.html` declared 2048×1536 for a **512×384** file.
+
+Those are different aspect ratios — 4:3 reserved for a 3:2 image — so the browser held open the wrong box and the layout moved when the image landed, which is exactly the shift explicit dimensions exist to prevent. It surfaced only because the first `srcset` installer trusted the width attribute, and a wrong `w` descriptor is a lie the browser acts on when choosing a candidate.
+
+**The installer now reads real dimensions off the file with ImageMagick and never from the markup**, and `fixImageDimensions.js` guards that every declaration still matches its file.
+
+### 35. `graphics/favicons/New folder/` — needs an owner decision
+A directory literally named `New folder`, holding a 512×512 favicon master (250 KB). A second, *different* 512×512 master sits beside it as `Bluegrid_Favicon1.png` (225 KB). Neither is referenced; both are source artwork for the generated favicon set.
+
+**Deliberately not touched.** Source art was out of scope for the prune (item 22), and the two files are not duplicates, so picking one is a decision rather than a cleanup. **Aron should decide** whether to keep one, keep both, or move them out of the deployed repository into asset storage. 0.46 MB either way — this is tidiness, not weight.
+
+### 36. High-DPR phones still pull full-size JPEGs — a compression floor, not a bug
+Responsive images cut 41% overall, but the win narrows to **12–27% at DPR 3**. The cause is item 32: the six JPEG holdouts have no rung that beats their original, so a 390px phone at DPR 3 (asking ~1170px) falls through to the 2048 file.
+
+**Nothing in `srcset` can fix this** — it is a property of the photographs. The options, if it ever matters enough:
+
+1. **Accept a small quality drop** on those six only. At q82 the 1024 rung saves 41–46% instead of 19–23%. Currently rejected: quality was to be preserved.
+2. **Re-shoot or re-export from higher-quality originals**, if Chase has them. These files may already be re-encodes of re-encodes, which would explain the floor.
+3. **Crop rather than scale** for the small slots, which changes composition and needs a human eye.
+
+Recorded so the next person does not spend an afternoon rediscovering that the encoder is not the problem.
 
 ### 26. Owner is not named on the site
 Copy says "the owner" throughout because naming Chase publicly was never approved. For an owner-operated brand, naming him is likely stronger. One-line copy change once decided.

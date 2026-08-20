@@ -4,6 +4,634 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-19 — PROCESS BOARD: HORIZONTAL DOWN TO 700px, NOT 1167px
+
+**Still uncommitted.**
+
+### The old breakpoint answered the wrong question
+
+The five-step process handed over to the vertical timeline at **1167px**. That
+number was derived honestly — the board is `max-width: 1120px` inside
+`.sectionInner`'s 1.5rem padding, so 1168px is the narrowest viewport at which
+it renders at its designed width — but the question it answered was "when does
+the board stop fitting at full size", not "when do five columns stop reading".
+
+The board only "stopped fitting" because its padding, gaps, discs and type were
+fixed. Everything from 700px to 1167px — every tablet — was being handed the
+phone timeline with room to spare.
+
+### Scaling first, breakpoint second
+
+Every `clamp()` added to `.processBoard` and its children has its **upper bound
+set to the existing value, reached at 1200px**. So the desktop design is
+untouched by construction, not by inspection — and `validateProcessLayout`
+asserts the computed padding, gap, disc, icon and type sizes at ≥1280px still
+equal the pre-change values to within 0.5px.
+
+Below 1200px they interpolate down, which is what buys the horizontal layout
+another 468px of viewport.
+
+### Finding the real floor
+
+`measureProcessFloor.js` walks the viewport down and reports the narrowest step
+column, the line counts, and — the useful one — the widest single title word
+measured against the column that has to hold it. `overflow-wrap: break-word` is
+on, so a column that is too narrow does not overflow visibly, it breaks a word
+mid-word and says nothing.
+
+    768px   column 112px, titles 2 lines, copy 5
+    730px   column 107px, titles 2 lines, copy 5
+    700px   column 102px, titles 2 lines, copy 5   <- chosen
+    680px   column  98px, titles 2 lines, copy 5
+    660px   column  94px, titles 2 lines, copy 5
+    645px   column  91px, titles 3 LINES, copy 6
+
+The visual failure is the titles ceasing to be uniform two-line blocks at
+~645px — well before anything technically breaks.
+
+**A first pass got this wrong and is worth recording.** The initial measurement
+forced the horizontal layout on with script but did not override the vertical
+block's board padding, so columns below 768px measured ~20px narrower than they
+really would be, and a word-break appeared at 700px that does not exist. That
+produced a proposed breakpoint of 768px. Re-measuring with the breakpoint
+temporarily lowered — so the real scaled padding applied — moved the floor down
+to ~660px. Forcing a layout in the browser is only honest if you force *all* of
+it.
+
+### Why 700 and not 660
+
+Two reasons that have nothing to do with the type:
+
+1. **The 640px block owns vertical-timeline rules** — `.processSteps::before`,
+   `.processStep` as a grid, `.processStepNumber` positioning. Handing over at
+   660px would leave 20px between two layout systems whose rules contradict
+   each other. 700px keeps 60px of clear air.
+2. **Fallback-font headroom.** The widest title word is 83px in the display
+   face; the project's own metric work records a fallback about 6% wider,
+   ~88px during the swap. Against 94px at 660px that is 6px; against 102px at
+   700px it is 14px.
+
+### A comment that broke three validators
+
+The new breakpoint comment explains why it keeps clear of the 640px block, and
+in doing so contains the literal string `@media (max-width: 640px)`.
+
+Three suites located their blocks with a plain `indexOf` on that string, so
+they began slicing from the **comment** rather than the declaration and
+reported five confident, entirely wrong failures about blocks they were not
+reading. `validateFloatingCta` complained about safe-area insets that had not
+changed.
+
+The documentation was legitimate; the parsing was fragile. All three now find a
+query by scanning for a declaration at the **start of a line**, which a comment
+mention never is.
+
+### Preserved
+
+Desktop design (asserted, not assumed), the vertical timeline rules unchanged
+with a lower trigger, step content and 1→2→3→4→5 order, the CTA beneath the
+board, and the reveal sequencer — checked by driving it and confirming 5/5
+steps reveal. Service pages run the same component with four steps and gain
+wider columns still (133px at 700px against the homepage's 102px).
+
+---
+
+## 2026-08-19 — FAVICON AUDIT, AND THE UNAUTHORISED ARTWORK CHANGE IT CAUSED
+
+**Still uncommitted.** The audit's structural findings were sound and are kept.
+Its artwork change was not, was rejected by Aron, and has been reverted. Both
+halves are recorded because the mistake is the more useful half.
+
+### What went wrong
+
+The audit judged the approved favicon "illegible at 16px" — the circular mark
+bleeds to the canvas edge, so at tab size it has no hard silhouette — and
+regenerated `favicon.ico`, `favicon-96x96.png` and `favicon.svg` from
+`apple-touch-icon.png`, which was the only asset in the set showing a fully
+contained circle.
+
+`apple-touch-icon.png` is fully contained **because it has an opaque black fill
+baked in.** iOS home-screen icons cannot be transparent, so the generator that
+produced the approved set composited a background into that one file on
+purpose. Deriving the tab icons from it inherited that fill and put a **black
+square behind the BlueGrid mark** in browser tabs and in Google's small icon.
+
+Two failures, and the second is the one worth remembering:
+
+1. **A design opinion was acted on as if it were a defect.** "This would read
+   better with a silhouette" is a matter for the person who owns the brand. The
+   audit was asked to verify a favicon system, not to re-cut the artwork.
+2. **Every other check still passed.** The files were square, ≥48px, resolved
+   at every depth, served 200 with the right content-type, and appeared in the
+   correct `<link>` on all 33 pages. Nothing in the suite noticed that the
+   picture had changed. A validator that checks plumbing will happily certify
+   the wrong image.
+
+### The revert
+
+`favicon.ico`, `favicon-96x96.png` and `favicon.svg` were restored to their
+**exact pre-audit bytes** from the session backups — md5-verified, and `git
+status` now shows all three as unmodified against `HEAD`. No re-encoding, so
+there is no generation loss and no question of a near-match.
+
+**The approved master is `graphics/favicons/Bluegrid_Favicon1.png`** — 512×512,
+transparent, and pixel-identical to the untouched `web-app-manifest-512x512.png`
+(compare AE 0.22px). It had been sitting unreferenced in the favicons folder,
+which is why an earlier pass nearly pruned it as a spare. It is the design
+master and should be treated as such. `New folder/Bluegrid_Favicon.png` is a
+flattened-on-white export, **not** the master.
+
+The approved `.ico` already carried 48/32/16 frames, so Google's ≥48px
+requirement was met by the original artwork all along. Nothing about the
+artwork ever needed rebuilding.
+
+### What now guards it
+
+`validateFavicons` checks that the icons which should be transparent still have
+fully transparent corners and a mean alpha below 0.95, with
+`apple-touch-icon.png` explicitly exempt because opaque is correct there.
+Injection-proven: compositing the black-square version back in fails the suite
+with a message naming the cause.
+
+`rebuildFavicons.js` has been retired to a tombstone that refuses to run and
+explains why, because the toolchain is carried forward by hand and a script
+that silently re-breaks the brand is worse than no script.
+
+### The structural findings, which stand
+
+- **`mask-icon` removed.** `index.html` pointed it at `favicon.svg`; Safari's
+  pinned-tab mask takes a *monochrome vector* and fills it with the link's
+  `color`. A full-colour raster does not do what that markup implies, and
+  Safari 13+ uses the standard icons anyway.
+- **Root `/favicon.ico` added**, byte-identical to the linked file. Browsers,
+  crawlers and a long tail of tools probe that path directly regardless of
+  `<link>` tags, and it is the one favicon URL that cannot break when a page
+  changes directory depth.
+- **Coverage verified**: 33/33 pages declare an `.ico`, a PNG icon, an
+  apple-touch-icon and a manifest, resolving with exact casing in all three
+  path forms (root, `../`, and root-absolute on 404.html).
+- **Manifest icons resolve relative to the manifest**, not to the page linking
+  it — checked, because that is a classic silent break.
+- **Nothing blocked by robots.txt.**
+
+### `favicon.svg` is 300KB, and that is now a known trade-off
+
+It is not a vector: it is a RealFaviconGenerator wrapper around a single base64
+512px raster, and Chrome prefers `type="image/svg+xml"` when a page offers it.
+The audit rebuilt it at 192px for an 87% saving — but that rebuild also
+re-encoded the artwork, so it went back with the rest of the revert.
+
+**Left as the approved file.** Shrinking it means re-encoding Aron's artwork,
+which is his call, not a compatibility fix. Recorded as debt item 41.
+
+One thing learned in passing and worth keeping: the first small rebuild used
+the SVG 2 `href` attribute on `<image>`, which renders in browsers and **blank**
+in every SVG 1.1 consumer, while `magick identify` still reports the declared
+canvas size. `validateFavicons` now rasterises SVG icons and fails on a blank
+result.
+
+### `mask-icon` was promising something it could not deliver
+
+`index.html` pointed `rel="mask-icon"` at that same raster-in-SVG. Safari's
+pinned-tab mask takes a **monochrome vector** and fills it with the link's
+`color`. Handing it a full-colour raster does not do what the markup implies.
+Safari 13+ uses the standard icons anyway, so it was removed rather than
+replaced.
+
+### A stable root URL, which did not exist
+
+Every page linked `graphics/favicons/favicon.ico` in three different relative
+forms depending on depth. All resolved — but there was **no `/favicon.ico`**,
+which browsers, crawlers and a long tail of tools probe directly whether or not
+a `<link>` exists. Added at the root, byte-identical to the linked file, and
+the validator asserts they stay identical so the two stable URLs can never
+serve different marks.
+
+### Schema branding
+
+One `LocalBusiness` node on the homepage. Its `image` was **relative**
+(`graphics/images/excavator.webp`) — Google reads these literally and cannot
+resolve a relative path — and there was no `logo` at all. Both fixed with
+absolute URLs; `logo` points at the square 290×290 brand lockup.
+
+Naming was already consistent ("BlueGrid Land Solutions", single declaration)
+and nothing else was touched. **There is no `WebSite` or `Organization` node on
+the site** — recorded as an observation, not invented, since the audit brief
+said not to change valid schema unnecessarily.
+
+---
+
+## 2026-08-19 — TABLET/MOBILE HERO ESTIMATE UX
+
+**Still uncommitted**, on top of the hardening pass below.
+
+### The gap between two numbers
+
+`.heroInner` stops being a two-column grid at **1080px**. The compact hero
+estimate system switched on at **640px**. Everything between those two numbers
+— 641px to 1080px, which is most tablets — got the *desktop* hero CTAs while
+the estimate card they point at had already stacked underneath the copy.
+
+Measured: at 768, 960 and 1024 the card's top edge landed on exactly 800 in an
+800px viewport. Not one pixel of it was on screen, and the CTA above it said
+"Get My Free Estimate".
+
+**The fix is one idea:** the moment the side-by-side composition stops being
+possible, the compact system takes over. The switch moved from the 640px block
+to the 1080px block, and 640px now only changes the compact row's *shape*
+(stacked instead of side by side). The switch is declared in exactly one place,
+and `validateMobileLayout` now fails if anyone re-adds it at 640 — duplicating
+it is what made the original defect hard to see, because 640 looked like where
+the system began.
+
+### The ZIP field that was never a ZIP field
+
+The compact field asked for "Property address or ZIP" with
+`autocomplete="postal-code"`, then wrote whatever it got into the modal's
+**Property Address**. It invited a five-digit answer to a question the modal
+asks properly. Now labelled and autocompleted as an address, placeholder
+"Enter property address". No new field, no schema change, no second submission
+path — the transfer into `#propertyAddress` was already correct and is
+untouched.
+
+### `size="1"` is load-bearing
+
+Fixing the breakpoint exposed a **pre-existing** defect at 375px, proven
+pre-existing by measuring the hero with the old rules force-restored in the
+browser: identical 380.2px either way.
+
+An `<input>` carries an intrinsic width of ~20 characters — 218px here. That is
+what the hero's grid track uses as its automatic minimum, so `.heroContent` was
+floored at **380px inside a 375px viewport** and 29px of hero was clipped out
+of sight by `.heroSection`'s `overflow: hidden`. Real 375/390px phones were
+losing the right edge of the copy, the Get Estimate button and a stat column.
+
+**CSS cannot reach it.** `min-width: 0` and `flex-basis: 0` were both tried and
+both measured no change — they govern flex layout, not the intrinsic size the
+outer grid measures. Only the `size` attribute moves it. Flex still sets the
+rendered width, so nothing else changed.
+
+Trimming the button's horizontal padding on phones then lifted the address
+field from 50% of its row to 56–63%, which is what "the majority of the row"
+required.
+
+### Breakpoint behaviour, measured in Chrome
+
+| Width | Before | After |
+|---|---|---|
+| 375 / 430 | compact, hero clipped 29px | compact, nothing clipped, input 56–63% |
+| 768 / 960 / 1024 | **desktop CTAs, card below the fold** | **compact, one row, all above the fold** |
+| 1200 / 1440 | desktop, card beside the copy | unchanged |
+
+`validateHeroEstimateUx.js` drives all seven widths in a real browser and
+asserts exactly one estimate system is visible at each, that the typed address
+reaches the modal, and that the page never gains a horizontal scrollbar.
+
+---
+
+## 2026-08-18 — FINAL PRODUCTION HARDENING (resumed after an interrupted session)
+
+**Still uncommitted.** HEAD is `db750b8`, level with `origin/main`. This entry
+covers two sessions: the hardening pass that was cut off mid-task by repeated
+API errors, and the resumed session that finished it. Nothing has been
+deployed.
+
+### Recovering the interrupted session
+
+The previous session left no doc trail — `projectState.md`, this file and
+`technicalDebt.md` were all written at 10:53–10:59, *before* the hardening
+work began at 11:08. State had to be reconstructed from the repository and
+from generator-script timestamps in the session scratchpad.
+
+What that reconstruction found, and it is worth recording because the same
+technique will be needed again: the scratchpad's `.js` mtimes are an accurate
+minute-by-minute log of what a session actually did. `swapPublicEmail.js` at
+11:10, legal pages at 11:38–11:50, `fixContrast.js` at 11:52,
+`stripProductionTodos.js` at 11:56, `cleanGbpLink.js` at 12:11, and
+`build404Page.js` at **12:25 with no `404.html` on disk** — which located the
+interruption exactly, at the 404 page, without guessing.
+
+**Completed by the interrupted session** (verified against the repo, not its
+own claims): the public email swap to `bluegridls@gmail.com`, the Insights
+section rebuild, Facebook embed removal, intro-media CSS, the four legal pages
+(privacy / terms / cookies / accessibility) with footer links, sitemap and
+robots regeneration, the three contrast-token fixes, TODO stripping from HTML,
+and the GBP link cleanup.
+
+**Two things it broke and did not notice**, both from ordering:
+
+- `buildSitemap.js` *added* a "confirm the production domain" TODO to
+  `robots.txt` at 11:48; `stripProductionTodos.js` ran at 11:56 but only
+  covers HTML. The site was shipping a TODO to crawlers in both `robots.txt`
+  and `sitemap.xml`, about a domain that has been confirmed since 2026-08-15.
+- `validateFollowTheWork.js` did not survive into the carried-forward
+  toolchain, and when restored it failed — because the section it validates
+  had been deliberately deleted.
+
+### The double scrollbar: measured, not guessed
+
+Reported symptom: two vertical scrollbars on normal pages.
+
+There is no browser in this toolchain — every other suite is static arithmetic
+or a mocked DOM, and neither can answer a question about the viewport. So one
+was added: `browserSession.js` drives the installed Chrome over CDP using
+Node's built-in `WebSocket`, with **no dependencies** — deliberate, because a
+validator that needs an `npm install` in a repo with no build step is a
+validator that stops being run. `serveSite.js` serves the repo the way GitHub
+Pages does, which is also the only way `404.html` can be tested at all.
+
+**Root cause.** `styleIndex.css` carried `overflow-x: hidden` on **both** `html`
+and `body`. Once the root's overflow is not `visible`, body stops propagating
+its overflow to the viewport and keeps it — and a hidden value on one axis
+forces the other axis to compute to `auto`. The duplicate declaration quietly
+made body a second scroll container inside the viewport's.
+
+It then only needed something to overflow, and this site supplies that on every
+page: every `[data-animate]` element rests at `translateY(24px)` until it is
+revealed, and the last one in the document pushes 24px past the footer's 19.2px
+of bottom padding. **24 − 19.2 = 4.8px**, and body measured exactly 5px of
+scrollable slack. That is what the second bar was scrolling, which is why it
+appeared while reading and vanished at the bottom of the page.
+
+**Fix:** remove `overflow-x: hidden` from `body` entirely. It was redundant for
+clipping — `html`'s declaration is the viewport's, verified at 390px where the
+page genuinely does have ~10px of horizontal overflow — and harmful for scroll
+containment. `overflow-x: clip` was considered and rejected as the more complex
+answer to the same problem, with a Safari <16 caveat that removal does not have.
+
+**Verified after:** 11 pages × 3 viewports, body never becomes a scroll
+container and `document.scrollingElement` is always `html`. Both scroll locks
+re-tested and still hold — that was the regression risk and it did not fire.
+
+**One false alarm, recorded so nobody re-chases it.** An intermediate
+measurement showed the footer credit at `opacity: 0` after scrolling to the
+bottom, which looked like an invisible footer. It was an artefact of
+`scroll-behavior: smooth` leaving the programmatic scroll 20px short. With
+smooth scrolling disabled the whole footer bottom bar reveals correctly and
+body slack drops to 0. The footer is fine.
+
+### Responsive images: the ladder is evidence, not convention
+
+`sizes` was **measured**, not guessed — `measureImageSlots.js` reads the widest
+CSS width every image slot actually renders at 1440 / 820 / 390 in real Chrome
+against the shipped stylesheets. Full-bleed slots got `100vw`; contained slots
+got explicit pixel widths, because they stop growing at the 1220px container
+cap and a `vw` figure would keep over-promising past it.
+
+**The ladder rejected two rungs on measurement.** Every source here is already
+quality 92, progressive, 2×2-subsampled. Re-encoding at 1536 at that same
+quality produced files **1% to 65% larger** than the 2048 originals, on WebP
+and JPEG alike — so the original *is* the better 1536 candidate. A 1280 rung
+pays 10–29% on the WebP sources and loses 15–19% on the six JPEG holdouts, so a
+flat "≥10% smaller or it is discarded" rule keeps it only where it helps.
+Nothing is hand-selected per file.
+
+This is the same pathology the WebP pass hit on those six holdouts and the same
+conclusion: these photographs are at their compression floor, and the only
+remaining win is fewer pixels.
+
+**Quality is matched exactly at 92**, with the JPEG sampling and progressive
+settings copied from the sources. Dropping to q82 would have saved considerably
+more and been a quality regression.
+
+**1280 nearly got missed.** The first ladder stopped at 1024, which looks fine
+at DPR 1 — but real phones are DPR 2–3, and a 390px phone at DPR 3 asks for
+~1170px, skips the 1024 rung and lands straight back on the 2048 original. The
+validator now measures at 1×, 2× and 3× for exactly this reason.
+
+**Result, against the true baseline** (the same page with every slot served the
+original, which is what shipped until now): **41% lighter across every page and
+viewport measured** — 72–82% at 1×, 32–53% at 2×, 12–27% at 3×.
+
+### Three images were declaring dimensions they did not have
+
+Found by the responsive work, and a real pre-existing defect: `faq/index.html`
+and `insights/index.html` declared `width="2048" height="1536"` for photographs
+that are 1536×1024, and a Minford location page declared 2048×1536 for a
+512×384 file. Those are different aspect ratios — the browser was holding a 4:3
+box open for a 3:2 image, which is precisely the layout shift explicit
+dimensions exist to prevent.
+
+It surfaced because the first version of the installer trusted the width
+attribute when building `srcset` descriptors, and a wrong descriptor is a lie
+the browser acts on. The installer now reads the real width off the file with
+ImageMagick and never from the markup. `fixImageDimensions.js` corrected all
+three and guards that every declaration still matches its file.
+
+### Validators taught about the error page, not worked around
+
+`404.html` must be root-absolute — GitHub Pages renders it for a miss at any
+depth *without redirecting*, so the browser's base URL is still the missing
+directory and any relative path resolves against it. Four suites did not model
+that and failed on a correct page: `validateAssets`, `validateSeo`,
+`validateMegaMenus`, `validateEstimateCtas`. Each was fixed to understand
+root-absolute paths and, for `validateSeo`, to exempt a `noindex` page from
+breadcrumb and `BreadcrumbList` requirements — an error page has no position in
+the hierarchy, and declaring one would feed a search engine a path to a page it
+is being told not to index.
+
+The page itself was verified the honest way: served over HTTP, requested at a
+deep URL, and checked in Chrome for a styled three-column grid, 48px touch
+targets, no horizontal overflow at 360/390/820, and a working estimate modal.
+
+### `validateFollowTheWork` rewritten rather than deleted
+
+Its subject — the Facebook Page Plugin section — was removed outright by the
+interrupted session, so the suite failed on a repository that was correct. A
+validator that fails when the code is right is worse than none, because people
+learn to ignore it.
+
+Deleting it was rejected: a half-removal is a real regression risk. It now
+proves the removal *stayed* complete (no embed markers, no orphaned CSS, no
+dead `facebookPageConfigured` gate, no anchor to the removed section) and that
+what was deliberately kept — the Facebook profile link — is still wired on all
+33 pages.
+
+### Apps Script config, and a fallback worth stating out loud
+
+`DEFAULT_PHOTO_VIEWER_EMAIL` is now `bluegridls@gmail.com` and
+`DEFAULT_NOTIFICATION_EMAIL` is lowercased to match. They remain **two
+independent keys that happen to hold the same address** — the owner both
+receives the leads and opens the photographs. Collapsing them would have to be
+undone the day lead mail forwards elsewhere, or a bookkeeper needs photo access
+without receiving estimates.
+
+**The behavioural consequence, which is easy to miss:** `getConfig()` applies a
+sheet value only `if (key && value)`, so a **blank** `photoViewerEmail` cell now
+falls through to the constant and resolves to the owner. A cell still holding a
+**test account does not** — a non-blank cell wins, and it must be edited by
+hand. Both cases are now asserted in the harness rather than left to be
+discovered in production.
+
+Four harness assertions had encoded the old configuration as permanent rules
+and were re-expressed rather than deleted — notably the blank-refusal guard,
+which can no longer be reached by blanking the cell and now forces the resolved
+config blank instead, so the safety behaviour stays under test. 178 → **180
+checks**.
+
+### Titles: two, not four
+
+The audit's "four over-length titles" counted raw HTML, where `&amp;` is five
+characters. Decoded, `index.html` renders at 55 and `locations/index.html` at
+58 — both already inside budget. Only Chillicothe (62) and Portsmouth (61) were
+genuinely over, and both were fixed by dropping the word "in", which keeps the
+head term, the city, the state and the brand. Trimming the two compliant titles
+would have weakened them for nothing.
+
+### Asset prune: 6.35 MB unreferenced, 4.34 MB removed
+
+The old figure of ~16.2 MB no longer holds — the originals are still referenced
+as `srcset` fallbacks and as `og:image`/`twitter:image` targets. A fresh audit
+classifies rather than just lists, because "unreferenced" and "safe to delete"
+are not the same thing:
+
+- **Removed:** `graphics/logos/oldLogo/` — 3 files, 4.34 MB, superseded by the
+  completed primary-logo migration, tracked (so recoverable from history).
+- **Kept:** both 512×512 favicon masters. They are distinct source artwork for
+  the generated favicon set, and source art was explicitly out of scope for
+  pruning. The directory literally named `New folder` is recorded as debt
+  rather than silently renamed.
+- **Kept, no action needed:** `graphics/GBP - Services/` is gitignored and
+  therefore never deployed in the first place.
+
+---
+
+## 2026-08-18 — PRE-LAUNCH AUDIT, MOBILE UX PASS, WebP OPTIMIZATION
+
+**Everything in this entry except the audit is sitting uncommitted in the
+working tree.** 31 modified tracked files, 12 new `.webp` files. HEAD is
+`db750b8` and level with `origin/main`. Nothing here has been deployed.
+
+### The audit corrected two false premises before it found anything
+
+The brief described a pre-deployment audit. Two checks contradicted it:
+
+- **The site was already live.** `curl -I` returned 200 on the apex, a 301
+  from `www`, a real 404 on a bad path, and 200 on `/sitemap.xml`. The custom
+  domain was already connected via `CNAME`.
+- **The repo is GitHub Pages, not Netlify.** No `netlify.toml`, no
+  `_redirects`, no `_headers` — but a `CNAME`, which is the Pages mechanism.
+  The brief's Netlify section did not describe this repository.
+
+Recording both because a pre-launch checklist written against the wrong
+premise produces confident, wrong recommendations.
+
+### What the audit cleared, with the check that cleared it
+
+Not assumptions — each was measured. 0 broken internal links (97 internal
+hrefs per page resolved against disk), 0 broken or case-mismatched assets,
+0 missing `alt` across 196 images, 0 missing `width`/`height`, sitemap 29/29
+with no orphans or duplicates, every canonical on the apex, no `noindex`
+anywhere, all 29 pages `lang="en"` with a skip link and landmarks, all 17 form
+controls labelled, all JSON-LD parsing. **The lead endpoint answered
+`?action=ping` with `{"success":true,...}`** — the pipeline is live, not
+merely configured.
+
+**Two audit checks were themselves wrong and were fixed before reporting.**
+A bare `/href="/` regex matched `data-confighref="phoneHref"` and produced
+300+ phantom broken links. A form-label check reported three unlabelled
+radios that are in fact wrapped in `<label>` inside a `fieldset`/`legend` —
+exemplary markup. A check that fails loudly on correct code is worse than no
+check; both were corrected and re-run before anything was written down.
+
+### The contrast failures are the real finding
+
+Computed, not eyeballed, using the WCAG relative-luminance formula:
+
+| Token | On | Ratio | Verdict |
+|---|---|---|---|
+| `--colorSteel #7C8894` | `#F7F9FB` | **3.43:1** | fails AA |
+| `--colorSteel #7C8894` | `#FFFFFF` | **3.62:1** | fails AA |
+| `--colorSkyDeep #3E7CB8` | `#F7F9FB` | **4.16:1** | fails AA |
+| `.footerBottomBar p` 0.45 alpha | `#101214` | **4.35:1** | fails AA |
+
+`--colorSteel` carries `.sectionLede`, `.serviceCardCopy`, `.whyItemCopy`,
+`.whyStat dt`, `.faqPanel p`, `.serviceAreaTownsLabel`,
+`.reviewsPendingCopy` — the primary body copy on every light section across
+all 29 pages. This is the largest accessibility defect on the site and it is
+three one-line token changes: `#68737E` (4.58:1) or `#616C77` (5.08:1),
+`#356CA3` (5.20:1), and alpha `0.5` (5.10:1).
+
+### TODO comments are being served to the public
+
+Confirmed in the **live** HTML, not just locally: 4–5 per page, including
+`TODO: Replace with the real business email address` and
+`TODO: Confirm phone number with the owner`. The phone one is **stale** — the
+number was confirmed 2026-08-13 from Chase's own flyer. Anyone viewing source
+currently reads that the published email is a placeholder.
+
+### Mobile UX pass — what it changed and why
+
+- **Inline estimate card hidden below 640px**, not deleted. The markup, the
+  single `#estimateForm`, and every validator contract stay intact.
+- **Hero gains a mobile-only action row**: `Call Chase` (tel:) plus a
+  one-field address/ZIP starter. It is a *shortcut into* the existing modal —
+  it pre-fills the modal's own `#propertyAddress` and opens it. No second
+  estimate system, no second submission path.
+- The starter **only fills a blank field**, so a part-completed modal is never
+  overwritten by a ZIP; it trims input; empty input still opens the flow; and
+  the modal still refuses a ZIP alone.
+- **Owner intro lifted above the trust bar by CSS `order`**, not a DOM move,
+  so desktop sequence is byte-identical. Safe because these sections space
+  with padding — there is no margin collapsing for flex to break.
+- **Process section is CSS-only**: five steps onto a rail, chevrons stood
+  down, `01`–`05` via `::before`. Copy, icons and numbering untouched.
+- **Story cards gained empty `data-casestudyurl` slots.** The link renders
+  only when a slot is filled — the same configure-and-it-appears pattern the
+  intro video and GBP link already use. No dead links, no filler articles.
+
+Desktop hero CTAs were deliberately left alone: desktop still shows the
+estimate card, and three estimate entry points side by side would be worse
+than one.
+
+### WebP — quality 80 was wrong for this photo set
+
+The established convention (`client_HesterAsphalt/tools/optimizeImages.ps1`)
+is `-strip -quality 80`. Applied here it made **6 of 16 photos larger**, some
+by 40–69%.
+
+Cause: measured entropy **0.95–0.98**, near maximum — dense foliage and fresh
+mulch, the worst case for WebP's intra-prediction against JPEG's DCT. Six of
+them are already JPEG Q=92, so q80 WebP was adding data.
+
+**Verified it was the content, not the tool**, by re-encoding through
+ffmpeg's libwebp independently: 702.7 KB against ImageMagick's 700.4 KB on
+the same file. Two encoders, same answer.
+
+Replaced with an adaptive pass — `-define webp:method=6`, quality stepped
+82→60 until the output beat its source by ≥10%, DSSIM measured on every
+result. **12 of 18 converted**, 11–21% each, all DSSIM ≤0.016. Six kept as
+JPEG because nothing beat them.
+
+**The logos needed a different method entirely.** DSSIM initially rated
+*lossless* worse than lossy on the alpha PNGs, which is impossible — it was
+scoring undefined colour in fully-transparent pixels. Re-measured by
+compositing over white then diffing: lossless gives **0 differing pixels,
+RMSE 0**. Both logos shipped lossless — byte-perfect brand marks at −41% and
+−36%, alpha confirmed intact (`alpha=Blend`, mean alpha 0.785 and 0.169).
+
+183 references rewritten across 30 files, including `introVideoPoster` in
+`js/indexJS.js`. Originals retained as masters — needed for the resize work
+still outstanding, and `docs/` cites `whatTheyDo2.jpg` as the phone-number
+evidence. Favicons and manifest icons deliberately excluded: iOS and PWA
+consumers need PNG.
+
+Served image library **6.51 MB → 5.89 MB**.
+
+### Validation
+
+19/19 validator suites, Apps Script harness 178/178, `node --check` clean on
+both browser JS files and all 8 `.gs`, CSS braces balanced. Re-run after the
+WebP reference migration with 0 broken or case-mismatched assets.
+
+Two suites were added earlier in the session and are injection-proven:
+`validateMobileLayout` (paired invariants — card hidden *and* replacement
+shown, reorder *and* the flex container that makes it work) and the
+`validateAnalytics` extensions. `simulateEstimateFlow` gained **PATH D**,
+which drives the real hero starter against the DOM mock.
+
+---
+
 ## 2026-08-15 — PRODUCTION ACCEPTANCE + UPLOAD SECURITY CLOSEOUT
 
 ### The acceptance test passed on the live domain
