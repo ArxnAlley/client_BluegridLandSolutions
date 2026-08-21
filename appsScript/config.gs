@@ -59,7 +59,7 @@ const SPREADSHEET_ID_PROPERTY = 'LEADS_SPREADSHEET_ID';
    the customer's email thread. Operational problems surface in the
    errorLog sheet instead of an inbox. */
 
-const DEFAULT_NOTIFICATION_EMAIL = 'Bluegridls@gmail.com';
+const DEFAULT_NOTIFICATION_EMAIL = 'bluegridls@gmail.com';
 
 const NOTIFICATION_SENDER_NAME = 'BlueGrid Land Solutions Website';
 
@@ -324,17 +324,37 @@ const DEFAULT_PHOTO_ACCESS = 'rootInherited';
 
 /* The Google account that gets Viewer on the photo root.
 
-   DELIBERATELY SEPARATE FROM notificationEmail. They answer different
-   questions — "who is emailed about a lead" and "whose Google account
-   can open the photographs" — and during acceptance testing they are
-   different addresses: estimate mail goes to admin@nulostudio.com
-   while a temporary test account holds Drive access. Never collapse
-   the two.
+   DELIBERATELY SEPARATE FROM notificationEmail, AND NOW HOLDING THE
+   SAME ADDRESS. Those two facts are not in tension, and the
+   distinction is worth keeping straight:
 
-   Blank by default and never guessed at: shareRootFolderWithOwner()
-   refuses to run rather than granting access to an assumed address. */
+     notificationEmail  answers "who is emailed about a lead"
+     photoViewerEmail   answers "whose GOOGLE ACCOUNT can open the
+                        photographs in Drive"
 
-const DEFAULT_PHOTO_VIEWER_EMAIL = '';
+   During acceptance testing they were different on purpose — estimate
+   mail went to a test recipient while a separate throwaway Google
+   account held Drive access — which is exactly why they are two keys.
+   In production both are the owner, bluegridls@gmail.com, because the
+   owner both receives the leads and opens the photos.
+
+   They must stay two independent keys. The day the owner wants lead
+   mail forwarded somewhere else, or a bookkeeper needs to see photos
+   without receiving estimates, collapsing them would have to be undone
+   under pressure. One address in two settings costs nothing; one
+   setting doing two jobs costs a rework.
+
+   Note this is only the FALLBACK used to seed a config tab that does
+   not yet have the key. An existing sheet already has a
+   photoViewerEmail row, and setupSpreadsheet appends missing keys
+   only — it never overwrites one. Changing this constant therefore
+   does NOT change a live deployment. See appsScript/README.md and the
+   deployment steps in docs/projectState.md.
+
+   Never guessed at: shareRootFolderWithOwner() refuses to run on a
+   blank value rather than granting access to an assumed address. */
+
+const DEFAULT_PHOTO_VIEWER_EMAIL = 'bluegridls@gmail.com';
 
 /* ============================================================
    ENUMS  (exact, case-sensitive — must match

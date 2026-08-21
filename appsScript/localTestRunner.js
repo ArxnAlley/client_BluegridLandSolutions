@@ -1239,8 +1239,14 @@ check('exactly two emails sent (owner + auto-reply)', sentEmails.length === 2,
 
 const ownerEmail = sentEmails[0];
 
-check('owner email goes to Bluegridls@gmail.com', ownerEmail.to === 'Bluegridls@gmail.com',
-    'to=' + ownerEmail.to);
+/* Asserted against the constant rather than a copied string. The
+   literal spelling used to be duplicated here, so changing the case of
+   the address in config.gs failed a test that had no opinion about
+   case — it was only ever asking "does the owner get the mail". */
+
+check('owner email goes to the configured notification address',
+    ownerEmail.to === sandbox.constants.DEFAULT_NOTIFICATION_EMAIL,
+    'to=' + ownerEmail.to + ' expected=' + sandbox.constants.DEFAULT_NOTIFICATION_EMAIL);
 
 check('NO cc to Nulo Studio', !ownerEmail.cc);
 
@@ -1841,12 +1847,22 @@ check('"Open all photos" still points at this lead\'s own folder',
 /* ── notificationEmail and photoViewerEmail are independent ── */
 
 check('notification recipient is unchanged by the access model',
-    photoOwnerEmail.to === 'Bluegridls@gmail.com',
+    photoOwnerEmail.to === sandbox.constants.DEFAULT_NOTIFICATION_EMAIL,
     photoOwnerEmail.to);
 
-check('photoViewerEmail defaults blank and is NOT the notification address',
-    sandbox.constants.DEFAULT_PHOTO_VIEWER_EMAIL === ''
-    && sandbox.constants.DEFAULT_PHOTO_VIEWER_EMAIL !== sandbox.constants.DEFAULT_NOTIFICATION_EMAIL);
+/* Both keys now hold the same address in production, because the owner
+   both receives the leads and opens the photographs. That is a
+   deliberate configuration, NOT a merge of the two settings — what
+   this suite has to protect is that they remain two independently
+   resolvable keys, which the next check does directly.
+
+   The old assertion here required photoViewerEmail to be blank. That
+   encoded a temporary state (nobody had confirmed the owner's Google
+   account yet) as a permanent rule. */
+
+check('photoViewerEmail and notificationEmail are two separate keys',
+    Object.prototype.hasOwnProperty.call(sandbox.constants, 'DEFAULT_PHOTO_VIEWER_EMAIL')
+    && Object.prototype.hasOwnProperty.call(sandbox.constants, 'DEFAULT_NOTIFICATION_EMAIL'));
 
 check('the two keys resolve independently from the config tab',
     (function ()
@@ -1857,7 +1873,7 @@ check('the two keys resolve independently from the config tab',
 
         const resolved = readFreshConfig();
 
-        setConfigValue('notificationEmail', 'Bluegridls@gmail.com');
+        setConfigValue('notificationEmail', sandbox.constants.DEFAULT_NOTIFICATION_EMAIL);
         setConfigValue('photoViewerEmail', '');
 
         return resolved.notificationEmail === 'notify@example.com'
@@ -1865,13 +1881,65 @@ check('the two keys resolve independently from the config tab',
 
     })());
 
+/* ── The deployment consequence of giving photoViewerEmail a default ──
+
+   getConfig() applies a sheet value only `if (key && value)`, so a
+   BLANK cell falls through to the constant. With the constant now set
+   to the owner, a config tab that nobody edits resolves photo access
+   to the owner instead of to nobody.
+
+   That is the intended behaviour, but it is exactly the kind of
+   silent fallback that should be stated in a test rather than
+   discovered in production: a live sheet whose cell still holds a
+   TEST account is NOT covered by it, because a non-blank cell wins. */
+
+check('a blank photoViewerEmail cell falls back to the owner default',
+    (function ()
+    {
+
+        setConfigValue('photoViewerEmail', '');
+
+        const resolved = readFreshConfig();
+
+        return resolved.photoViewerEmail === sandbox.constants.DEFAULT_PHOTO_VIEWER_EMAIL
+            && resolved.photoViewerEmail !== '';
+
+    })());
+
+check('a non-blank photoViewerEmail cell still overrides the default',
+    (function ()
+    {
+
+        setConfigValue('photoViewerEmail', 'leftover-test-account@example.com');
+
+        const resolved = readFreshConfig();
+
+        setConfigValue('photoViewerEmail', '');
+
+        return resolved.photoViewerEmail === 'leftover-test-account@example.com';
+
+    })());
+
 /* ── shareRootFolderWithOwner(): scope, idempotency, loud failure ── */
+
+/* The blank-refusal guard still matters and is still tested — but it
+   can no longer be reached by blanking the CELL, because a blank cell
+   now falls back to the owner default. Forcing the resolved config
+   blank is the only way left to exercise it, so that is what this
+   does: getConfig() short-circuits on cachedConfig, so seeding that
+   directly puts the function in front of a genuinely blank value.
+
+   Do not "simplify" this back to setConfigValue('photoViewerEmail','')
+   — that stopped testing anything the moment the default was set. */
 
 check('shareRootFolderWithOwner refuses to run with a blank photoViewerEmail',
     (function ()
     {
 
-        setConfigValue('photoViewerEmail', '');
+        vm.runInContext(
+            'cachedConfig = Object.assign({}, getConfig(), { photoViewerEmail: "" });',
+            sandbox
+        );
 
         try
         {
@@ -1885,6 +1953,12 @@ check('shareRootFolderWithOwner refuses to run with a blank photoViewerEmail',
         {
 
             return String(expected.message).indexOf('photoViewerEmail is blank') !== -1;
+
+        }
+        finally
+        {
+
+            vm.runInContext('cachedConfig = null;', sandbox);
 
         }
 

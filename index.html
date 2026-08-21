@@ -35,7 +35,7 @@
 
     <meta property="og:url" content="https://bluegridlandsolutions.com/">
 
-    <meta property="og:image" content="https://bluegridlandsolutions.com/graphics/images/excavator.jpg">
+    <meta property="og:image" content="https://bluegridlandsolutions.com/graphics/images/excavator.webp">
 
     <!-- ── Twitter ── -->
 
@@ -48,7 +48,7 @@
         content="Owner-operated forestry mulching and land clearing across Southern Ohio and Eastern Kentucky. Free estimates, straight from the owner."
     >
 
-    <meta name="twitter:image" content="https://bluegridlandsolutions.com/graphics/images/excavator.jpg">
+    <meta name="twitter:image" content="https://bluegridlandsolutions.com/graphics/images/excavator.webp">
 
     <!-- ============================================================
          ANALYTICS CONSENT
@@ -68,15 +68,34 @@
 
     <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="graphics/favicons/favicon.ico">
 
-    <link rel="icon" type="image/svg+xml" href="graphics/favicons/favicon.svg">
-
     <link rel="icon" type="image/png" sizes="96x96" href="graphics/favicons/favicon-96x96.png">
 
     <link rel="apple-touch-icon" sizes="180x180" href="graphics/favicons/apple-touch-icon.png">
 
     <link rel="manifest" href="graphics/favicons/site.webmanifest">
 
-    <link rel="mask-icon" href="graphics/favicons/favicon.svg" color="#5B9BD5">
+    <!-- rel="mask-icon" was removed on 2026-08-19 and should not come
+         back pointing at favicon.svg.
+
+         Safari's pinned-tab mask takes a MONOCHROME VECTOR and fills
+         it with the link's color attribute. favicon.svg is a raster
+         wrapped in an <svg> element, so the declaration promised
+         something the asset could not deliver. Safari 13+ uses the
+         standard icons below anyway, so nothing was lost by dropping
+         it.
+
+         rel="icon" type="image/svg+xml" was removed on 2026-08-20 for
+         the same underlying reason, measured this time. That file is
+         307KB — a base64 512px raster in an <svg> wrapper — and Chrome
+         prefers an SVG icon when one is offered, so every first visit
+         downloaded 226KB over the wire at priority HIGH to paint a
+         16px tab icon. It was the largest single resource on every
+         interior page.
+
+         The artwork is untouched and stays on disk. The .ico above
+         carries 48/32/16 frames and the 96x96 PNG covers the rest, so
+         nothing a visitor sees changed. Do not re-add the SVG
+         declaration without re-measuring. -->
 
     <meta name="theme-color" content="#101214">
 
@@ -135,8 +154,9 @@
         },
         "url": "https://bluegridlandsolutions.com/",
         "telephone": "+1-740-464-2526",
-        "email": "estimates@bluegridlandsolutions.com",
-        "image": "graphics/images/excavator.jpg",
+        "email": "bluegridls@gmail.com",
+        "image": "https://bluegridlandsolutions.com/graphics/images/excavator.webp",
+        "logo": "https://bluegridlandsolutions.com/graphics/logos/web/bluegridMark290.png",
         "sameAs": [
             "https://www.facebook.com/profile.php?id=61587582490592"
         ],
@@ -286,7 +306,7 @@
 
                 <img
                     class="brandBadge"
-                    src="graphics/logos/web/bluegridMark290.png"
+                    src="graphics/logos/web/bluegridMark290.webp"
                     alt=""
                     width="290"
                     height="290"
@@ -747,7 +767,6 @@
 
             <div class="headerActions">
 
-                <!-- TODO: Confirm phone number with the owner — pulled from the BlueGrid flyer. -->
                 <a class="phoneChip" href="tel:+17404642526" data-confighref="phoneHref">
 
                     <svg class="phoneChipIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -789,7 +808,7 @@
 
                     <img
                         class="brandBadge"
-                        src="graphics/logos/web/bluegridMark290.png"
+                        src="graphics/logos/web/bluegridMark290.webp"
                         alt="BlueGrid Land Solutions"
                         width="290"
                         height="290"
@@ -931,19 +950,54 @@
                     class="heroPlate heroPlateBefore"
                     id="heroPlateBefore"
                     src="graphics/images/hero_b4_minfordOH.JPG"
+                    srcset="
+                        graphics/images/hero_b4_minfordOH-640.JPG 640w,
+                        graphics/images/hero_b4_minfordOH-1024.JPG 1024w,
+                        graphics/images/hero_b4_minfordOH.JPG 2048w
+                    "
+                    sizes="100vw"
                     alt=""
                     width="2048"
                     height="1536"
                     fetchpriority="high"
                 >
 
+                <!-- fetchpriority="low" is deliberate, and it is NOT
+                     lazy loading. This plate is inside the viewport
+                     from the first frame, so loading="lazy" would
+                     barely defer it and would risk a visible pop.
+
+                     What it IS: the AFTER plate rests fully masked
+                     (--heroSweepPos: -18%) and is not revealed until
+                     the entrance sequence and the first typed phrase
+                     have finished, roughly 2.5-3.5s in. Loading it at
+                     default priority made it compete with the BEFORE
+                     plate for the same bandwidth during the only part
+                     of the load that a visitor can actually see:
+                     511KB of hero on a phone, 724KB at DPR 3, 832KB
+                     on desktop, with half of it not needed yet.
+
+                     The loop already tolerates a plate that has not
+                     arrived — fireHeroForwardSweepAndWait() waits on
+                     load/error and simply extends the hold — so on a
+                     slow connection the first sweep waits rather than
+                     tearing. That is the correct trade. -->
+
                 <img
                     class="heroPlate heroPlateAfter"
                     id="heroPlateAfter"
-                    src="graphics/images/hero_after_minfordOH.jpg"
+                    src="graphics/images/hero_after_minfordOH.webp"
+                    srcset="
+                        graphics/images/hero_after_minfordOH-640.webp 640w,
+                        graphics/images/hero_after_minfordOH-1024.webp 1024w,
+                        graphics/images/hero_after_minfordOH-1280.webp 1280w,
+                        graphics/images/hero_after_minfordOH.webp 2048w
+                    "
+                    sizes="100vw"
                     alt=""
                     width="2048"
                     height="1536"
+                    fetchpriority="low"
                 >
 
                 <div class="heroOverlay"></div>
@@ -959,6 +1013,12 @@
 
                     <img
                         src="graphics/images/hero_b4_minfordOH.JPG"
+                        srcset="
+                            graphics/images/hero_b4_minfordOH-640.JPG 640w,
+                            graphics/images/hero_b4_minfordOH-1024.JPG 1024w,
+                            graphics/images/hero_b4_minfordOH.JPG 2048w
+                        "
+                        sizes="180px"
                         alt=""
                         width="2048"
                         height="1536"
@@ -1011,6 +1071,75 @@
                         <a class="buttonPrimary buttonLarge" href="#estimateForm" data-heroanimate="fromRight" data-heroanimatedelay="740">Get My Free Estimate</a>
 
                         <a class="buttonGhost buttonLarge" href="#beforeAfter" data-heroanimate="fromLeft" data-heroanimatedelay="870">See Transformations</a>
+
+                    </div>
+
+                    <!-- Compact action row, shown at 1080px and below — the
+                         same width at which .heroInner stops being a
+                         two-column layout and the inline estimate card can no
+                         longer sit beside the copy.
+
+                         It replaces the card with the two things worth doing
+                         from a phone or a tablet: call the owner, or start an
+                         estimate with one field. The starter opens the SAME
+                         modal every other CTA opens and hands what was typed
+                         into its Property Address field — there is no second
+                         estimate system behind it, and the desktop CTAs are
+                         hidden at these widths so only one is ever on screen.
+
+                         The field collects a PROPERTY ADDRESS, which is the
+                         modal field it fills. It used to ask for "address or
+                         ZIP" while writing whatever it got into the address
+                         field, which quietly invited a five-digit answer to a
+                         question the modal asks properly. -->
+
+                    <div class="heroMobileActions">
+
+                        <a class="buttonPrimary buttonLarge heroCallCta" href="tel:+17404642526" data-confighref="phoneHref">
+
+                            <svg class="buttonIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M6.6 10.8 C8 13.6 10.4 16 13.2 17.4 L15.4 15.2 C15.7 14.9 16.1 14.8 16.5 15 C17.6 15.4 18.8 15.6 20 15.6 C20.6 15.6 21 16 21 16.6 V20 C21 20.6 20.6 21 20 21 C10.6 21 3 13.4 3 4 C3 3.4 3.4 3 4 3 H7.4 C8 3 8.4 3.4 8.4 4 C8.4 5.2 8.6 6.4 9 7.5 C9.1 7.9 9 8.3 8.8 8.6 Z"></path>
+                            </svg>
+
+                            Call Chase
+
+                        </a>
+
+                        <form class="heroEstimateStarter" id="heroEstimateStarter" action="#" method="post" novalidate>
+
+                            <label class="visuallyHidden" for="heroPropertyLocation">Property address</label>
+
+                            <!-- size="1" is load-bearing, not a typo.
+
+                                 An <input> without it carries an intrinsic
+                                 width of about 20 characters — 218px here.
+                                 That figure is what the hero's grid track
+                                 uses as its automatic minimum, so the whole
+                                 .heroContent column was floored at 380px and
+                                 overflowed a 375px phone by 29px, clipped
+                                 out of sight by .heroSection's overflow.
+
+                                 CSS cannot reach it: min-width: 0 and
+                                 flex-basis: 0 both govern flex layout, not
+                                 the intrinsic size the outer grid measures.
+                                 Only the attribute moves it. Flex still
+                                 sets the rendered width, so the field fills
+                                 the row exactly as before. -->
+
+                            <input
+                                class="heroStarterInput"
+                                type="text"
+                                id="heroPropertyLocation"
+                                name="heroPropertyLocation"
+                                autocomplete="street-address"
+                                placeholder="Enter property address"
+                                size="1"
+                                data-clarity-mask="true"
+                            >
+
+                            <button class="buttonGhost heroStarterButton" type="submit">Get Estimate</button>
+
+                        </form>
 
                     </div>
 
@@ -1238,36 +1367,32 @@
                         <div class="introMediaSlot" id="introMediaSlot">
 
                             <!--
-                                Placeholder only. When the video is supplied this whole
-                                figure is replaced by the player (see initializeIntroVideo
-                                in js/indexJS.js). The 16:9 ratio is owned by
-                                .introMediaSlot, so the embed drops straight in.
+                                This frame holds a real BlueGrid job photograph. When the
+                                owner introduction media is supplied, initializeIntroVideo()
+                                in js/indexJS.js replaces this whole figure with the player
+                                — the 16:9 ratio is owned by .introMediaSlot, so the embed
+                                drops straight in and nothing here needs editing.
                             -->
-                            <figure class="introVideoPlaceholder">
+                            <figure class="introMediaFigure">
 
                                 <img
-                                    class="introVideoPoster"
-                                    src="graphics/images/excavator2_PiketonOH.jpg"
+                                    class="introMediaPhoto"
+                                    src="graphics/images/excavator2_PiketonOH.webp"
+                                    srcset="
+                                        graphics/images/excavator2_PiketonOH-640.webp 640w,
+                                        graphics/images/excavator2_PiketonOH-1024.webp 1024w,
+                                        graphics/images/excavator2_PiketonOH.webp 2048w
+                                    "
+                                    sizes="(max-width: 480px) 338px, (max-width: 900px) 747px, 583px"
                                     alt="BlueGrid's New Holland C337 track loader with its mulching head, working at dusk"
                                     width="2048"
                                     height="1536"
                                     loading="lazy"
+                                    decoding="async"
                                 >
 
-                                <figcaption class="introVideoOverlay">
-
-                                    <span class="introVideoPlayMark" aria-hidden="true">
-
-                                        <svg viewBox="0 0 24 24" focusable="false">
-                                            <path d="M9 7.5 L17 12 L9 16.5 Z"></path>
-                                        </svg>
-
-                                    </span>
-
-                                    <span class="introVideoCaption">
-                                        Introduction video coming soon
-                                    </span>
-
+                                <figcaption class="introMediaCaption">
+                                    The C337 and its mulching head, on a job in Piketon, Ohio
                                 </figcaption>
 
                             </figure>
@@ -1328,7 +1453,7 @@
                             This CTA calls Chase directly. It is deliberately NOT an
                             estimate CTA: "Free Estimate" opens the form, "Talk to the
                             Owner" rings the phone. Keep the two doing different things.
-                            Number verified against graphics/images/whatTheyDo2.jpg,
+                            Number verified against graphics/images/whatTheyDo2.webp,
                             BlueGrid's own advertisement.
                         -->
                         <a class="buttonPrimary" href="tel:+17404642526" data-confighref="phoneHref" data-animate="fadeUp" data-animatedelay="360">
@@ -1390,6 +1515,12 @@
                         <div class="serviceCardMedia">
                             <img
                                 src="graphics/images/after_minfordOH.JPG"
+                                srcset="
+                                    graphics/images/after_minfordOH-640.JPG 640w,
+                                    graphics/images/after_minfordOH-1024.JPG 1024w,
+                                    graphics/images/after_minfordOH.JPG 2048w
+                                "
+                                sizes="(max-width: 480px) 348px, (max-width: 900px) 371px, 491px"
                                 alt="Reclaimed acreage ground back to open mulch, with select trees left standing"
                                 width="2048"
                                 height="1536"
@@ -1418,7 +1549,14 @@
 
                         <div class="serviceCardMedia">
                             <img
-                                src="graphics/images/hero_after_minfordOH.jpg"
+                                src="graphics/images/hero_after_minfordOH.webp"
+                                srcset="
+                                    graphics/images/hero_after_minfordOH-640.webp 640w,
+                                    graphics/images/hero_after_minfordOH-1024.webp 1024w,
+                                    graphics/images/hero_after_minfordOH-1280.webp 1280w,
+                                    graphics/images/hero_after_minfordOH.webp 2048w
+                                "
+                                sizes="(max-width: 480px) 348px, (max-width: 900px) 371px, 491px"
                                 alt="Wide stretch of cleared, open ground running back to the tree line"
                                 width="2048"
                                 height="1536"
@@ -1448,7 +1586,7 @@
 
                         <div class="serviceCardMedia">
                             <img
-                                src="graphics/images/mulchingJob_minfordOH.jpg"
+                                src="graphics/images/mulchingJob_minfordOH.webp"
                                 alt="Field edge mulched back to a clean, open strip along the boundary"
                                 width="512"
                                 height="384"
@@ -1507,7 +1645,13 @@
 
                         <div class="serviceCardMedia">
                             <img
-                                src="graphics/images/excavator2_PiketonOH.jpg"
+                                src="graphics/images/excavator2_PiketonOH.webp"
+                                srcset="
+                                    graphics/images/excavator2_PiketonOH-640.webp 640w,
+                                    graphics/images/excavator2_PiketonOH-1024.webp 1024w,
+                                    graphics/images/excavator2_PiketonOH.webp 2048w
+                                "
+                                sizes="(max-width: 480px) 348px, (max-width: 900px) 371px, 491px"
                                 alt="New Holland C337 track loader with mulching head working at dusk after storm cleanup"
                                 width="2048"
                                 height="1536"
@@ -1537,6 +1681,12 @@
                         <div class="serviceCardMedia">
                             <img
                                 src="graphics/images/cleanCut_minfordOH.JPG"
+                                srcset="
+                                    graphics/images/cleanCut_minfordOH-640.JPG 640w,
+                                    graphics/images/cleanCut_minfordOH-1024.JPG 1024w,
+                                    graphics/images/cleanCut_minfordOH.JPG 2048w
+                                "
+                                sizes="(max-width: 480px) 348px, (max-width: 900px) 371px, 491px"
                                 alt="Cleared ground opening the view back across the property to the tree line"
                                 width="2048"
                                 height="1536"
@@ -1634,6 +1784,12 @@
 
                         <img
                             src="graphics/images/overGrowth_minfordOH.JPG"
+                            srcset="
+                                graphics/images/overGrowth_minfordOH-640.JPG 640w,
+                                graphics/images/overGrowth_minfordOH-1024.JPG 1024w,
+                                graphics/images/overGrowth_minfordOH.JPG 2048w
+                            "
+                            sizes="(max-width: 480px) 340px, (max-width: 900px) 749px, 1104px"
                             alt="Before: property choked with dense brush, briars, and volunteer saplings"
                             width="2048"
                             height="1536"
@@ -1648,6 +1804,12 @@
 
                         <img
                             src="graphics/images/freshMulching_minfordOH.JPG"
+                            srcset="
+                                graphics/images/freshMulching_minfordOH-640.JPG 640w,
+                                graphics/images/freshMulching_minfordOH-1024.JPG 1024w,
+                                graphics/images/freshMulching_minfordOH.JPG 2048w
+                            "
+                            sizes="(max-width: 480px) 340px, (max-width: 900px) 749px, 1104px"
                             alt="After: the same property cleared to open ground with select trees preserved"
                             width="2048"
                             height="1536"
@@ -1683,14 +1845,14 @@
 
                 <div class="transformationStories">
 
-                    <article class="storyCard" data-animate="fadeUp">
+                    <article class="storyCard" data-animate="fadeUp" data-casestudyurl="">
 
                         <div class="storyMedia">
 
                             <figure class="storyFrame">
 
                                 <img
-                                    src="graphics/images/B4MulchingJob_minfordOH.jpg"
+                                    src="graphics/images/B4MulchingJob_minfordOH.webp"
                                     alt="Before: brush and volunteer saplings grown in along the edge of a field"
                                     width="512"
                                     height="384"
@@ -1710,7 +1872,7 @@
                             <figure class="storyFrame">
 
                                 <img
-                                    src="graphics/images/mulchingJob_minfordOH.jpg"
+                                    src="graphics/images/mulchingJob_minfordOH.webp"
                                     alt="After: the same field edge mulched back to clean, open ground"
                                     width="512"
                                     height="384"
@@ -1742,14 +1904,19 @@
 
                     </article>
 
-                    <article class="storyCard" data-animate="fadeUp" data-animatedelay="150">
+                    <article class="storyCard" data-animate="fadeUp" data-animatedelay="150" data-casestudyurl="">
 
                         <div class="storyMedia">
 
                             <figure class="storyFrame storyFrameWide">
 
                                 <img
-                                    src="graphics/images/BeforeandAfter.jpg"
+                                    src="graphics/images/BeforeandAfter.webp"
+                                    srcset="
+                                        graphics/images/BeforeandAfter-640.webp 640w,
+                                        graphics/images/BeforeandAfter.webp 1536w
+                                    "
+                                    sizes="(max-width: 480px) 348px, (max-width: 900px) 770px, 372px"
                                     alt="Split view of a woodlot before clearing and the same ground finished in mulch"
                                     width="1536"
                                     height="1024"
@@ -1774,7 +1941,7 @@
 
                     </article>
 
-                    <article class="storyCard" data-animate="fadeUp" data-animatedelay="300">
+                    <article class="storyCard" data-animate="fadeUp" data-animatedelay="300" data-casestudyurl="">
 
                         <div class="storyMedia">
 
@@ -1782,6 +1949,12 @@
 
                                 <img
                                     src="graphics/images/cleanCut_minfordOH.JPG"
+                                    srcset="
+                                        graphics/images/cleanCut_minfordOH-640.JPG 640w,
+                                        graphics/images/cleanCut_minfordOH-1024.JPG 1024w,
+                                        graphics/images/cleanCut_minfordOH.JPG 2048w
+                                    "
+                                    sizes="(max-width: 480px) 348px, (max-width: 900px) 770px, 372px"
                                     alt="Cleared and mulched ground with keeper trees standing, clean and walkable"
                                     width="2048"
                                     height="1536"
@@ -1829,7 +2002,13 @@
                 <div class="whyMedia" data-animate="slideLeft">
 
                     <img
-                        src="graphics/images/excavator2_PiketonOH.jpg"
+                        src="graphics/images/excavator2_PiketonOH.webp"
+                        srcset="
+                            graphics/images/excavator2_PiketonOH-640.webp 640w,
+                            graphics/images/excavator2_PiketonOH-1024.webp 1024w,
+                            graphics/images/excavator2_PiketonOH.webp 2048w
+                        "
+                        sizes="(max-width: 480px) 350px, (max-width: 900px) 772px, 530px"
                         alt="The BlueGrid New Holland C337 compact track loader with Fecon mulching head at sunset"
                         width="2048"
                         height="1536"
@@ -2176,198 +2355,240 @@
         </div>
 
         <!-- ============================================================
-             FACEBOOK SECTION
+             INSIGHTS SECTION
+
+             Four of the seven published Insights articles. Titles and
+             excerpts are lifted verbatim from insights/index.html so the
+             two can never disagree; add or reorder features there first.
         ============================================================ -->
 
-        <section class="facebookSection darkSection" id="followTheWork">
+        <section class="insightsSection darkSection" id="insights">
 
             <div class="sectionInner">
 
-                <p class="sectionKicker" data-animate="fadeUp">Follow the Work</p>
+                <p class="sectionKicker" data-animate="fadeUp">Landowner Resources</p>
 
                 <h2 class="sectionHeading" data-animate="fadeUp" data-animatedelay="100">
-                    Recent Land Clearing Projects
+                    Know What You Are Buying
                 </h2>
 
                 <p class="sectionLede" data-animate="fadeUp" data-animatedelay="200">
-                    Every job gets posted: befores, afters, and the occasional muddy day. Follow
-                    along on Facebook.
+                    Straight answers on clearing, mulching, and keeping acreage under
+                    control — written from the seat of the machine rather than a
+                    marketing office.
                 </p>
 
-                <div class="facebookLayout">
+                <div class="insightsLayout">
 
-                    <!--
-                        The real Facebook page URL is configured in js/indexJS.js — the
-                        designed fallback below stays until the client confirms the page
-                        renders in the Page Plugin. TODO: Once confirmed, set
-                        businessConfig.facebookPageConfigured = true in js/indexJS.js and
-                        the embed is injected into #facebookEmbedSlot automatically.
-                    -->
-                    <div class="facebookFrame" data-animate="slideLeft">
+                    <article class="insightsFeature" data-animate="slideLeft">
 
-                        <div class="facebookFrameHeader">
+                        <a
+                            class="insightsFeatureMedia"
+                            href="insights/benefits-of-forestry-mulching.html"
+                            tabindex="-1"
+                            aria-hidden="true"
+                        >
+                            <img
+                                src="graphics/images/freshMulching_minfordOH.JPG"
+                                srcset="
+                                    graphics/images/freshMulching_minfordOH-640.JPG 640w,
+                                    graphics/images/freshMulching_minfordOH-1024.JPG 1024w,
+                                    graphics/images/freshMulching_minfordOH.JPG 2048w
+                                "
+                                sizes="(max-width: 480px) 348px, (max-width: 900px) 770px, 398px"
+                                alt=""
+                                width="2048"
+                                height="1536"
+                                loading="lazy"
+                                decoding="async"
+                            >
+                        </a>
 
-                            <span class="facebookFrameDot"></span>
-                            <span class="facebookFrameDot"></span>
-                            <span class="facebookFrameDot"></span>
+                        <div class="insightsFeatureBody">
 
-                            <span class="facebookFrameTitle">BlueGrid Land Solutions on Facebook</span>
+                            <p class="insightsTag">Forestry Mulching</p>
+
+                            <h3 class="insightsFeatureTitle">
+                                <a href="insights/benefits-of-forestry-mulching.html">The Real Benefits of Forestry Mulching</a>
+                            </h3>
+
+                            <p class="insightsFeatureExcerpt">
+                                One machine, one pass, and nothing leaves the property. Here is
+                                what that actually buys you compared with traditional clearing.
+                            </p>
+
+                            <p class="insightsMeta">6 min read</p>
+
+                            <a class="insightsReadLink" href="insights/benefits-of-forestry-mulching.html">
+                                Read Article<span class="visuallyHidden">: The Real Benefits of Forestry Mulching</span>
+                                <span aria-hidden="true">&rarr;</span>
+                            </a>
 
                         </div>
 
-                        <div class="facebookEmbedSlot" id="facebookEmbedSlot">
+                    </article>
 
-                            <div class="facebookFallback">
+                    <div class="insightsBriefList">
 
+                        <article class="insightsBrief" data-animate="fadeUp">
+
+                            <a
+                                class="insightsBriefMedia"
+                                href="insights/brush-hogging-vs-forestry-mulching.html"
+                                tabindex="-1"
+                                aria-hidden="true"
+                            >
                                 <img
-                                    class="facebookFallbackBadge"
-                                    src="graphics/logos/web/bluegridMark290.png"
+                                    src="graphics/images/overGrowth_minfordOH.JPG"
+                                    srcset="
+                                        graphics/images/overGrowth_minfordOH-640.JPG 640w,
+                                        graphics/images/overGrowth_minfordOH-1024.JPG 1024w,
+                                        graphics/images/overGrowth_minfordOH.JPG 2048w
+                                    "
+                                    sizes="(max-width: 480px) 348px, (max-width: 900px) 190px, 190px"
                                     alt=""
-                                    width="290"
-                                    height="290"
+                                    width="2048"
+                                    height="1536"
                                     loading="lazy"
+                                    decoding="async"
                                 >
+                            </a>
 
-                                <p class="facebookFallbackTitle">The work, as it happens</p>
+                            <div class="insightsBriefBody">
 
-                                <p class="facebookFallbackCopy">
-                                    Befores, afters, and the occasional muddy day, posted from
-                                    the cab, not a marketing office.
+                                <p class="insightsTag">Choosing a Service</p>
+
+                                <h3 class="insightsBriefTitle">
+                                    <a href="insights/brush-hogging-vs-forestry-mulching.html">Brush Hogging vs Forestry Mulching: Which One Do You Need?</a>
+                                </h3>
+
+                                <p class="insightsBriefExcerpt">
+                                    They are not competing tools. One mows, the other grinds, and
+                                    picking the wrong one wastes either your money or your time.
                                 </p>
 
-                                <a
-                                    class="buttonPrimary facebookFallbackCta"
-                                    href="https://www.facebook.com/profile.php?id=61587582490592"
-                                    data-confighref="facebookUrl"
-                                    target="_blank"
-                                    rel="noopener"
-                                >
-                                    View Us on Facebook
-                                </a>
+                                <p class="insightsBriefFoot">
+                                    <span class="insightsMeta">5 min read</span>
+                                    <a class="insightsReadLink" href="insights/brush-hogging-vs-forestry-mulching.html">
+                                        Read Article<span class="visuallyHidden">: Brush Hogging vs Forestry Mulching: Which One Do You Need?</span>
+                                        <span aria-hidden="true">&rarr;</span>
+                                    </a>
+                                </p>
 
                             </div>
-
-                        </div>
-
-                    </div>
-
-                    <div class="facebookPosts">
-
-                        <article class="postCard" data-animate="fadeUp">
-
-                            <div class="postCardHeader">
-
-                                <img
-                                    class="postAvatar"
-                                    src="graphics/logos/web/bluegridMark290.png"
-                                    alt=""
-                                    width="290"
-                                    height="290"
-                                    loading="lazy"
-                                >
-
-                                <div class="postMeta">
-                                    <span class="postAuthor">BlueGrid Land Solutions</span>
-                                    <span class="postDate">July 8</span>
-                                </div>
-
-                                <span class="postTag">Recent Project</span>
-
-                            </div>
-
-                            <p class="postCaption">
-                                Utility corridor in Greenup County reopened: a quarter mile of
-                                brush and saplings down to clean ground in one day.
-                            </p>
-
-                            <img
-                                class="postImage"
-                                src="graphics/images/work2JacksonOH.jpg"
-                                alt="Cleared utility corridor with fresh track marks running uphill"
-                                width="2048"
-                                height="1536"
-                                loading="lazy"
-                            >
 
                         </article>
 
-                        <article class="postCard" data-animate="fadeUp" data-animatedelay="150">
+                        <article class="insightsBrief" data-animate="fadeUp" data-animatedelay="120">
 
-                            <div class="postCardHeader">
-
+                            <a
+                                class="insightsBriefMedia"
+                                href="insights/when-to-clear-overgrown-property.html"
+                                tabindex="-1"
+                                aria-hidden="true"
+                            >
                                 <img
-                                    class="postAvatar"
-                                    src="graphics/logos/web/bluegridMark290.png"
+                                    src="graphics/images/work2JacksonOH.webp"
+                                    srcset="
+                                        graphics/images/work2JacksonOH-640.webp 640w,
+                                        graphics/images/work2JacksonOH-1024.webp 1024w,
+                                        graphics/images/work2JacksonOH-1280.webp 1280w,
+                                        graphics/images/work2JacksonOH.webp 2048w
+                                    "
+                                    sizes="(max-width: 480px) 348px, (max-width: 900px) 190px, 190px"
                                     alt=""
-                                    width="290"
-                                    height="290"
+                                    width="2048"
+                                    height="1536"
                                     loading="lazy"
+                                    decoding="async"
                                 >
+                            </a>
 
-                                <div class="postMeta">
-                                    <span class="postAuthor">BlueGrid Land Solutions</span>
-                                    <span class="postDate">June 26</span>
-                                </div>
+                            <div class="insightsBriefBody">
 
-                                <span class="postTag">Recent Post</span>
+                                <p class="insightsTag">Planning</p>
+
+                                <h3 class="insightsBriefTitle">
+                                    <a href="insights/when-to-clear-overgrown-property.html">When to Clear Overgrown Property</a>
+                                </h3>
+
+                                <p class="insightsBriefExcerpt">
+                                    Winter is the best clearing weather of the year, and the
+                                    reasons have nothing to do with the calendar being convenient.
+                                </p>
+
+                                <p class="insightsBriefFoot">
+                                    <span class="insightsMeta">5 min read</span>
+                                    <a class="insightsReadLink" href="insights/when-to-clear-overgrown-property.html">
+                                        Read Article<span class="visuallyHidden">: When to Clear Overgrown Property</span>
+                                        <span aria-hidden="true">&rarr;</span>
+                                    </a>
+                                </p>
 
                             </div>
-
-                            <p class="postCaption">
-                                This is what we start with. Ten-foot briars, buried fence line,
-                                zero access. Check back Friday for the after.
-                            </p>
-
-                            <img
-                                class="postImage"
-                                src="graphics/images/workJacksonOH.jpg"
-                                alt="Overgrown hillside packed with brush and briars before clearing"
-                                width="2048"
-                                height="1536"
-                                loading="lazy"
-                            >
 
                         </article>
 
-                        <article class="postCard" data-animate="fadeUp" data-animatedelay="300">
+                        <article class="insightsBrief" data-animate="fadeUp" data-animatedelay="240">
 
-                            <div class="postCardHeader">
-
+                            <a
+                                class="insightsBriefMedia"
+                                href="insights/storm-cleanup-best-practices.html"
+                                tabindex="-1"
+                                aria-hidden="true"
+                            >
                                 <img
-                                    class="postAvatar"
-                                    src="graphics/logos/web/bluegridMark290.png"
+                                    src="graphics/images/workJacksonOH.webp"
+                                    srcset="
+                                        graphics/images/workJacksonOH-640.webp 640w,
+                                        graphics/images/workJacksonOH-1024.webp 1024w,
+                                        graphics/images/workJacksonOH-1280.webp 1280w,
+                                        graphics/images/workJacksonOH.webp 2048w
+                                    "
+                                    sizes="(max-width: 480px) 348px, (max-width: 900px) 190px, 190px"
                                     alt=""
-                                    width="290"
-                                    height="290"
+                                    width="2048"
+                                    height="1536"
                                     loading="lazy"
+                                    decoding="async"
                                 >
+                            </a>
 
-                                <div class="postMeta">
-                                    <span class="postAuthor">BlueGrid Land Solutions</span>
-                                    <span class="postDate">June 12</span>
-                                </div>
+                            <div class="insightsBriefBody">
 
-                                <span class="postTag">Latest Update</span>
+                                <p class="insightsTag">Storm Response</p>
+
+                                <h3 class="insightsBriefTitle">
+                                    <a href="insights/storm-cleanup-best-practices.html">Storm Cleanup: What to Do First, and What to Leave Alone</a>
+                                </h3>
+
+                                <p class="insightsBriefExcerpt">
+                                    The first hour after a storm is for documentation and safety,
+                                    not a chainsaw. Here is the order that keeps you safe and your
+                                    claim intact.
+                                </p>
+
+                                <p class="insightsBriefFoot">
+                                    <span class="insightsMeta">6 min read</span>
+                                    <a class="insightsReadLink" href="insights/storm-cleanup-best-practices.html">
+                                        Read Article<span class="visuallyHidden">: Storm Cleanup: What to Do First, and What to Leave Alone</span>
+                                        <span aria-hidden="true">&rarr;</span>
+                                    </a>
+                                </p>
 
                             </div>
-
-                            <p class="postCaption">
-                                The C337 earning its keep in a Scioto County woodlot. Fecon head
-                                turns brush into mulch and puts it right back on the soil.
-                            </p>
-
-                            <img
-                                class="postImage"
-                                src="graphics/images/excavator.jpg"
-                                alt="BLUEGRID-branded track loader mulching brush in green woods"
-                                width="1536"
-                                height="1024"
-                                loading="lazy"
-                            >
 
                         </article>
 
                     </div>
+
+                </div>
+
+                <div class="insightsSectionFoot" data-animate="fadeUp">
+
+                    <a class="buttonGhost" href="insights/index.html">
+                        Browse All Insights
+                    </a>
 
                 </div>
 
@@ -2706,7 +2927,12 @@
 
                 <img
                     class="contactParallaxImage"
-                    src="graphics/images/excavator.jpg"
+                    src="graphics/images/excavator.webp"
+                    srcset="
+                        graphics/images/excavator-640.webp 640w,
+                        graphics/images/excavator.webp 1536w
+                    "
+                    sizes="100vw"
                     alt=""
                     width="1536"
                     height="1024"
@@ -3150,7 +3376,7 @@
 
                 <img
                     class="footerBadge"
-                    src="graphics/logos/web/bluegridMark290.png"
+                    src="graphics/logos/web/bluegridMark290.webp"
                     alt="BlueGrid Land Solutions badge logo"
                     width="290"
                     height="290"
@@ -3165,16 +3391,14 @@
                 <ul class="footerContactList">
 
                     <li>
-                        <!-- TODO: Confirm phone number with the owner — pulled from the BlueGrid flyer. -->
                         <a href="tel:+17404642526" data-confighref="phoneHref">
                             <span data-configtext="phoneDisplay">(740) 464-2526</span>
                         </a>
                     </li>
 
                     <li>
-                        <!-- TODO: Replace with the real business email address. -->
-                        <a href="mailto:estimates@bluegridlandsolutions.com" data-confighref="emailHref">
-                            <span data-configtext="email">estimates@bluegridlandsolutions.com</span>
+                        <a href="mailto:bluegridls@gmail.com" data-confighref="emailHref">
+                            <span data-configtext="email">bluegridls@gmail.com</span>
                         </a>
                     </li>
 
@@ -3193,12 +3417,10 @@
                             </svg>
                         </a>
 
-                        <!-- TODO: Client has no Google Business Profile yet.
-                             businessConfig.googleBusinessUrl is empty, so this
-                             stays pointed at "#" until a real URL is added. -->
                         <a
                             class="footerGoogleLink"
                             href="#"
+                            hidden
                             data-confighref="googleBusinessUrl"
                             target="_blank"
                             rel="noopener"
@@ -3286,6 +3508,18 @@
 
                     <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
 
+                    <a class="footerLegalLink" href="terms/index.html">Terms of Use</a>
+
+                    <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
+
+                    <a class="footerLegalLink" href="accessibility/index.html">Accessibility</a>
+
+                    <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
+
+                    <a class="footerLegalLink" href="cookies/index.html">Cookie Policy</a>
+
+                    <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
+
                     <button class="footerLegalLink consentSettingsButton" type="button" data-consentsettings>Cookie Settings</button>
 
                 </nav>
@@ -3296,10 +3530,10 @@
 
                     <img
                         class="devCreditLogo"
-                        src="graphics/logos/web/nuloStudioCredit.png"
+                        src="graphics/logos/web/masterLogoTP240.webp"
                         alt="Nulo Studio"
-                        width="220"
-                        height="135"
+                        width="240"
+                        height="124"
                         loading="lazy"
                     >
 

@@ -399,13 +399,51 @@
        BANNER
     ============================================================ */
 
-    /* Mirrors the site's own relative-link convention rather than
-       using a root-relative path, so the banner's privacy link
-       resolves the same way every other link on the page does —
-       including when the site is opened from disk. */
+    /* Take the path the PAGE already uses, rather than deriving one.
+
+       Every page carries a privacy link in its own footer, written by
+       the page generators and correct for that page by construction:
+
+           index.html      privacy/index.html
+           one level down  ../privacy/index.html
+           404.html        /privacy/index.html
+
+       404.html's is root-absolute on purpose. GitHub Pages serves
+       that file AT the missing URL without redirecting, so its base
+       directory is whatever the visitor mistyped and no relative path
+       can be written in advance.
+
+       That is what the previous version could not express. It counted
+       folders in location.pathname but could only ever emit ONE
+       "../", so on a miss two or more folders deep — measured at
+       /no-such-page/deeper/still-missing — the banner's link resolved
+       to /no-such-page/privacy/index.html and returned a second 404.
+       Nothing caught it because the link does not exist until this
+       script runs, so no static check can see it.
+
+       Delegating keeps the relative form on real pages, so opening
+       the site from disk still works, and inherits the root-absolute
+       form exactly where it is needed. It also cannot drift: if the
+       generators ever change the convention, this follows.
+
+       Scoped to the footer because two legal pages also link privacy
+       from their body copy. */
 
     function resolvePrivacyHref()
     {
+
+        const footerLink = document.querySelector('.siteFooter a[href$="privacy/index.html"]');
+
+        if (footerLink)
+        {
+
+            return footerLink.getAttribute('href');
+
+        }
+
+        /* No footer to borrow from. Fall back to the old derivation,
+           which is right for every real page on this site — all of
+           which are at most one folder deep. */
 
         const segments = window.location.pathname.split('/').filter(Boolean);
 

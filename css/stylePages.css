@@ -1202,6 +1202,314 @@
 
 }
 
+/* ── Lists inside an article body ── */
+
+.articleList
+{
+
+    margin: 0 0 1.4rem;
+
+    padding: 0;
+
+    list-style: none;
+
+}
+
+.articleList li
+{
+
+    position: relative;
+
+    margin-bottom: 0.85rem;
+
+    padding-left: 1.6rem;
+
+    font-size: 1.02rem;
+
+    line-height: 1.75;
+
+    color: var(--colorInk);
+
+}
+
+.articleList li:last-child
+{
+
+    margin-bottom: 0;
+
+}
+
+.articleList li::before
+{
+
+    content: "";
+
+    position: absolute;
+
+    top: 0.72em;
+
+    left: 0.15rem;
+
+    width: 7px;
+
+    height: 7px;
+
+    background-color: var(--colorSkyDeep);
+
+    border-radius: 50%;
+
+}
+
+/* ── Tables inside an article body ──
+
+   The cookie disclosure is six columns wide and cannot compress to a
+   phone. The wrapper scrolls horizontally instead of forcing the page
+   to; it is focusable and labelled so a keyboard can reach the scroll
+   region, which a bare overflow container cannot. ── */
+
+.articleTableWrap
+{
+
+    margin: 0 0 1.4rem;
+
+    overflow-x: auto;
+
+    border: 1px solid var(--colorLineLight);
+
+    border-radius: var(--radiusCard);
+
+}
+
+.articleTable
+{
+
+    width: 100%;
+
+    min-width: 46rem;
+
+    border-collapse: collapse;
+
+    font-size: 0.92rem;
+
+    line-height: 1.6;
+
+    text-align: left;
+
+}
+
+.articleTable th,
+.articleTable td
+{
+
+    padding: 0.85rem 1rem;
+
+    vertical-align: top;
+
+    border-bottom: 1px solid var(--colorLineLight);
+
+}
+
+.articleTable thead th
+{
+
+    font-size: 0.74rem;
+
+    font-weight: 700;
+
+    letter-spacing: 0.12em;
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    color: var(--colorCharcoal);
+
+    background-color: var(--colorOffWhite);
+
+}
+
+.articleTable tbody th
+{
+
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    color: var(--colorCharcoal);
+
+}
+
+.articleTable tbody tr:last-child th,
+.articleTable tbody tr:last-child td
+{
+
+    border-bottom: 0;
+
+}
+
+.articleTable td
+{
+
+    color: var(--colorInk);
+
+}
+
+.articleTable code
+{
+
+    font-family: ui-monospace, "SFMono-Regular", "Consolas", monospace;
+
+    font-size: 0.88em;
+
+    color: var(--colorSkyDeep);
+
+}
+
+/* ============================================================
+   NOT FOUND PAGE  (404.html)
+
+   Three recovery routes — what we do, where we work, everything
+   else — rather than a lone "go home" link, because most arrivals
+   here wanted a specific service or a specific town.
+
+   Deliberately quieter than .relatedCard: no lift on hover and no
+   shadow. Someone on this page is recovering from a dead end, and
+   the cards are a directory to read, not work to sell.
+============================================================ */
+
+.notFoundGrid
+{
+
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 1.6rem;
+
+    align-items: start;
+
+}
+
+.notFoundCard
+{
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 1rem;
+
+    padding: 1.8rem 1.6rem;
+
+    background-color: var(--colorWhite);
+
+    border: 1px solid var(--colorLineLight);
+
+    border-radius: var(--radiusCard);
+
+}
+
+.notFoundCardTitle
+{
+
+    margin: 0;
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1.28rem;
+
+    font-weight: 700;
+
+    color: var(--colorCharcoal);
+
+}
+
+.notFoundLinkList
+{
+
+    margin: 0;
+
+    padding: 0;
+
+    list-style: none;
+
+}
+
+.notFoundLinkList li
+{
+
+    border-bottom: 1px solid var(--colorLineLight);
+
+}
+
+.notFoundLinkList li:last-child
+{
+
+    border-bottom: 0;
+
+}
+
+/* Block links with 0.7rem of vertical padding clear a 44px touch
+   target at the 1rem/1.6 type set below (25.6px + 22.4px = 48px),
+   which is why the padding is not decorative and should not shrink. */
+
+.notFoundLinkList a
+{
+
+    display: block;
+
+    padding: 0.7rem 0;
+
+    font-size: 1rem;
+
+    line-height: 1.6;
+
+    font-weight: 600;
+
+    color: var(--colorSkyDeep);
+
+}
+
+.notFoundLinkList a:hover,
+.notFoundLinkList a:focus-visible
+{
+
+    color: var(--colorSky);
+
+}
+
+.notFoundContact
+{
+
+    margin: 0;
+
+    padding-top: 0.2rem;
+
+    font-size: 0.95rem;
+
+    line-height: 1.7;
+
+    color: var(--colorSteel);
+
+}
+
+.notFoundContact a
+{
+
+    font-weight: 700;
+
+    color: var(--colorSkyDeep);
+
+}
+
+.notFoundContact a:hover,
+.notFoundContact a:focus-visible
+{
+
+    color: var(--colorSky);
+
+}
+
 /* ============================================================
    MEDIA QUERIES
 ============================================================ */
@@ -1225,7 +1533,8 @@
     }
 
     .faqCategoryNav ul,
-    .insightsGrid
+    .insightsGrid,
+    .notFoundGrid
     {
 
         grid-template-columns: repeat(2, 1fr);
@@ -1266,7 +1575,8 @@
     .localServiceList,
     .localProblemGrid,
     .faqCategoryNav ul,
-    .insightsGrid
+    .insightsGrid,
+    .notFoundGrid
     {
 
         grid-template-columns: 1fr;

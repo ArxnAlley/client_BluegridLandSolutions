@@ -25,33 +25,32 @@ const businessConfig = {
     // is sent. submitEstimateRequest() warns loudly when that happens.
     estimateEndpoint: 'https://script.google.com/macros/s/AKfycbzFolev7d8cjWopIe_Z7zfMJ27SDw4HgQ9qIsxSuGiBz0anc-R_IebTlG0mKDtD3IhD/exec',
 
-    // TODO: Confirm phone number with the owner — pulled from the BlueGrid flyer.
+    // Confirmed 2026-08-13 against the client's own printed advertisement.
     phoneDisplay: '(740) 464-2526',
 
     phoneHref: 'tel:+17404642526',
 
-    // TODO: Replace with the real business email address.
-    email: 'estimates@bluegridlandsolutions.com',
+    email: 'bluegridls@gmail.com',
 
-    emailHref: 'mailto:estimates@bluegridlandsolutions.com',
+    emailHref: 'mailto:bluegridls@gmail.com',
 
     // Official BlueGrid Land Solutions Facebook page.
     facebookUrl: 'https://www.facebook.com/profile.php?id=61587582490592',
 
-    // The Facebook URL above is now the real page — flipping this to true is
-    // all that remains, once the client confirms the page renders in the
-    // Page Plugin. The embed is then injected into #facebookEmbedSlot,
-    // replacing the designed fallback panel.
-    facebookPageConfigured: false,
-
-    // TODO: Paste the client's Google Business Profile URL here once it
-    // exists. The footer icon is already in place; while this is empty it
-    // stays pointed at "#" and applyBusinessConfig() leaves it alone.
+    // THE GOOGLE BUSINESS PROFILE URL GOES HERE.
+    //
+    // No profile exists yet. While this stays empty the footer icon is
+    // hidden at runtime by applyBusinessConfig() rather than shipping a
+    // dead link — so the safe inactive state is the empty string, and
+    // filling it in is the whole activation.
     googleBusinessUrl: '',
 
-    // TODO: Chase's introduction video. Paste any one of these, then flip
-    // introVideoConfigured to true — the player replaces the placeholder
-    // panel in #introMediaSlot automatically:
+    // THE OWNER INTRODUCTION VIDEO GOES HERE.
+    //
+    // Until it is supplied, #introMediaSlot holds a real job photograph.
+    // Paste any one of the forms below and set introVideoConfigured to
+    // true; initializeIntroVideo() then replaces the figure with a player
+    // and no markup changes:
     //   YouTube      https://www.youtube.com/watch?v=VIDEO_ID  (or youtu.be/ID)
     //   Vimeo        https://vimeo.com/VIDEO_ID
     //   Self-hosted  graphics/videos/chaseIntroduction.mp4
@@ -60,7 +59,7 @@ const businessConfig = {
     introVideoConfigured: false,
 
     // Poster frame used by the self-hosted player and the placeholder.
-    introVideoPoster: 'graphics/images/excavator2_PiketonOH.jpg'
+    introVideoPoster: 'graphics/images/excavator2_PiketonOH.webp'
 
 };
 
@@ -137,8 +136,6 @@ const formSuccessPanel = document.getElementById('formSuccessPanel');
 const viewWorkButton = document.getElementById('viewWorkButton');
 
 const siteFooter = document.querySelector('.siteFooter');
-
-const facebookEmbedSlot = document.getElementById('facebookEmbedSlot');
 
 const introMediaSlot = document.getElementById('introMediaSlot');
 
@@ -325,9 +322,10 @@ const serviceRegions = {
 
     lawrenceKy: { state: 'Eastern Kentucky', name: 'Lawrence County', towns: ['Louisa', 'Blaine'] },
 
-    // TODO: Confirm with the client. Morehead has always been advertised in the
-    // nav and now has a service area page, so Rowan County is listed here for
-    // consistency — it sits one county past the original core coverage map.
+    // Rowan County sits one county past the original core coverage map.
+    // Morehead has always been advertised in the nav and now has a service
+    // area page, so it is listed here for consistency. Coverage is not
+    // confirmed by the client — see docs/technicalDebt.md.
     rowan: { state: 'Eastern Kentucky', name: 'Rowan County', towns: ['Morehead', 'Clearfield', 'Farmers'] }
 
 };
@@ -807,6 +805,23 @@ function initializeAnimationEngine()
    HERO ENTRANCE SEQUENCE  (coordinated initial-load narrative)
 ============================================================ */
 
+/* Dropping these three is what ends the entrance for one element:
+   without `data-heroanimate` the transition and will-change
+   declarations stop matching and the compositing layer is released.
+   Idempotent, so the backstop timer can run over an element that has
+   already let go. */
+
+function releaseHeroAnimatedElement(element)
+{
+
+    element.removeAttribute('data-heroanimate');
+
+    element.removeAttribute('data-heroanimatedelay');
+
+    element.style.removeProperty('--heroAnimateDelay');
+
+}
+
 function initializeHeroEntrance()
 {
 
@@ -837,16 +852,7 @@ function initializeHeroEntrance()
 
         document.documentElement.classList.add('heroSequenceReady', 'heroSequenceComplete');
 
-        heroAnimatedElements.forEach(function (element)
-        {
-
-            element.removeAttribute('data-heroanimate');
-
-            element.removeAttribute('data-heroanimatedelay');
-
-            element.style.removeProperty('--heroAnimateDelay');
-
-        });
+        heroAnimatedElements.forEach(releaseHeroAnimatedElement);
 
         if (window.animationFallbackTimer)
         {
@@ -897,6 +903,56 @@ function initializeHeroEntrance()
 
     });
 
+    /* ── Let each element go as it lands, rather than all ten at 2200ms ──
+
+       Stripping the attributes is what releases the compositing
+       layer, and until this was added the 2200ms timer below was the
+       only thing that ever did it. That gated the homepage's Largest
+       Contentful Paint: the LCP element here is hero TEXT, and Chrome
+       does not report the entry for text held in a compositor-animated
+       layer — it lands when the layer is released. So LCP was pinned
+       to the timer rather than to when the words became legible.
+
+       Measured, not assumed: LCP ~2.47-2.52s before, ~1.45-1.53s
+       after, against a first paint of ~0.4-0.56s. Three CSS-only
+       alternatives were measured first and moved nothing at all —
+       forcing the headline and copy to opacity 1, releasing
+       will-change on its own, and removing their transition-delay.
+       The attribute teardown is the lever; the opacity gate is not.
+
+       Nothing about the animation changes. Each element has finished
+       arriving before its own release, and this does exactly what the
+       timer did, only sooner. The timer stays as the backstop for any
+       element whose transitionend never arrives — an interrupted
+       transition does not fire one. */
+
+    heroAnimatedElements.forEach(function (element)
+    {
+
+        /* Keyed on opacity because every entrance variant transitions
+           it, so this runs once per element. transform shares the same
+           delay and duration, so nothing is released early. */
+
+        function releaseOnArrival(event)
+        {
+
+            if (event.target !== element || event.propertyName !== 'opacity')
+            {
+
+                return;
+
+            }
+
+            element.removeEventListener('transitionend', releaseOnArrival);
+
+            releaseHeroAnimatedElement(element);
+
+        }
+
+        element.addEventListener('transitionend', releaseOnArrival);
+
+    });
+
     window.requestAnimationFrame(
         function ()
         {
@@ -913,6 +969,10 @@ function initializeHeroEntrance()
         }
     );
 
+    /* The 2200ms figure is the entrance's own choreography — it is
+       what heroEntranceComplete and the typing loop are timed against
+       — so it stays exactly where it was. */
+
     window.setTimeout(
         function ()
         {
@@ -921,16 +981,7 @@ function initializeHeroEntrance()
 
             document.documentElement.classList.add('heroSequenceComplete');
 
-            heroAnimatedElements.forEach(function (element)
-            {
-
-                element.removeAttribute('data-heroanimate');
-
-                element.removeAttribute('data-heroanimatedelay');
-
-                element.style.removeProperty('--heroAnimateDelay');
-
-            });
+            heroAnimatedElements.forEach(releaseHeroAnimatedElement);
 
         },
         2200
@@ -4489,56 +4540,6 @@ function initializeFaqAccordion()
 }
 
 /* ============================================================
-   FACEBOOK EMBED  (injected only when a real page exists —
-   the designed fallback panel shows otherwise, never an
-   empty iframe)
-============================================================ */
-
-function initializeFacebookEmbed()
-{
-
-    if (!facebookEmbedSlot || !businessConfig.facebookPageConfigured)
-    {
-
-        return;
-
-    }
-
-    const pluginSrc = 'https://www.facebook.com/plugins/page.php'
-        + '?href=' + encodeURIComponent(businessConfig.facebookUrl)
-        + '&tabs=timeline&width=380&height=480&small_header=true'
-        + '&adapt_container_width=true&hide_cover=false';
-
-    const embedFrame = document.createElement('iframe');
-
-    embedFrame.className = 'facebookEmbed';
-
-    embedFrame.src = pluginSrc;
-
-    embedFrame.width = '380';
-
-    embedFrame.height = '480';
-
-    embedFrame.loading = 'lazy';
-
-    embedFrame.title = 'BlueGrid Land Solutions on Facebook';
-
-    embedFrame.setAttribute('scrolling', 'no');
-
-    embedFrame.setAttribute('frameborder', '0');
-
-    embedFrame.setAttribute(
-        'allow',
-        'autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share'
-    );
-
-    facebookEmbedSlot.textContent = '';
-
-    facebookEmbedSlot.appendChild(embedFrame);
-
-}
-
-/* ============================================================
    OWNER INTRODUCTION VIDEO  (reusable — YouTube / Vimeo / self-hosted)
 ============================================================ */
 
@@ -4665,17 +4666,21 @@ function applyBusinessConfig()
 
     });
 
-    /* The Google Business Profile does not exist yet. Rather than ship a
-       dead href="#" that opens a blank tab, hide the icon until
-       googleBusinessUrl is filled in above. */
+    /* The Google Business Profile does not exist yet, so the icon ships
+       hidden in the markup rather than being hidden here at runtime — a
+       visitor with JavaScript off never meets a focusable dead link.
 
-    if (!businessConfig.googleBusinessUrl)
+       Filling googleBusinessUrl in above is the whole activation: the
+       [data-confighref] loop at the top of this function sets the href,
+       and this reveals the icon. */
+
+    if (businessConfig.googleBusinessUrl)
     {
 
         document.querySelectorAll('.footerGoogleLink').forEach(function (link)
         {
 
-            link.hidden = true;
+            link.hidden = false;
 
         });
 
@@ -4774,6 +4779,105 @@ if (backToTopButton)
    first-time visitor, since currentModalStep starts there and nothing
    here resets it — reopening after a partial fill still resumes where
    the visitor left off, same as it always has). */
+
+/* ── Hero estimate starter (mobile) ──
+   One field standing in for the inline estimate card, which is hidden
+   below 640px. It is a shortcut into the existing flow, not a second
+   one: it opens the same modal every other CTA opens and pre-fills the
+   modal's own Property Address field, so the payload, validation and
+   submission path are all unchanged.
+
+   Empty input is allowed through deliberately — someone tapping Get
+   Estimate has stated intent, and turning that into a validation error
+   before the form is even open would lose them for no reason. The
+   modal asks for the address again, and enforces it, as it always did. */
+
+const heroEstimateStarter = document.getElementById('heroEstimateStarter');
+
+if (heroEstimateStarter)
+{
+
+    heroEstimateStarter.addEventListener(
+        'submit',
+        function (event)
+        {
+
+            event.preventDefault();
+
+            const startedLocation = document.getElementById('heroPropertyLocation');
+
+            const modalPropertyAddress = document.getElementById('propertyAddress');
+
+            const entered = startedLocation ? startedLocation.value.trim() : '';
+
+            /* Only ever fills a blank field. Someone who part-filled the
+               modal, closed it, then used the starter should not have
+               their fuller address overwritten by a shorter one. */
+
+            if (entered && modalPropertyAddress && !modalPropertyAddress.value.trim())
+            {
+
+                modalPropertyAddress.value = entered;
+
+            }
+
+            openEstimateModal('heroStarter');
+
+        }
+    );
+
+}
+
+/* ── Transformation story case studies ──
+   Each story card carries a data-casestudyurl slot. The link is only
+   rendered when that slot holds a URL, so the cards stay exactly as
+   they are until real case-study pages exist — no dead links, no
+   placeholder articles. Same pattern the intro video and the Google
+   Business Profile link already use: configure it and it appears.
+
+   No case-study pages have been written yet, so all three slots are
+   empty and no link renders. Fill data-casestudyurl on each .storyCard
+   in index.html once the articles exist. */
+
+function initializeCaseStudyLinks()
+{
+
+    document.querySelectorAll('.storyCard[data-casestudyurl]').forEach(function (card)
+    {
+
+        const caseStudyUrl = (card.getAttribute('data-casestudyurl') || '').trim();
+
+        if (!caseStudyUrl)
+        {
+
+            return;
+
+        }
+
+        const storyBody = card.querySelector('.storyBody');
+
+        if (!storyBody || storyBody.querySelector('.storyLink'))
+        {
+
+            return;
+
+        }
+
+        const link = document.createElement('a');
+
+        link.className = 'storyLink';
+
+        link.href = caseStudyUrl;
+
+        link.textContent = 'Read the full story';
+
+        storyBody.appendChild(link);
+
+    });
+
+}
+
+initializeCaseStudyLinks();
 
 estimateFormCtas.forEach(function (cta)
 {
@@ -5038,7 +5142,5 @@ initializeComparisonSlider();
 initializeServiceAreaMap();
 
 initializeFaqAccordion();
-
-initializeFacebookEmbed();
 
 initializeIntroVideo();

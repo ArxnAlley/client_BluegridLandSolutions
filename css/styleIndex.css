@@ -12,7 +12,7 @@
 
     --colorSky: #5B9BD5;
 
-    --colorSkyDeep: #3E7CB8;
+    --colorSkyDeep: #356CA3;
 
     --colorSkyLight: #A9D2F0;
 
@@ -22,7 +22,7 @@
 
     --colorInk: #232A30;
 
-    --colorSteel: #7C8894;
+    --colorSteel: #68737E;
 
     --colorOffWhite: #F7F9FB;
 
@@ -149,6 +149,10 @@
 
 }
 
+/* The root element's overflow is what the viewport uses, so this one
+   declaration is the site's entire horizontal clipping policy. It stays
+   here, and it must NOT be repeated on body — see below. */
+
 html
 {
 
@@ -160,12 +164,34 @@ html
 
 }
 
+/* ── body deliberately has no overflow of its own ──
+
+   It used to carry `overflow-x: hidden` as well, and that is what
+   produced the reported double scrollbar.
+
+   Once html's overflow is not `visible`, body stops propagating its
+   overflow to the viewport and keeps it — and a hidden value on one
+   axis forces the other axis to compute to `auto`. So the duplicate
+   declaration quietly turned body into a second scroll container
+   sitting inside the viewport's.
+
+   It only needed something to overflow to paint a bar, and this site
+   supplies that on every page: every [data-animate] element rests at
+   translateY(24px) until it is revealed, and the last one in the
+   document pushes 24px past the footer's 19.2px of bottom padding.
+   That ~5px of slack is exactly what the second bar was scrolling.
+   It resolves to 0 once the footer reveals, which is why the bar
+   appeared while reading and vanished at the bottom of the page.
+
+   Nothing is lost by removing it. html above still clips horizontally
+   at the viewport, which is verified at 390px where the page does have
+   ~10px of horizontal overflow. Measured in Chrome by
+   diagnoseScrollbars.js / diagnoseScrollArchitecture.js. ── */
+
 body
 {
 
     margin: 0;
-
-    overflow-x: hidden;
 
     font-family: var(--fontBody);
 
@@ -824,7 +850,7 @@ html.jsEnabled .whyContent .sectionHeading[data-animate="fadeUp"]
 
 }
 
-html.jsEnabled .facebookPosts .postCard[data-animate="fadeUp"]
+html.jsEnabled .insightsBriefList .insightsBrief[data-animate="fadeUp"]
 {
 
     transform: translate3d(14px, 24px, 0);
@@ -914,7 +940,7 @@ html.jsEnabled [data-animate].isAnimated
 
 html.jsEnabled .whyContent .sectionKicker[data-animate="fadeUp"].isAnimated,
 html.jsEnabled .whyContent .sectionHeading[data-animate="fadeUp"].isAnimated,
-html.jsEnabled .facebookPosts .postCard[data-animate="fadeUp"].isAnimated,
+html.jsEnabled .insightsBriefList .insightsBrief[data-animate="fadeUp"].isAnimated,
 html.jsEnabled .servicesGrid .serviceCard:nth-child(3n + 1)[data-animate="fadeUp"].isAnimated,
 html.jsEnabled .servicesGrid .serviceCard:nth-child(3n)[data-animate="fadeUp"].isAnimated,
 html.jsEnabled .transformationStories .storyCard:nth-child(3n + 1)[data-animate="fadeUp"].isAnimated,
@@ -2824,6 +2850,80 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* ── Compact hero action row ──
+   Hidden by default and switched on at 1080px and below, where the
+   inline estimate card is hidden in exchange. Declaring it off here
+   rather than on there keeps desktop unchanged by default: a new
+   viewport size cannot accidentally reveal it. */
+
+.heroMobileActions
+{
+
+    display: none;
+
+}
+
+.heroEstimateStarter
+{
+
+    display: flex;
+
+    gap: 0.5rem;
+
+}
+
+.heroStarterInput
+{
+
+    flex: 1 1 auto;
+
+    /* Without this a flex item refuses to shrink below its content
+       width, and the button would be pushed off a narrow screen. */
+
+    min-width: 0;
+
+    padding: 0.85rem 1rem;
+
+    background-color: rgba(16, 18, 20, 0.55);
+
+    color: var(--colorWhite);
+
+    font-family: var(--fontBody);
+
+    /* 1rem, not smaller: iOS zooms the viewport on focus for anything
+       under 16px, which would throw the whole hero off centre. */
+
+    font-size: 1rem;
+
+    border: 1.5px solid rgba(247, 249, 251, 0.35);
+
+    border-radius: 8px;
+
+}
+
+.heroStarterInput::placeholder
+{
+
+    color: rgba(247, 249, 251, 0.5);
+
+}
+
+.heroStarterInput:focus
+{
+
+    border-color: var(--colorSky);
+
+    outline: none;
+
+}
+
+.heroStarterButton
+{
+
+    flex: 0 0 auto;
+
+}
+
 .heroActions
 {
 
@@ -3071,7 +3171,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     text-transform: none;
 
-    color: rgba(247, 249, 251, 0.45);
+    color: rgba(247, 249, 251, 0.5);
 
 }
 
@@ -4757,6 +4857,45 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
 }
 
+/* Only exists once a story's data-casestudyurl slot is filled — the
+   link is injected at runtime, so an unwritten case study leaves no
+   dead affordance on the card. */
+
+.storyLink
+{
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 0.4rem;
+
+    margin-top: 0.9rem;
+
+    font-size: 0.88rem;
+
+    font-weight: 700;
+
+    letter-spacing: 0.03em;
+
+    color: var(--colorSky);
+
+    text-decoration: underline;
+
+    text-underline-offset: 3px;
+
+    transition: color 0.25s var(--easePremium);
+
+}
+
+.storyLink:hover,
+.storyLink:focus-visible
+{
+
+    color: var(--colorSkyLight);
+
+}
+
 /* ============================================================
    WHY CHOOSE US SECTION
 ============================================================ */
@@ -4998,6 +5137,24 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
    than a full-bleed band; the heading stays outside it on the white,
    and the CTA sits below it. */
 
+/* ── The board scales instead of collapsing ──
+
+   Every clamp() below has its UPPER bound set to the value the board
+   has always used, and each reaches that bound at 1200px. So at any
+   desktop width the computed styles are byte-for-byte what they were;
+   nothing about the large-width design moved.
+
+   Below 1200px they interpolate down, which is what buys the
+   horizontal 1→2→3→4→5 layout another ~400px of viewport before it
+   has to stack. The old behaviour switched to the vertical timeline
+   at 1167px purely because that is where the board could no longer
+   render at its full 1120px width — a fact about the board's fixed
+   padding, not about whether five columns still read.
+
+   The lower bounds are not guesses: they are the values measured to
+   still hold five legible columns at the new breakpoint. See
+   validateProcessLayout.js. ── */
+
 .processBoard
 {
 
@@ -5005,7 +5162,9 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     margin: 0 auto;
 
-    padding: 2.6rem 2.2rem;
+    padding:
+        clamp(1.5rem, 3.67vw - 0.15rem, 2.6rem)
+        clamp(0.9rem, 4.33vw - 1.05rem, 2.2rem);
 
     background-image: linear-gradient(158deg, var(--colorCharcoal) 0%, var(--colorNearBlack) 100%);
 
@@ -5029,7 +5188,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     align-items: flex-start;
 
-    gap: 0.9rem;
+    gap: clamp(0.35rem, 1.83vw - 0.475rem, 0.9rem);
 
     margin: 0;
 
@@ -5048,7 +5207,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     text-align: center;
 
-    padding: 0 0.3rem;
+    padding: 0 clamp(0.1rem, 0.67vw - 0.2rem, 0.3rem);
 
 }
 
@@ -5061,11 +5220,17 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     justify-content: center;
 
-    width: 48px;
+    width: clamp(38px, 2.08vw + 23px, 48px);
 
-    height: 48px;
+    height: clamp(38px, 2.08vw + 23px, 48px);
 
-    margin: 0 auto 1rem;
+    /* The disc is a flex child of a min-width: 0 column, so without
+       this it squashes into an oval instead of holding its circle as
+       the column narrows. */
+
+    flex: 0 0 auto;
+
+    margin: 0 auto clamp(0.7rem, 1.25vw - 0.2rem, 1rem);
 
     background-color: rgba(91, 155, 213, 0.1);
 
@@ -5075,7 +5240,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     font-family: var(--fontDisplay);
 
-    font-size: 1.3rem;
+    font-size: clamp(1.05rem, 0.83vw + 0.675rem, 1.3rem);
 
     font-weight: 700;
 
@@ -5086,9 +5251,9 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 .processStepIcon
 {
 
-    width: 26px;
+    width: clamp(20px, 1.25vw + 11px, 26px);
 
-    height: 26px;
+    height: clamp(20px, 1.25vw + 11px, 26px);
 
     margin: 0 auto 0.6rem;
 
@@ -5110,7 +5275,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     font-family: var(--fontDisplay);
 
-    font-size: 1.2rem;
+    font-size: clamp(0.95rem, 0.83vw + 0.575rem, 1.2rem);
 
     font-weight: 700;
 
@@ -5127,7 +5292,9 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     margin: 0;
 
-    font-size: 0.88rem;
+    font-size: clamp(0.78rem, 0.33vw + 0.63rem, 0.88rem);
+
+    line-height: 1.5;
 
     color: rgba(247, 249, 251, 0.62);
 
@@ -5158,7 +5325,7 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 
     justify-content: center;
 
-    margin-top: 1.05rem;
+    margin-top: clamp(0.8rem, 1.04vw - 0.05rem, 1.05rem);
 
     color: var(--colorSky);
 
@@ -5179,9 +5346,9 @@ html.animationFallback .comparisonSlider[data-animate] .comparisonHandle
 .processArrowIcon
 {
 
-    width: 16px;
+    width: clamp(11px, 1.04vw + 3.5px, 16px);
 
-    height: 16px;
+    height: clamp(11px, 1.04vw + 3.5px, 16px);
 
 }
 
@@ -5350,9 +5517,16 @@ html.jsEnabled .processArrow.isResting
 
 }
 
-/* ── Placeholder (shown until the video is supplied) ── */
+/* ── Owner media
 
-.introVideoPlaceholder
+   A real BlueGrid job photograph stands in the 16:9 frame until the
+   owner introduction video or portrait is supplied. It is presented
+   as a photograph, not as a video thumbnail: no play affordance, no
+   heavy darkening, and a caption that says what the picture is.
+   Swapping it is two config fields — see docs/technicalDebt.md item
+   13. ── */
+
+.introMediaFigure
 {
 
     position: absolute;
@@ -5363,7 +5537,7 @@ html.jsEnabled .processArrow.isResting
 
 }
 
-.introVideoPoster
+.introMediaPhoto
 {
 
     width: 100%;
@@ -5372,83 +5546,31 @@ html.jsEnabled .processArrow.isResting
 
     object-fit: cover;
 
-    filter: saturate(0.72) brightness(0.52);
-
 }
 
-.introVideoOverlay
+/* A caption bar along the bottom rather than a centred overlay: the
+   frame holds something to look at now, not something to click. */
+
+.introMediaCaption
 {
 
     position: absolute;
 
-    inset: 0;
+    right: 0;
 
-    display: flex;
+    bottom: 0;
 
-    flex-direction: column;
+    left: 0;
 
-    align-items: center;
+    padding: 2.6rem 1.3rem 1rem;
 
-    justify-content: center;
+    font-size: 0.82rem;
 
-    gap: 1.1rem;
+    letter-spacing: 0.03em;
 
-    padding: 1.5rem;
+    color: rgba(247, 249, 251, 0.88);
 
-    text-align: center;
-
-    background: radial-gradient(ellipse at center, rgba(16, 18, 20, 0.12) 0%, rgba(16, 18, 20, 0.58) 100%);
-
-}
-
-.introVideoPlayMark
-{
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    width: 74px;
-
-    height: 74px;
-
-    border: 2px solid rgba(247, 249, 251, 0.75);
-
-    border-radius: 50%;
-
-    background-color: rgba(91, 155, 213, 0.22);
-
-}
-
-.introVideoPlayMark svg
-{
-
-    width: 34px;
-
-    height: 34px;
-
-    margin-left: 4px;
-
-    fill: var(--colorWhite);
-
-}
-
-.introVideoCaption
-{
-
-    font-family: var(--fontDisplay);
-
-    font-size: 0.95rem;
-
-    font-weight: 600;
-
-    letter-spacing: 0.2em;
-
-    text-transform: uppercase;
-
-    color: rgba(247, 249, 251, 0.86);
+    background: linear-gradient(to bottom, rgba(16, 18, 20, 0) 0%, rgba(16, 18, 20, 0.85) 65%);
 
 }
 
@@ -5922,10 +6044,15 @@ html.jsEnabled .processArrow.isResting
 }
 
 /* ============================================================
-   FACEBOOK SECTION
+   INSIGHTS SECTION
+
+   Feature + briefs, not a three-across card row. The 400px rail
+   is inherited from the section this replaced, so the homepage
+   keeps its established asymmetry; the briefs stack beside it as
+   horizontal rows rather than competing squares.
 ============================================================ */
 
-.facebookLayout
+.insightsLayout
 {
 
     display: grid;
@@ -5936,9 +6063,14 @@ html.jsEnabled .processArrow.isResting
 
     align-items: start;
 
+    margin-top: 2.8rem;
+
 }
 
-.facebookFrame
+/* ── Shared card primitives ── */
+
+.insightsFeature,
+.insightsBrief
 {
 
     background-color: rgba(247, 249, 251, 0.05);
@@ -5949,137 +6081,34 @@ html.jsEnabled .processArrow.isResting
 
     overflow: hidden;
 
-}
-
-.facebookFrameHeader
-{
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 0.45rem;
-
-    padding: 0.8rem 1rem;
-
-    border-bottom: 1px solid var(--colorLineDark);
+    transition: transform 0.35s var(--easePremium), border-color 0.35s var(--easePremium);
 
 }
 
-.facebookFrameDot
+.insightsFeature:hover,
+.insightsBrief:hover
 {
 
-    width: 10px;
+    transform: translateY(-5px);
 
-    height: 10px;
-
-    background-color: rgba(247, 249, 251, 0.25);
-
-    border-radius: 50%;
+    border-color: rgba(91, 155, 213, 0.5);
 
 }
 
-.facebookFrameTitle
+.insightsFeature:focus-within,
+.insightsBrief:focus-within
 {
 
-    margin-left: 0.5rem;
-
-    font-size: 0.78rem;
-
-    letter-spacing: 0.03em;
-
-    color: rgba(247, 249, 251, 0.6);
+    border-color: rgba(91, 155, 213, 0.6);
 
 }
 
-.facebookEmbed
+.insightsTag
 {
 
-    display: block;
-
-    width: 100%;
-
-    background-color: rgba(16, 18, 20, 0.4);
-
-}
-
-.facebookEmbedSlot
-{
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    min-height: 430px;
-
-}
-
-.facebookFallback
-{
-
-    display: flex;
-
-    flex-direction: column;
-
-    align-items: center;
-
-    gap: 0.5rem;
-
-    padding: 2.6rem 1.8rem;
-
-    text-align: center;
-
-}
-
-.facebookFallbackBadge
-{
-
-    width: 76px;
-
-    height: 76px;
-
-    margin-bottom: 0.6rem;
-
-}
-
-.facebookFallbackTitle
-{
+    align-self: flex-start;
 
     margin: 0;
-
-    font-family: var(--fontDisplay);
-
-    font-size: 1.5rem;
-
-    font-weight: 700;
-
-    letter-spacing: 0.03em;
-
-    text-transform: uppercase;
-
-    color: var(--colorWhite);
-
-}
-
-.facebookFallbackCopy
-{
-
-    max-width: 280px;
-
-    margin: 0 0 1.1rem;
-
-    font-size: 0.9rem;
-
-    color: rgba(247, 249, 251, 0.65);
-
-}
-
-.postTag
-{
-
-    margin-left: auto;
 
     padding: 0.22rem 0.62rem;
 
@@ -6101,48 +6130,284 @@ html.jsEnabled .processArrow.isResting
 
 }
 
-/* Three cards share whatever the 400px embed frame leaves of the
-   1172px content width, so a fixed repeat(3, 1fr) kept squeezing them
-   below the width their own header needs. A minimum track width lets
-   the row drop to two cards instead of crushing three; the ≤1080px
-   and ≤640px queries below still take over from there. */
-
-.facebookPosts
+.insightsMeta
 {
 
-    display: grid;
+    margin: 0;
 
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    font-size: 0.74rem;
+
+    letter-spacing: 0.04em;
+
+    white-space: nowrap;
+
+    color: rgba(247, 249, 251, 0.55);
+
+}
+
+.insightsReadLink
+{
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 0.4rem;
+
+    font-size: 0.82rem;
+
+    font-weight: 700;
+
+    letter-spacing: 0.05em;
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    color: var(--colorSky);
+
+    transition: gap 0.3s var(--easePremium), color 0.3s var(--easePremium);
+
+}
+
+.insightsReadLink:hover,
+.insightsReadLink:focus-visible
+{
+
+    gap: 0.75rem;
+
+    color: var(--colorWhite);
+
+}
+
+/* ── The featured article ── */
+
+.insightsFeature
+{
+
+    display: flex;
+
+    flex-direction: column;
+
+}
+
+.insightsFeatureMedia
+{
+
+    display: block;
+
+    aspect-ratio: 4 / 3;
+
+    overflow: hidden;
+
+}
+
+.insightsFeatureMedia img
+{
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+    transition: transform 0.6s var(--easePremium);
+
+}
+
+.insightsFeature:hover .insightsFeatureMedia img
+{
+
+    transform: scale(1.04);
+
+}
+
+.insightsFeatureBody
+{
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 0.75rem;
+
+    padding: 1.4rem 1.4rem 1.6rem;
+
+}
+
+.insightsFeatureTitle
+{
+
+    margin: 0;
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1.32rem;
+
+    font-weight: 700;
+
+    line-height: 1.25;
+
+    letter-spacing: 0.01em;
+
+}
+
+.insightsFeatureTitle a
+{
+
+    color: var(--colorWhite);
+
+    transition: color 0.3s var(--easePremium);
+
+}
+
+.insightsFeatureTitle a:hover,
+.insightsFeatureTitle a:focus-visible
+{
+
+    color: var(--colorSky);
+
+}
+
+.insightsFeatureExcerpt
+{
+
+    margin: 0;
+
+    font-size: 0.92rem;
+
+    line-height: 1.6;
+
+    color: rgba(247, 249, 251, 0.78);
+
+}
+
+/* ── The three briefs ── */
+
+.insightsBriefList
+{
+
+    display: flex;
+
+    flex-direction: column;
 
     gap: 1.4rem;
 
 }
 
-.postCard
+.insightsBrief
 {
 
-    background-color: rgba(247, 249, 251, 0.05);
+    display: grid;
 
-    border: 1px solid var(--colorLineDark);
+    grid-template-columns: 190px 1fr;
 
-    border-radius: var(--radiusCard);
+    align-items: stretch;
+
+}
+
+.insightsBriefMedia
+{
+
+    display: block;
+
+    height: 100%;
+
+    min-height: 150px;
 
     overflow: hidden;
 
-    transition: transform 0.35s var(--easePremium), border-color 0.35s var(--easePremium);
-
 }
 
-.postCard:hover
+.insightsBriefMedia img
 {
 
-    transform: translateY(-5px);
+    width: 100%;
 
-    border-color: rgba(91, 155, 213, 0.5);
+    height: 100%;
+
+    object-fit: cover;
+
+    transition: transform 0.6s var(--easePremium);
 
 }
 
-.postCardHeader
+.insightsBrief:hover .insightsBriefMedia img
+{
+
+    transform: scale(1.04);
+
+}
+
+.insightsBriefBody
+{
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 0.6rem;
+
+    padding: 1.2rem 1.3rem;
+
+}
+
+.insightsBriefTitle
+{
+
+    margin: 0;
+
+    font-family: var(--fontDisplay);
+
+    font-size: 1.08rem;
+
+    font-weight: 700;
+
+    line-height: 1.3;
+
+    letter-spacing: 0.01em;
+
+}
+
+.insightsBriefTitle a
+{
+
+    color: var(--colorWhite);
+
+    transition: color 0.3s var(--easePremium);
+
+}
+
+.insightsBriefTitle a:hover,
+.insightsBriefTitle a:focus-visible
+{
+
+    color: var(--colorSky);
+
+}
+
+.insightsBriefExcerpt
+{
+
+    margin: 0;
+
+    font-size: 0.88rem;
+
+    line-height: 1.55;
+
+    color: rgba(247, 249, 251, 0.72);
+
+}
+
+/* The read time and the CTA share the last row. flex-wrap lets the
+   link drop under the time on a narrow card rather than squeezing
+   either one, which is the row that should give way. */
+
+.insightsBriefFoot
 {
 
     display: flex;
@@ -6151,93 +6416,22 @@ html.jsEnabled .processArrow.isResting
 
     align-items: center;
 
-    gap: 0.55rem 0.7rem;
+    gap: 0.5rem 1rem;
 
-    padding: 0.9rem 1rem 0.6rem;
-
-}
-
-.postAvatar
-{
-
-    width: 38px;
-
-    height: 38px;
-
-    border-radius: 50%;
+    margin: 0.15rem 0 0;
 
 }
 
-/* flex: 1 meant flex-basis: 0, so the meta block volunteered to shrink
-   to nothing and the nowrap tag never wrapped — the author line
-   ellipsed away and the date broke mid-string, stacking "July" over
-   "8". A real basis makes the tag wrap to its own row instead, which
-   is the row that should give way. */
+/* ── Section footer ── */
 
-.postMeta
+.insightsSectionFoot
 {
 
     display: flex;
 
-    flex-direction: column;
+    justify-content: center;
 
-    flex: 1 1 7.5rem;
-
-    min-width: 0;
-
-}
-
-.postAuthor
-{
-
-    font-size: 0.86rem;
-
-    font-weight: 700;
-
-    color: var(--colorWhite);
-
-    white-space: nowrap;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-}
-
-.postDate
-{
-
-    font-size: 0.74rem;
-
-    white-space: nowrap;
-
-    color: rgba(247, 249, 251, 0.5);
-
-}
-
-.postCaption
-{
-
-    margin: 0;
-
-    padding: 0 1rem 0.8rem;
-
-    font-size: 0.88rem;
-
-    line-height: 1.55;
-
-    color: rgba(247, 249, 251, 0.78);
-
-}
-
-.postImage
-{
-
-    width: 100%;
-
-    aspect-ratio: 4 / 3;
-
-    object-fit: cover;
+    margin-top: 2.6rem;
 
 }
 
@@ -6749,6 +6943,42 @@ html.jsEnabled .processArrow.isResting
 
 }
 
+/* The mark is 17px and must stay 17px. The TARGET around it is 44x39.
+
+   WCAG 2.5.8 asks for 24x24 on a standalone control, and a social
+   icon in a footer is standalone — the "inline in a sentence"
+   exception does not cover it. 17x17 failed that, and on a phone it
+   is simply hard to hit.
+
+   Padding is what makes the target real: it enlarges the hit area
+   AND the focus ring, which a positioned overlay would not. The
+   matching negative margin removes the same padding from the flow,
+   so the icon lands on exactly the pixel it landed on before and the
+   footer's spacing is untouched — 44 - (13.5 x 2) = 17, the width
+   the row contributed all along.
+
+   WHY 39 TALL AND NOT 44. The email link sits directly above, and
+   the measured clearance from its bottom edge to the top of the icon
+   is 12.2px — identical at 375, 390, 430, 768, 820, 1024 and 1440.
+   11px of vertical padding leaves 1.2px of air; 13.5px would overlap
+   it by 1.3px and the Facebook link, painting later, would swallow
+   the bottom sliver of the email link's own target. Trading a
+   too-small target for a stolen one is not a fix.
+
+   That 12.2px had to be measured AT REST. An earlier attempt read
+   36px because [data-animate] elements sit 24px lower until they are
+   revealed, and the footer had not been scrolled into view yet — the
+   same class of mistake the process-board work recorded: forcing a
+   layout is only honest if you force all of it.
+
+   Hover only changes colour and there is no background on these
+   links, so the larger box paints nothing.
+
+   One thing to know if .footerGoogleLink is ever un-hidden: the row
+   gap is 14.4px, so two 44px-wide targets centred 31.4px apart would
+   overlap by ~12.6px. Only one is visible today. Widen
+   .footerSocialItem's gap to at least 27px at that point. */
+
 .footerFacebookLink,
 .footerGoogleLink
 {
@@ -6756,6 +6986,12 @@ html.jsEnabled .processArrow.isResting
     display: inline-flex;
 
     align-items: center;
+
+    justify-content: center;
+
+    padding: 11px 13.5px;
+
+    margin: -11px -13.5px;
 
 }
 
@@ -6946,7 +7182,7 @@ html.jsEnabled .processArrow.isResting
 
     font-size: 0.84rem;
 
-    color: rgba(247, 249, 251, 0.45);
+    color: rgba(247, 249, 251, 0.5);
 
 }
 
@@ -7587,33 +7823,67 @@ html.jsEnabled .consentInlineControl
 }
 
 /* ============================================================
-   PROCESS BOARD — HORIZONTAL ROW GIVES WAY
+   PROCESS BOARD — HORIZONTAL ROW GIVES WAY AT 699px
 
-   1167px is derived, not chosen: the board is max-width 1120px and
-   sits inside .sectionInner's 1.5rem padding, so 1120 + 48 = 1168px
-   is the narrowest viewport at which it can still render at the width
-   it was designed for. Below that the five-across row is running
-   compressed — at 1081px each step column is 147px against a design
-   value of 164px — and a compressed row is what the browser QA
-   reported as steps running past the edge of the board.
+   PREVIOUSLY 1167px, and that number answered the wrong question.
 
-   So the horizontal presentation is kept for exactly as long as it
-   genuinely fits, and hands over the moment it does not. Above
-   1168px every column is at its full design width on every board;
-   below it the vertical layout takes the whole story.
+   It was derived from the board's own geometry: max-width 1120px
+   inside .sectionInner's 1.5rem padding, so 1168px is the narrowest
+   viewport at which the board renders at its designed width. The
+   reasoning was "keep the row for exactly as long as it fits at full
+   size, hand over the moment it does not."
 
-   It moved up from 1080px, and out of that shared query, because
-   1080px also drives the hero, the services grid and several section
-   layouts — none of which had any reason to move with it.
+   But the board only "did not fit" because its padding, gaps, discs
+   and type were fixed. Once those scale — see the clamp() values on
+   .processBoard and friends — the five-across row keeps working for
+   another 468px of viewport. Everything from 700px to 1167px was
+   being handed the phone timeline while there was ample room for the
+   real thing.
 
-   The vertical layout itself is unchanged. The old two-up grid broke
-   the story: the arrow at the end of a row pointed right, into the
-   edge of the board, rather than at the step that actually follows.
-   Stacked, the arrows rotate to point down and the progression stays
-   true at any step count.
+   699px IS MEASURED, NOT CHOSEN. measureProcessFloor.js walks the
+   viewport down with the scaling active and reports the narrowest
+   step column, the line counts, and the widest single title word
+   against the column that has to hold it:
+
+     768px   column 112px, titles 2 lines, copy 5
+     730px   column 107px, titles 2 lines, copy 5
+     700px   column 102px, titles 2 lines, copy 5   <- the floor
+     680px   column  98px, titles 2 lines, copy 5
+     660px   column  94px, titles 2 lines, copy 5
+     645px   column  91px, titles 3 LINES, copy 6
+
+   The five headings stop being uniform two-line blocks at ~645px,
+   and that is the visual failure — long before any word breaks or
+   anything overflows.
+
+   700px rather than 660px, for two reasons that are not about the
+   type:
+
+   1. THE 640px BLOCK OWNS VERTICAL-TIMELINE RULES. Further down this
+      file, @media (max-width: 640px) restyles .processSteps::before,
+      .processStep, .processStepNumber and friends for the stacked
+      rail. Those rules assume a vertical layout. Handing over at
+      660px would leave only 20px between the two systems, and any
+      future edit to either would collide. 700px keeps 60px of clear
+      air.
+
+   2. FALLBACK-FONT HEADROOM. The widest title word measures 83px in
+      the display face. The project's own metric work records a
+      fallback face about 6% wider, which puts it at ~88px during
+      the swap. Against a 94px column at 660px that is 6px of margin;
+      against 102px at 700px it is 14px.
+
+   The handover is therefore a real threshold with a stated reason,
+   not a generic "tablet" guess.
+
+   The vertical layout itself is UNCHANGED — same rules, lower
+   trigger. The old two-up grid broke the story: the arrow at the end
+   of a row pointed right, into the edge of the board, rather than at
+   the step that actually follows. Stacked, the arrows rotate to
+   point down and the progression stays true at any step count.
 ============================================================ */
 
-@media (max-width: 1167px)
+@media (max-width: 699px)
 {
 
     .processBoard
@@ -7779,21 +8049,74 @@ html.jsEnabled .consentInlineControl
 
     }
 
-    .heroActions
-    {
+    /* ============================================================
+       THE COMPACT ESTIMATE SYSTEM STARTS HERE, NOT AT 640px
 
-        margin-bottom: 1rem;
+       1080px is where .heroInner drops to a single column, so the
+       estimate card can no longer sit beside the hero copy — it
+       stacks underneath, which put it exactly at the fold. Until
+       this block existed, tablets between 641px and 1080px were
+       served the DESKTOP CTAs pointing at a form the visitor could
+       not see, while the compact row that exists for precisely this
+       situation stayed hidden until 640px.
 
-    }
+       The rule is now: the moment the side-by-side composition stops
+       being possible, the compact system takes over. One estimate
+       system is on screen at any width — never two, never none.
 
-    /* Rides up over the seam for the layered edge. */
+       The full form is not removed, only relocated behind a tap: the
+       starter and the Call CTA open the same modal every other CTA
+       on the site opens.
+    ============================================================ */
 
     .estimateFormCard
     {
 
-        max-width: 560px;
+        display: none;
 
-        margin-top: -4.5rem;
+    }
+
+    .heroActions
+    {
+
+        display: none;
+
+    }
+
+    /* Tablet shape: the Call CTA sits at its natural width and the
+       starter takes the rest of the row, so the address field gets
+       the space and "Get Estimate" stays a comfortable target. The
+       22rem basis is what makes it wrap to its own line rather than
+       crush the input when there is not room for both. */
+
+    .heroMobileActions
+    {
+
+        display: flex;
+
+        flex-direction: row;
+
+        flex-wrap: wrap;
+
+        align-items: center;
+
+        gap: 0.7rem;
+
+        margin-bottom: 2.2rem;
+
+    }
+
+    .heroCallCta
+    {
+
+        flex: 0 0 auto;
+
+    }
+
+    .heroEstimateStarter
+    {
+
+        flex: 1 1 22rem;
 
     }
 
@@ -7861,17 +8184,10 @@ html.jsEnabled .consentInlineControl
 
     }
 
-    .facebookLayout
+    .insightsLayout
     {
 
         grid-template-columns: 1fr;
-
-    }
-
-    .facebookPosts
-    {
-
-        grid-template-columns: repeat(2, 1fr);
 
     }
 
@@ -7888,6 +8204,275 @@ html.jsEnabled .consentInlineControl
         --headerBadgeSize: 50px;
 
         --headerBrandNameSize: 1.35rem;
+
+    }
+
+    /* ============================================================
+       MOBILE FIRST SCROLL
+
+       The compact estimate system is already in force here — it
+       switches on at 1080px, where the two-column hero ends. This
+       block only changes its SHAPE for a phone.
+
+       Do not re-add `.estimateFormCard { display: none }` or
+       `.heroActions { display: none }` here. They are inherited from
+       the 1080px block, and duplicating them is what made the
+       original defect hard to see: the switch looked like it lived
+       at 640px because that is where it was written down.
+    ============================================================ */
+
+    /* Full-width stack. On a phone the Call CTA earns its own line —
+       side by side, both targets get too narrow to hit confidently. */
+
+    .heroMobileActions
+    {
+
+        flex-direction: column;
+
+        align-items: stretch;
+
+    }
+
+    /* The 22rem flex basis above is a ROW instruction. Left in place
+       once the container turns into a column it means "grow to fill the
+       remaining height", which stretched the starter — and with it the
+       Get Estimate button — to 352px tall. Reset it here; the starter
+       should be exactly as tall as its own contents. */
+
+    .heroEstimateStarter
+    {
+
+        flex: 0 0 auto;
+
+    }
+
+    /* Buys the address field the majority of the row on a phone. At the
+       desktop padding the button took 154px of a 327px row, leaving the
+       address — the field actually being filled in — with less than
+       half. 1.1rem keeps "Get Estimate" at 135x49, comfortably past the
+       44px target, and lifts the input from 50% to 56-63% of the row. */
+
+    .heroStarterButton
+    {
+
+        padding-left: 1.1rem;
+
+        padding-right: 1.1rem;
+
+    }
+
+    /* ── Meet the owner, sooner ──
+       Ordering rather than a DOM move, so desktop keeps its existing
+       sequence untouched. Everything not named here takes order 3 and
+       so holds its source order behind the two that are named.
+
+       Safe because these sections space themselves with padding, not
+       margins — there is no margin collapsing for flex to break. */
+
+    #mainContent
+    {
+
+        display: flex;
+
+        flex-direction: column;
+
+    }
+
+    #mainContent > *
+    {
+
+        order: 3;
+
+    }
+
+    #mainContent > .heroSection
+    {
+
+        order: 1;
+
+    }
+
+    #mainContent > #meetTheOwner
+    {
+
+        order: 2;
+
+    }
+
+    /* ============================================================
+       MOBILE PROCESS TIMELINE
+
+       The stacked cards were five full-width blocks with a centred
+       48px disc, a centred icon and a chevron between each — close to
+       three screens of scrolling for five short sentences. Below
+       640px the same five steps become a single rail: the discs sit
+       on the line, the icon moves up beside its title, and the
+       chevrons stand down because the rail itself now carries the
+       progression.
+
+       Markup, copy, numbering, icons and the reveal animation are all
+       unchanged — this is presentation only.
+    ============================================================ */
+
+    .processBoard
+    {
+
+        padding: 1.6rem 1.1rem;
+
+    }
+
+    .processSteps
+    {
+
+        position: relative;
+
+        gap: 0;
+
+        padding-left: 2.7rem;
+
+    }
+
+    /* The rail. Inset top and bottom by half a disc so it starts and
+       ends at the centre of the first and last step rather than
+       running past them into open space. */
+
+    .processSteps::before
+    {
+
+        content: '';
+
+        position: absolute;
+
+        top: 17px;
+
+        bottom: 17px;
+
+        left: 16px;
+
+        width: 2px;
+
+        background-color: rgba(91, 155, 213, 0.28);
+
+    }
+
+    .processStep
+    {
+
+        position: relative;
+
+        display: grid;
+
+        grid-template-columns: auto 1fr;
+
+        column-gap: 0.5rem;
+
+        align-items: center;
+
+        max-width: none;
+
+        margin: 0;
+
+        padding: 0 0 1.35rem;
+
+        text-align: left;
+
+    }
+
+    .processStep:last-child
+    {
+
+        padding-bottom: 0;
+
+    }
+
+    /* Lifted onto the rail. Opaque background so the line does not
+       run visibly through the middle of the number. */
+
+    .processStepNumber
+    {
+
+        position: absolute;
+
+        top: 0;
+
+        left: -2.7rem;
+
+        width: 34px;
+
+        height: 34px;
+
+        margin: 0;
+
+        background-color: var(--colorNearBlack);
+
+        border-width: 2px;
+
+        font-size: 0.92rem;
+
+    }
+
+    /* 01–05 rather than 1–5. The steps are single digits, so a
+       leading zero can be added in presentation without touching the
+       markup the sequence animation reads. */
+
+    .processStepNumber::before
+    {
+
+        content: '0';
+
+    }
+
+    .processStepIcon
+    {
+
+        grid-column: 1;
+
+        grid-row: 1;
+
+        width: 19px;
+
+        height: 19px;
+
+        margin: 0;
+
+    }
+
+    .processStepTitle
+    {
+
+        grid-column: 2;
+
+        grid-row: 1;
+
+        margin: 0;
+
+        font-size: 1rem;
+
+    }
+
+    .processStepCopy
+    {
+
+        grid-column: 1 / -1;
+
+        grid-row: 2;
+
+        margin-top: 0.35rem;
+
+        font-size: 0.85rem;
+
+        line-height: 1.5;
+
+    }
+
+    /* The rail replaces them. They stay in the DOM because the
+       sequence animation still steps through them; they simply have
+       nothing left to show on a screen this narrow. */
+
+    .processArrow
+    {
+
+        display: none;
 
     }
 
@@ -7909,7 +8494,7 @@ html.jsEnabled .consentInlineControl
 
     }
 
-    html.jsEnabled .facebookPosts .postCard[data-animate="fadeUp"]
+    html.jsEnabled .insightsBriefList .insightsBrief[data-animate="fadeUp"]
     {
 
         transform: translate3d(0, 22px, 0);
@@ -7923,7 +8508,7 @@ html.jsEnabled .consentInlineControl
 
     }
 
-    html.jsEnabled .facebookPosts .postCard[data-animate="fadeUp"].isAnimated,
+    html.jsEnabled .insightsBriefList .insightsBrief[data-animate="fadeUp"].isAnimated,
     html.jsEnabled .servicesGrid .serviceCard:nth-child(3n + 1)[data-animate="fadeUp"].isAnimated,
     html.jsEnabled .servicesGrid .serviceCard:nth-child(3n)[data-animate="fadeUp"].isAnimated,
     html.jsEnabled .transformationStories .storyCard:nth-child(3n + 1)[data-animate="fadeUp"].isAnimated,
@@ -8060,24 +8645,29 @@ html.jsEnabled .consentInlineControl
 
     }
 
-    .facebookPosts
+    .insightsLayout
     {
 
         grid-template-columns: 1fr;
 
     }
 
-    .facebookLayout
+    /* The thumbnail rail cannot hold a readable image and leave room
+       for a title on a phone, so the brief becomes a stacked card. */
+
+    .insightsBrief
     {
 
         grid-template-columns: 1fr;
 
     }
 
-    .facebookFrame
+    .insightsBriefMedia
     {
 
-        max-width: 100%;
+        aspect-ratio: 16 / 9;
+
+        min-height: 0;
 
     }
 
@@ -8790,7 +9380,10 @@ html.jsEnabled .consentInlineControl
 
     .serviceCardMedia img,
     .serviceCard,
-    .postCard,
+    .insightsFeature,
+    .insightsBrief,
+    .insightsFeatureMedia img,
+    .insightsBriefMedia img,
     .storyCard
     {
 

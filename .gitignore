@@ -5,17 +5,25 @@
 # artifact directories to exclude. Everything below is deliberate.
 # ============================================================
 
-# ── Google Business Profile marketing assets ──
+# ── Marketing collateral ──
 #
-# Graphics produced for the GBP listing — service tiles, post
-# images, cover art. They are marketing collateral, not website
-# assets: nothing in index.html, the service pages, the location
-# pages, or the stylesheets references them, and they are often
-# large exports that would bloat the repository for no benefit.
+# Graphics produced for marketing rather than for the website —
+# Google Business Profile service tiles, post images, cover art.
+# Nothing in index.html, the service pages, the location pages, or
+# the stylesheets references them, and they are large exports that
+# would bloat the repository for no benefit.
 #
 # Kept locally so the owner has them to hand; not uploaded.
+#
+# This replaced "graphics/GBP - Services/" on 2026-08-20, when the
+# exports moved to graphics/marketingAssets/GBP/. The rule covers the
+# whole marketingAssets tree rather than one GBP folder, so the next
+# batch of collateral is ignored without anyone remembering to add a
+# rule. That matters: these arrived briefly at the repository root,
+# where nothing ignored them and a broad "git add -A" would have
+# committed 9MB of them.
 
-graphics/GBP - Services/
+graphics/marketingAssets/
 
 # ── Local session-closeout SOP ──
 #

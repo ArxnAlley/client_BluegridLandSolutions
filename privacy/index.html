@@ -35,9 +35,11 @@
 
     <meta property="og:url" content="https://bluegridlandsolutions.com/privacy/">
 
-    <meta property="og:image" content="https://bluegridlandsolutions.com/graphics/images/excavator2_PiketonOH.jpg">
+    <meta property="og:image" content="https://bluegridlandsolutions.com/graphics/images/excavator2_PiketonOH.webp">
 
     <meta name="twitter:card" content="summary_large_image">
+
+    <meta name="twitter:image" content="https://bluegridlandsolutions.com/graphics/images/excavator2_PiketonOH.webp">
 
     <!-- ============================================================
          ANALYTICS CONSENT
@@ -56,8 +58,6 @@
     ============================================================ -->
 
     <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="../graphics/favicons/favicon.ico">
-
-    <link rel="icon" type="image/svg+xml" href="../graphics/favicons/favicon.svg">
 
     <link rel="icon" type="image/png" sizes="96x96" href="../graphics/favicons/favicon-96x96.png">
 
@@ -105,29 +105,25 @@
     ></script>
 
     <!-- ============================================================
-         STRUCTURED DATA — ABOUT PAGE
+         STRUCTURED DATA — WEB PAGE
 
-         No LocalBusiness here on purpose. The homepage carries the
-         canonical one; repeating it on an About page would have two
-         URLs competing to be the business rather than one describing
-         it.
+         A legal page describes the site, it does not describe the
+         business. No LocalBusiness and no AboutPage here — the
+         homepage carries the canonical business entity and the
+         company page carries the AboutPage.
     ============================================================ -->
 
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
-        "@type": "AboutPage",
-        "name": "Our Company | BlueGrid Land Solutions",
-        "description": "BlueGrid Land Solutions is an owner-operated forestry mulching and land clearing company serving Southern Ohio and Eastern Kentucky.",
-        "url": "https://bluegridlandsolutions.com/company/",
-        "mainEntity": {
-            "@type": "Organization",
+        "@type": "WebPage",
+        "name": "Privacy Policy | BlueGrid Land Solutions",
+        "description": "How BlueGrid Land Solutions handles estimate requests, uploaded property photos, cookies, and website analytics.",
+        "url": "https://bluegridlandsolutions.com/privacy/",
+        "isPartOf": {
+            "@type": "WebSite",
             "name": "BlueGrid Land Solutions",
-            "url": "https://bluegridlandsolutions.com/",
-            "areaServed": [
-                { "@type": "AdministrativeArea", "name": "Southern Ohio" },
-                { "@type": "AdministrativeArea", "name": "Eastern Kentucky" }
-            ]
+            "url": "https://bluegridlandsolutions.com/"
         }
     }
     </script>
@@ -142,7 +138,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
             { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://bluegridlandsolutions.com/" },
-            { "@type": "ListItem", "position": 2, "name": "Our Company" }
+            { "@type": "ListItem", "position": 2, "name": "Privacy Policy" }
         ]
     }
     </script>
@@ -622,7 +618,6 @@
 
             <div class="headerActions">
 
-                <!-- TODO: Confirm phone number with the owner — pulled from the BlueGrid flyer. -->
                 <a class="phoneChip" href="tel:+17404642526" data-confighref="phoneHref">
 
                     <svg class="phoneChipIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -804,6 +799,12 @@
 
                 <img
                     src="../graphics/images/cleanCut_minfordOH.JPG"
+                    srcset="
+                        ../graphics/images/cleanCut_minfordOH-640.JPG 640w,
+                        ../graphics/images/cleanCut_minfordOH-1024.JPG 1024w,
+                        ../graphics/images/cleanCut_minfordOH.JPG 2048w
+                    "
+                    sizes="100vw"
                     alt=""
                     width="2048"
                     height="1536"
@@ -1009,21 +1010,6 @@
                         The owner handles these directly.
                     </p>
 
-                    <!-- TODO — OWNER DECISIONS, not inventable from the repository:
-                         1. How long estimate requests and uploaded photos are kept
-                            before deletion. No retention period is stated above
-                            because none has been set.
-                         2. A written process and timeframe for handling a deletion or
-                            access request.
-                         3. A privacy contact email address. The phone number above is
-                            confirmed first-party; estimates@bluegridlandsolutions.com
-                            is unverified and may route nowhere, so it is not used here.
-                         RESOLVED 2026-08-16 — the fourth item here was "whether a
-                         cookie-consent banner is required". Analytics is now opt-in:
-                         nothing loads until the visitor accepts, the decision is
-                         versioned and reversible from any page, and the copy above
-                         describes that behaviour. The three items above remain open
-                         and still need Chase. -->
 
                 </section>
 
@@ -1582,16 +1568,14 @@
                 <ul class="footerContactList">
 
                     <li>
-                        <!-- TODO: Confirm phone number with the owner — pulled from the BlueGrid flyer. -->
                         <a href="tel:+17404642526" data-confighref="phoneHref">
                             <span data-configtext="phoneDisplay">(740) 464-2526</span>
                         </a>
                     </li>
 
                     <li>
-                        <!-- TODO: Replace with the real business email address. -->
-                        <a href="mailto:estimates@bluegridlandsolutions.com" data-confighref="emailHref">
-                            <span data-configtext="email">estimates@bluegridlandsolutions.com</span>
+                        <a href="mailto:bluegridls@gmail.com" data-confighref="emailHref">
+                            <span data-configtext="email">bluegridls@gmail.com</span>
                         </a>
                     </li>
 
@@ -1610,12 +1594,10 @@
                             </svg>
                         </a>
 
-                        <!-- TODO: Client has no Google Business Profile yet.
-                             businessConfig.googleBusinessUrl is empty, so this
-                             stays pointed at "#" until a real URL is added. -->
                         <a
                             class="footerGoogleLink"
                             href="#"
+                            hidden
                             data-confighref="googleBusinessUrl"
                             target="_blank"
                             rel="noopener"
@@ -1706,6 +1688,18 @@
 
                     <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
 
+                    <a class="footerLegalLink" href="../terms/index.html">Terms of Use</a>
+
+                    <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
+
+                    <a class="footerLegalLink" href="../accessibility/index.html">Accessibility</a>
+
+                    <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
+
+                    <a class="footerLegalLink" href="../cookies/index.html">Cookie Policy</a>
+
+                    <span class="footerLegalSeparator" aria-hidden="true">&middot;</span>
+
                     <button class="footerLegalLink consentSettingsButton" type="button" data-consentsettings>Cookie Settings</button>
 
                 </nav>
@@ -1716,10 +1710,10 @@
 
                     <img
                         class="devCreditLogo"
-                        src="../graphics/logos/web/nuloStudioCredit.png"
+                        src="../graphics/logos/web/masterLogoTP240.webp"
                         alt="Nulo Studio"
-                        width="220"
-                        height="135"
+                        width="240"
+                        height="124"
                         loading="lazy"
                     >
 
