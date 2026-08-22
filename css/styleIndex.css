@@ -7068,6 +7068,32 @@ html.jsEnabled .processArrow.isResting
 
 }
 
+/* The legal links get a row of their own, directly above the
+   divider, with the full content width to wrap into.
+
+   They used to be the centre track of the bottom bar's three-zone
+   grid, and five controls is more than a centre track can hold. The
+   two 1fr tracks stay equal whatever their content, so once the legal
+   row grew past its share the surplus was taken from the outer tracks
+   — and the developer credit, being the wider of the two, was the one
+   squeezed toward the edge. Measured at 1024px: the legal row was
+   603.7px against a 1024px viewport, which left the credit 162.2px
+   and pushed the copyright into three lines.
+
+   No border here. .footerBottomBar below carries the divider, which
+   is what puts this row above it. */
+
+.footerLegalBar
+{
+
+    max-width: var(--maxWidth);
+
+    margin: 0 auto;
+
+    padding: 0 1.5rem 1.3rem;
+
+}
+
 .footerBottomBar
 {
 
@@ -7075,22 +7101,21 @@ html.jsEnabled .processArrow.isResting
 
 }
 
-/* Three intentional zones: copyright left, legal links centred, the
+/* Two intentional zones below the divider: copyright left, the
    developer credit right.
 
-   A 1fr auto 1fr grid is what actually centres the middle zone. With
-   flex and space-between, the legal links would sit wherever the two
-   outer blocks happened to leave room — and because the copyright and
-   the credit are different widths, that is never the middle. The two
-   1fr tracks are equal regardless of their content, so the auto track
-   between them lands on the centre line of the footer. */
+   1fr auto rather than a flex row: the auto track sizes to the credit
+   and nothing else, so the credit is flush right and the copyright
+   takes whatever is left. Under space-between the two would negotiate
+   over the same space, which is how the credit ended up moving in the
+   first place. */
 
 .footerBottomInner
 {
 
     display: grid;
 
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr auto;
 
     align-items: center;
 
@@ -7111,6 +7136,10 @@ html.jsEnabled .processArrow.isResting
 
 }
 
+/* Wraps by design. As the viewport narrows the row becomes two lines,
+   then three, and the links stay centred and legible at every step
+   rather than compressing the zones beside them. */
+
 .footerLegalNav
 {
 
@@ -7123,8 +7152,6 @@ html.jsEnabled .processArrow.isResting
     justify-content: center;
 
     gap: 0.5rem;
-
-    justify-self: center;
 
 }
 
@@ -7144,9 +7171,11 @@ html.jsEnabled .processArrow.isResting
 
 }
 
-/* Below the point where three columns stop fitting, the zones stack
-   and centre. Order is kept — copyright, legal, credit — so the
-   reading order matches the desktop layout and the tab order. */
+/* Below the point where two columns stop fitting, the zones stack and
+   centre. Order is kept — copyright, then credit — so the reading
+   order matches the desktop layout and the tab order. The legal row
+   above the divider is centred at every width and needs nothing
+   here. */
 
 @media (max-width: 860px)
 {
@@ -7165,7 +7194,6 @@ html.jsEnabled .processArrow.isResting
     }
 
     .footerCopyright,
-    .footerLegalNav,
     .footerBottomInner .devCredit
     {
 
