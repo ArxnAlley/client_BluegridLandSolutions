@@ -6,6 +6,7 @@
 **Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`
 **Host:** **GitHub Pages.** See *Hosting* below.
 **Last CODE commit:** `90f10ec` — "Complete" (2026-08-21 18:39, author arxnalley). **85 files, +10,007 / −1,143.** Aron committed the entire working tree and **pushed it**.
+**Closeout commit:** `56dc948` — "Session closeout: performance audit and fixes, browser QA and fixes, dev credit logo" (2026-08-21). **Docs only, local, unpushed.** HEAD is this commit or the small `docs:` commit that records this hash immediately after it — a hash cannot cite itself, so this repo records it in a follow-up, as it did at `0095da0`.
 **Sync:** `main` is **level with `origin/main`** — verified at closeout with `git fetch` + `git rev-list --left-right --count origin/main...HEAD` → `0	0`. Not carried over from notes. Commit hashes recorded before 2026-08-15 no longer resolve — history was rewritten during the production deployment. Re-derive with `git log`, never trust a hash quoted here.
 **Working tree:** **CLEAN.** `git status --porcelain` returns zero entries.
 
