@@ -1,6 +1,14 @@
 # Technical Debt — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-20 (session closeout)
+**Last updated:** 2026-08-21 (session closeout — performance audit + fixes, browser QA + fixes, dev credit logo)
+
+**Resolved 2026-08-21:** items 41 (`favicon.svg` — resolved by unlinking it, artwork untouched), 45 (after hero plate priority), 46 (hero entrance LCP gate), 47 (consent privacy link on deep 404s), 48 (footer social tap target).
+
+**Newly opened 2026-08-21:** 44 (performance baseline — measured, top three fixed, remainder ranked; **do not re-audit from scratch**), 49 (`nuloStudioCredit.*` now unreferenced), 50 (`graphics/logos/devCredit/` ships ~2.6 MB the site never loads), 51 (`validateFavicons` prints a note it no longer earns).
+
+**Corrected 2026-08-21:** item 10 (**two** Unsplash hotlinks, not three), item 4 (a real browser HAS now checked the site — 56 page/viewport combinations — but never on real hardware, and 25 of 33 pages remain unseen), item 10i (**28 suites**).
+
+**Also corrected, in `projectState.md`:** the claim that all source files are CRLF. `js/consent.js`, `css/styleIndex.css` and `css/stylePages.css` are **LF** on disk; the HTML and `js/indexJS.js` are CRLF. Scripted edits must detect and preserve per file, never assume.
 
 **Resolved by the hardening pass (2026-08-18):** items 3 (email — swapped to `bluegridls@gmail.com`), 22 (unreferenced assets — re-audited and pruned), 25 (responsive image delivery — shipped), 28 (contrast — all three tokens fixed), 29 (TODOs — stripped from HTML *and* from `robots.txt`/`sitemap.xml`), 30 (custom 404 — built), 31 (host — confirmed GitHub Pages and recorded in `projectState.md`).
 
@@ -10,7 +18,7 @@
 
 **Newly opened 2026-08-19:** 37 (tablet hero estimate gap — fixed), 38 (`size="1"` on the hero address input is load-bearing), 39 (favicon artwork is approved and must not be recomposed), 40 (no `WebSite`/`Organization` schema node), 41 (`favicon.svg` is 300KB — Aron's call), 42 (process breakpoint 699px is measured), 43 (validators located media queries by `indexOf` — fixed).
 
-**Sharpened:** 10i (validator toolchain now **26 suites** outside the repo, and **it has already lost a suite in transit once**).
+**Sharpened:** 10i (validator toolchain now **28 suites** outside the repo, and **it has already lost a suite in transit once**).
 
 Known debt, deferred work, and intentional trade-offs. Items are ordered by launch impact, not by effort.
 
@@ -74,7 +82,19 @@ The SEO brief called for an audit of a tree removal / tree cutting page. **No su
 
 Chase's own advertising does list "TREE & BRUSH CLEANUP" as a service tile, so there is a real, first-party-supported service here with no page behind it. That is a genuine P1 content opportunity rather than a defect. **Do not build it as a residential arborist page:** nothing verifies climbing, crane work, stump grinding, hazardous-tree capability, or any maximum diameter. The honest framing is tree and brush clearing for land improvement, which is what the advert actually claims.
 
-### 4. Nothing has ever been checked in a real browser
+### 4. ~~Nothing has ever been checked in a real browser~~ — **LARGELY ADDRESSED 2026-08-20. Read what is still true.**
+
+**A real browser has been part of the toolchain since 2026-08-18** (`browserSession.js`, Chrome over CDP), and on 2026-08-20 a representative QA pass covered **8 pages x 7 viewports = 56 combinations**, plus 18 breakpoint widths and a functional pass over the mega menus, mobile drawer, estimate modal and its five-step progression, address prefill, FAQ accordion, consent controls, process board, hero typing and sweep, and 404 recovery. Result: zero horizontal scroll, zero broken images, zero console errors, CLS 0-0.0075, all three documented breakpoints flipping where they should.
+
+**What is STILL true, and is the part that matters:**
+
+- **Every one of those viewports is Chrome device emulation, not a phone in someone's hand.** Nothing on this site has been seen on real hardware.
+- **25 of the 33 pages have never been looked at**, only the 8 representative ones.
+- **Chase has never seen the site end to end.**
+- Specific things below that were called out as "measured but never seen" have now been seen; the list is kept because it records what to look at on real hardware.
+
+Original note follows.
+
 No session on this project has had Playwright or Chrome DevTools available, so **every validation to date is static analysis or simulation.** That is strong for links, structure, schema, geometry, and the hero loop's state machine — and it says nothing about how anything *looks*.
 Before launch: open the homepage on a real phone and confirm the hero photo ends at the fold, the seam into the estimate band is invisible, and the card overlap reads as intentional. Then a tablet and desktop pass covering the FAQ mega panel, the header morph across 1280px and 1150px, and the FAQ/Insights layouts.
 **Added 2026-08-06:** the redesigned **services mega panel** has been measured but never seen — open it at 1440px and again at 1151px, where the calculation leaves only 62px between the panel and the left edge. And confirm the **hero typing** reads as intended now that it commits on the frame boundary; the profiler proves the cadence is regular, not that it looks right.
@@ -142,7 +162,15 @@ Needs a real photo drop — ideally before/after pairs per service, **tagged by 
 All eight Insights pages (landing + 7 articles) use existing BlueGrid job photos as stand-ins, each marked `TODO: PLACEHOLDER IMAGE` in the markup. They are real work photos so nothing is dishonest — but none was shot for its article and several repeat across pages.
 The single biggest visual upgrade available to the section. Feeds directly off item 8.
 
-### 10. Three homepage service cards hotlink Unsplash stock photos
+### 10. TWO homepage service cards hotlink Unsplash stock photos — **count corrected 2026-08-20**
+**It is two, not three.** Counted at 2026-08-20: exactly two `images.unsplash.com` references remain, both in `index.html` (lines ~1585 and ~1685) — Trail Cutting and Hunting Property Prep. Property Cleanup no longer hotlinks. The heading said three for several closeouts.
+
+**Measured cost, 2026-08-20:** 260.3 KiB + 222.4 KiB = **482.7 KiB on desktop**, for slots that render at 372×248 and 491×328. They are 1200×800 files with no `srcset`, so the browser downloads roughly 8× the pixels it displays. Both are `loading="lazy"` and below the fold, so they do not affect LCP — but they are the single largest recoverable payload left on the homepage.
+
+**Cheap interim fix that needs no client approval and no repo assets:** append `w=600` to the two Unsplash URLs, cutting roughly 60%. It leaves the third-party dependency in place, which is the other half of the problem.
+
+Original note follows.
+
 Trail Cutting, Property Cleanup, and Hunting Property Prep load from `images.unsplash.com`. Two problems: a runtime dependency on a third party, and stock imagery on a site whose credibility rests on real work photos.
 Deferred because replacing imagery needs client approval. Real unused photos exist (`cleanCut`, `freshMulching`, `overGrowth`, `whatTheyDo2`, `BeforeandAfter`).
 **No new external hotlinks have been added since** — the Insights build deliberately used repo assets rather than making this worse.
@@ -191,7 +219,7 @@ Checked properly — every rendered title on all eight boards, uppercased as `te
 `origin` now points at `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`, verified via `git remote -v`. No session recorded here ran the fix, and `origin/main` was also found to have moved ahead by a push this repository's history doesn't show — both point to activity happening outside these sessions, which is fine, just worth knowing the working tree isn't the only place this project changes.
 
 ### 10i. The validator toolchain lives outside the repository — **AND IT HAS NOW LOST A SUITE IN TRANSIT**
-**Twenty-six suites as of 2026-08-20**, plus two supporting modules that five of them will not run without: **`browserSession.js`** (drives the installed Chrome over CDP with no dependencies) and **`serveSite.js`** (serves the repo the way GitHub Pages does, including the no-redirect 404). `validate404Page`, `validateResponsiveImages`, `validateHeroEstimateUx`, `validateFavicons` and `validateProcessLayout` are useless without both.
+**Twenty-eight suites as of 2026-08-21** — the 26 previously listed plus `validateConsentPrivacyLink` and `validateFooterSocialTarget`, both written 2026-08-21 to guard the two browser-QA defects (items 47 and 48). Plus two supporting modules that five of them will not run without: **`browserSession.js`** (drives the installed Chrome over CDP with no dependencies) and **`serveSite.js`** (serves the repo the way GitHub Pages does, including the no-redirect 404). `validate404Page`, `validateResponsiveImages`, `validateHeroEstimateUx`, `validateFavicons` and `validateProcessLayout` are useless without both.
 
 **The predicted failure has now actually happened.** `validateFollowTheWork.js` did not survive the hand-off into the hardening session's scratchpad and had to be recovered from an *older* scratchpad — found only because a count was checked against a written list. Had nobody counted, the suite would simply have ceased to exist with no error anywhere. This is no longer a hypothetical risk in this item; it is a recorded incident.
 
@@ -482,6 +510,89 @@ The five-step horizontal process hands over to the vertical timeline at **699px*
 
 **If the step copy or titles are ever edited, re-run `measureProcessFloor.js`** — the floor is a function of the longest title word, and new copy can move it.
 
+### 44. Performance baseline — measured 2026-08-20, top three fixed, the rest ranked
+
+**Do not re-audit from scratch.** The method, the numbers and what was deliberately not done are all here.
+
+**Measure against a server that compresses.** `serveSite.js` sends no `Content-Encoding` and no `Cache-Control`, which is right for correctness testing and wrong for performance testing — it invents a "text compression, 115 KiB" opportunity GitHub Pages already takes, and inflates minification savings roughly 4x. A `serveSiteProduction.js` variant (gzip + `max-age=600`) lives in the scratchpad toolchain. Every number below is from that server.
+
+| | Mobile before | Mobile after | Desktop before | Desktop after |
+|---|---|---|---|---|
+| Performance | 75 | **79** | 91 | **95** |
+| LCP | 7.7 s | **5.6 s** | 1.8–2.0 s | **1.4 s** |
+| FCP | 1.6 s | 1.6 s | 0.8 s | 0.8 s |
+| CLS | 0.013 | 0.010 | 0.004 | 0.004 |
+| TBT | 0–20 ms | 0 ms | 0 ms | 0 ms |
+| Transferred | 1,307 KiB | **1,082 KiB** | 2,269 KiB | **2,045 KiB** |
+| Requests | 16 | 15 | 21 | 20 |
+
+Accessibility / Best Practices / SEO are **100 / 100 / 100** on all five page types tested. Interior pages scored 77–79 mobile with LCP 4.8–5.0 s, where LCP is the page-hero image and is network-bound, not animation-bound.
+
+**Run-to-run variance is real and must be accounted for.** FCP swung 1.6–2.8 s and Speed Index 1.7–3.4 s across identical runs, moving the score 70→75 on its own. LCP was stable to within 80 ms across every run, which is why the findings were argued on LCP and why the before/after comparison above is matched on the fast-FCP cluster.
+
+**Fixed:** H1 favicon SVG link (item 41), H2 after-plate priority (item 45), H3 hero LCP gate (item 46).
+
+**Still open, in priority order:**
+
+1. **M1 — Google Fonts is a render-blocking third party.** 1,700–1,870 ms simulated mobile, 490 ms desktop. Chain is document → `fonts.googleapis.com` CSS → two woff2 (75.7 KiB). `preconnect` and `display=swap` are already correct, so what remains is the cross-origin round trip itself. Fix is self-hosting the two woff2 under `graphics/fonts/` with a local `@font-face` and `preload`. Inter and Rokkitt are OFL, so this is permitted. Adds ~76 KiB to the repo and needs the fallback-metric work in the toolchain's `fonts/` re-checked.
+2. **M2 — the two Unsplash hotlinks**, item 10. 483 KiB on desktop.
+3. **M4 — main-thread work is style/layout dominated.** styleLayout 1,235 ms at 4x CPU throttle, against scripting 128 ms. TBT is 0–40 ms so responsiveness is fine; this is a battery cost on low-end phones, consistent with items 10c/10d rather than a new defect.
+
+**Explicitly NOT recommended: minification.** Against a gzip server Lighthouse reports 16 KiB CSS + 19 KiB JS, not the 71 + 71 the raw server claims. Real gzip sizes are `styleIndex.css` 146 KB → 33.5 KB, `indexJS.js` 122 KB → 30.5 KB, `index.html` 176 KB → 26.6 KB. Roughly 35 KiB of genuine saving against `codeStyle.md`'s no-build-step rule. Not worth it.
+
+**What can only be measured after deployment:** real TTFB and CDN behaviour, whether Pages serves brotli (better than the gzip modelled here), field Core Web Vitals via CrUX/PSI — especially CLS, which lab runs under-represent because `#heroCursor` produces a continuous stream of micro-shifts while typing (0.0002–0.0004 each, ~12/second, never stopping while the tab is open). Session CLS stayed at 0.005–0.016 in the lab.
+
+**GitHub Pages' `Cache-Control: max-age=600` is not configurable** and still shows as a failing Lighthouse audit. Repeat-visit performance will genuinely be worse than a host with long-lived immutable asset URLs. Not fixable in this repository.
+
+### 45. ~~The after hero plate loaded at full priority before it was needed~~ — **FIXED 2026-08-21**
+`#heroPlateAfter` rests fully masked (`--heroSweepPos: -18%`) and is not revealed until the entrance sequence plus the first typed phrase, roughly 2.5–3.5 s in — but it loaded at default priority alongside the BEFORE plate. Measured cost: **511 KiB** of hero on a 412px phone, **724 KiB** at DPR 3, **832 KiB** on desktop, half of it not needed yet.
+
+`fetchpriority="low"` on that one tag. Confirmed Medium → Low in the network trace. **Deliberately NOT `loading="lazy"`** — the plate is inside the viewport, so lazy defers almost nothing and risks a visible pop. The loop already tolerates an unloaded plate: `fireHeroForwardSweepAndWait()` waits on `load`/`error` and extends the hold, so on a slow connection the first sweep waits rather than tearing.
+
+### 46. ~~The hero entrance gated the homepage LCP by ~1.0 s~~ — **FIXED 2026-08-21. Do not simplify it back.**
+Stripping `data-heroanimate` is what releases the compositing layer, and the blanket 2200 ms `heroSequenceComplete` timer used to be the only thing that ever did it. Chrome withholds the LCP entry for text held in a compositor-animated layer until then, so LCP was pinned to the timer rather than to when the words became legible: **~2.5 s against a ~0.4 s first paint.**
+
+`initializeHeroEntrance()` now releases each element on its own opacity `transitionend`, doing exactly what the timer did, only sooner. **LCP 2708 → 1448 ms** (mobile 390 DPR 3), **2496 → 1536** (mobile 412), **2520 → 1512** (desktop 1350).
+
+**Three things not to undo:**
+
+- **The 2200 ms timer stays.** It is the entrance's choreography anchor — `heroEntranceComplete` is what the typing loop waits on — and the backstop for an element whose `transitionend` never arrives, which an interrupted transition will not fire.
+- **The opacity gate is not the lever.** Forcing the headline and copy to `opacity: 1`, releasing `will-change` on them, and removing their `transition-delay` were each measured and moved LCP by nothing. Removing the gate would also *cost* the win, since those elements would stop firing the opacity `transitionend` the release is keyed to.
+- **Release is keyed on `propertyName === 'opacity'` for a reason.** `waitForHeroHookEntrance()` holds the typing loop on the headline's opacity `transitionend` and the stat counters start on `.heroStat`'s. Both capture their element synchronously at init, before any transition starts, so the teardown cannot strand them — but re-keying this to a different property would need that re-checked.
+
+### 47. ~~Consent banner privacy link dead-ended on 404s two or more folders deep~~ — **FIXED 2026-08-21**
+`resolvePrivacyHref()` counted folders in `location.pathname` and could only ever emit one `../`. Correct for every real page — none is more than one folder deep — and wrong on `404.html`, which GitHub Pages serves AT the missing URL without redirecting. `/no-such-page/deeper/still-missing` resolved the link to `/no-such-page/privacy/index.html`, a second 404.
+
+**Nothing caught it because the link does not exist in any file** — it is injected at runtime, so no static check can see it, and `validate404Page` was checking layout rather than injected links.
+
+The banner now borrows the href from the page's own footer, which the generators already write correctly for every depth: relative on real pages (so `file://` keeps working), root-absolute on `404.html`. The old derivation is retained as a fallback for a page with no footer, and the selector is scoped to `.siteFooter` because two legal pages also link privacy from body copy.
+
+**Guarded by `validateConsentPrivacyLink`**, which fetches the target and checks the status across 7 real pages and 5 missing URLs up to six folders deep, and is injection-proven against the old behaviour.
+
+### 48. ~~Footer social icon had a 17×17 tap target~~ — **FIXED 2026-08-21 at 44×39, and 39 is deliberate**
+`.footerFacebookLink` was an `inline-flex` wrapper with no padding around a 17px icon, so the whole interactive target was 17×17 — under WCAG 2.5.8's 24×24 for a standalone control. The inline-in-a-sentence exception does not cover a social icon in a footer.
+
+Fixed with `padding: 11px 13.5px` and a matching `margin: -11px -13.5px`. Padding is what makes the target real for the pointer **and** the focus ring, which a positioned `::after` overlay would not do; the negative margin removes the same space from the flow, so the icon sits on the pixel it always did and the footer's spacing is unchanged. Verified: mobile footer pixel-identical (RMSE 0), desktop 0.011%, tablet 0.037%.
+
+**Why 39 tall and not the 44 that was asked for.** The email link sits directly above with a measured clearance of **12.2px** — identical at 375, 390, 430, 768, 820, 1024 and 1440. 13.5px of vertical padding overlapped it by 1.3px, and the Facebook link paints later, so it would have swallowed the bottom sliver of the email link's own target. A first attempt did exactly that, on the strength of a 36px clearance reading **taken before the footer's `[data-animate]` reveal ran**, when the block still rests 24px lower. **Measure at rest.**
+
+**If `.footerGoogleLink` is ever un-hidden:** it shares this rule, and with a 14.4px row gap two 44px-wide targets centred 31.4px apart would overlap by ~12.6px. Widen `.footerSocialItem`'s gap to at least 27px at that point.
+
+**Guarded by `validateFooterSocialTarget`.**
+
+### 49. `nuloStudioCredit.webp` and `.png` are now unreferenced
+The dev credit image was swapped to `masterLogoTP240.webp` on 2026-08-21. The two old assets (11,978 B and 18,833 B) are still tracked and still deployed, referenced by nothing. Same category as item 22 — pruning is a decision, not a cleanup, so they were left.
+
+**Also found during that swap:** `privacy/index.html` was still pointing at `nuloStudioCredit.png` while the other 32 pages used the `.webp` — a page the WebP migration missed. Both files existed and resolved, which is exactly why no validator ever flagged it. All 33 pages now reference one asset. **Worth remembering: "every reference resolves" does not mean "every reference is the one you intended".**
+
+### 50. `graphics/logos/devCredit/` ships ~2.6 MB the site never loads
+Three master logos: `MasterLogo.png` (1.2 MB) and `TPNulo_StudioLogo.png` (962 KB) are **tracked and therefore deployed**; `MasterLogoTP.png` (435 KB) was added 2026-08-21 and is currently untracked. Nothing references any of them — the site loads the 20 KB derivative.
+
+`graphics/marketingAssets/` was gitignored on 2026-08-20 for precisely this reason. **`graphics/logos/devCredit/` is the same case and has not been given the same treatment.** Aron's call: gitignore the folder, or move the masters out of the deployed repository into asset storage.
+
+### 51. `validateFavicons` prints a note it no longer earns
+With the SVG icon link removed (item 41), no page references an SVG icon, so the suite's "SVG icons rasterise to non-blank output" check now iterates an empty set — but the note is printed unconditionally. The note is vacuous rather than wrong, and everything the suite actually checks still passes. One-line fix whenever the toolchain is next touched.
+
 ### 43. Validators located media queries by `indexOf` — fixed, but the pattern is worth avoiding
 `validateMobileLayout`, `validateFloatingCta` and `validateProcessSequence` found their blocks with `css.indexOf('@media (max-width: NNNpx)')`. When the process breakpoint comment began *mentioning* `@media (max-width: 640px)` to explain why it keeps clear of that block, all three started slicing from the comment and produced five confident, wrong failures — including safe-area complaints about CSS that had not changed.
 
@@ -503,7 +614,16 @@ They now scan for a declaration at the **start of a line**. Worth remembering ge
 
 **`validateFavicons` now guards the artwork itself**, not just the plumbing: transparent icons must keep transparent corners and mean alpha below 0.95. Injection-proven. `rebuildFavicons.js` is retired to a tombstone that refuses to run.
 
-### 41. `favicon.svg` is 300KB — Aron's call, not a compatibility fix
+### 41. ~~`favicon.svg` is 300KB~~ — **RESOLVED 2026-08-21 by unlinking it, not by re-encoding it**
+
+**The `<link rel="icon" type="image/svg+xml">` was removed from all 33 pages.** That ends the cost without touching the artwork at all, which is why it needed no brand decision: the `.ico` already carries 48/32/16 frames and the 96×96 PNG covers the rest, so **nothing a visitor sees changed**. Measured over white at tab sizes, old source vs new: 16px 0.52%, 32px 1.26%, 48px 1.34% RMSE — resampling only.
+
+**Measured cost while it was linked:** 307,449 bytes raw, **226 KiB on the wire after gzip** (it barely compresses), fetched at **priority High** on every first visit. Largest single resource on every interior page, larger than their own LCP image. Removing it moved simulated mobile LCP **7.7s → 6.3s** and cut 226 KiB.
+
+**The file stays on disk, untouched.** Do not re-add the declaration without re-measuring. The original analysis is kept below because the 192px rebuild option is still there if a real SVG icon is ever wanted.
+
+Original note follows.
+
 It is not a vector. It is a RealFaviconGenerator wrapper around a single base64-encoded 512px raster, and Chrome prefers `type="image/svg+xml"` when a page offers one — so it is downloaded to paint a 16px tab icon.
 
 A 192px rebuild measured **38KB, an 87% saving**, visually identical at tab sizes. It was reverted with the rest of the artwork restoration because shrinking it means **re-encoding Aron's artwork**, which is a brand decision rather than a defect fix.

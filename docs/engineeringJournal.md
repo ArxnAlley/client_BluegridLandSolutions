@@ -4,6 +4,283 @@ Append-only. Newest entry at the top.
 
 ---
 
+## 2026-08-21 — THE BACKLOG SHIPPED, AND WHAT WENT INTO IT
+
+**Committed and pushed by Aron as `90f10ec` "Complete"** — 85 files,
++10,007 / −1,143, the entire working tree in one commit. Everything three
+previous closeouts described as "finished but uncommitted" is now live: the
+mobile UX pass, WebP migration, production hardening, hero estimate UX, the
+699px process breakpoint, the favicon structural fixes, `404.html`, the four
+legal pages, and this session's work below.
+
+**The Apps Script backend did NOT ship with it and cannot.** `config.gs`
+changed in this commit and `validation.gs` in `c4cef24`; both are pasted by
+hand into Google. A commit never reaches Apps Script.
+
+---
+
+### 1. A local performance audit, and separating the server from the site
+
+Served the working tree with the project's own `serveSite.js` and drove
+Lighthouse 13.4.1 against real Chrome, mobile and desktop.
+
+**The first thing worth recording is a measurement error avoided.** A stale
+server from an earlier session was still running on port 8899 serving an OLDER
+copy of the site — 137,898 bytes for `/` against the current 176,020. Anything
+measured against it would have been quietly wrong. Always check what the port
+is actually serving.
+
+**The second is that `serveSite.js` is the wrong server for this job.** It
+sends no compression and no cache headers, which is correct for correctness
+testing and misleading for performance testing: Lighthouse invents a "text
+compression, 115 KiB" opportunity that GitHub Pages already takes. Built
+`serveSiteProduction.js` (gzip + `Cache-Control: max-age=600`, what Pages
+sends) and re-ran everything. The picture changed materially:
+
+    raw server      mobile 66   desktop 87   1,738 KiB
+    gzip + cache    mobile 75   desktop 91   1,307 KiB
+
+Minification savings collapsed with it — 71 KiB to 16 KiB for CSS, 71 to 19 for
+JS — which is why minification is NOT recommended despite what the raw run
+says. **Report the number the host will actually produce.**
+
+**Baseline (gzip server, median of 4 mobile / 2 desktop runs):**
+
+| | Mobile | Desktop |
+|---|---|---|
+| Performance | 75 | 91 |
+| LCP | **7.7 s** (identical in 4/4 runs) | 1.8–2.0 s |
+| FCP | 1.6 s | 0.8 s |
+| CLS | 0.013 | 0.004 |
+| TBT | 0–20 ms | 0 ms |
+| Transferred | 1,307 KiB | 2,269 KiB |
+
+Accessibility, Best Practices and SEO were 100/100/100 on all five page types
+tested. Run-to-run FCP/SI variance swung the score 70 to 75 on its own; LCP was
+the only rock-stable metric, which is why the findings are argued on LCP.
+
+### 2. Where the homepage LCP went — a model that was wrong twice
+
+Lighthouse said the LCP element is hero **text** and that essentially all of
+its time is "element render delay". Direct CDP probing confirmed ~2.5s against
+a ~0.4s first paint, on every viewport.
+
+**First model: the opacity gate.** `[data-heroanimate]` elements start at
+`opacity: 0`, so the reasoning was that the headline and copy are simply not
+painted until the entrance runs. Five CSS-only treatments were measured:
+forcing headline and copy to `opacity: 1`, releasing `will-change` on them,
+removing their `transition-delay`, and combinations. **Not one moved LCP.**
+All still landed at 2.50–2.59s.
+
+**Second model, and the right one: the teardown.** The 2200ms
+`heroSequenceComplete` timer was the only thing that stripped
+`data-heroanimate` from the elements — and stripping the attribute is what
+drops the `transition` and `will-change` declarations together and releases
+the compositing layer. Chrome withholds the LCP entry for text held in a
+compositor-animated layer until that happens. Firing the timer at 400ms
+instead moved LCP to ~1.5s; `prefers-reduced-motion`, which tears down
+immediately, moved it to ~0.41s.
+
+So the fix is a per-element release on that element's own `transitionend`,
+doing exactly what the timer did, only sooner. Measured after:
+
+    mobile 390 dpr3    2708ms -> 1448ms
+    mobile 412 dpr2.6  2496ms -> 1536ms
+    desktop 1350       2520ms -> 1512ms
+
+**The 2200ms timer stays** — it is the entrance's choreography anchor
+(`heroEntranceComplete`, which the typing loop waits on) and the backstop for
+an element whose `transitionend` never arrives.
+
+**The half of the brief that was not implemented, and why.** The task also
+asked to stop the H1/hero copy being opacity-gated. Measurement says that lever
+does nothing (see above), it would change the hero's visual character —
+headline and copy sliding without fading while the kicker, buttons and stats
+still fade — and it would *cost* the real win, because those elements would no
+longer fire the opacity `transitionend` the release is keyed to. Reported
+rather than applied.
+
+**Safety check before writing it.** `waitForHeroHookEntrance()` holds the
+typing loop on the headline's opacity `transitionend`, and the stat counters
+start on `.heroStat`'s. Both capture their element at init (line 5075),
+synchronously, before any transition starts — so a later teardown cannot
+strand either. Verified by observing the counters reach 200+/24hr/12 after the
+change.
+
+### 3. H1 and H2
+
+**H1 — `favicon.svg` is 307KB and was fetched at priority High on every first
+visit.** Not a vector: a RealFaviconGenerator wrapper around one base64 512px
+raster, and it barely compresses (226 KiB on the wire after gzip). It was the
+largest single resource on every interior page — larger than their LCP image —
+downloaded to paint a 16px tab icon, because Chrome prefers an SVG icon when
+one is offered. Removing the `<link>` from 33 pages took mobile LCP 7.7s to
+6.3s and −226 KiB. **The artwork was not touched** and the file stays on disk;
+the `.ico` already carries 48/32/16 frames.
+
+**H2 — the homepage downloaded two full-bleed hero photographs before the
+fold.** The AFTER plate rests fully masked and is not revealed until the
+entrance plus the first typed phrase, ~2.5–3.5s in, yet loaded at default
+priority alongside the BEFORE plate: 511 KiB on a phone, 724 at DPR 3, 832 on
+desktop. `fetchpriority="low"` — one attribute, no visual change, and
+`fireHeroForwardSweepAndWait()` already waits on `load`/`error`. Explicitly NOT
+`loading="lazy"`: the plate is in the viewport, so lazy defers little and risks
+a visible pop.
+
+**Result, same gzip server:** mobile 75 to **79** at matched FCP, LCP 7.7 to
+**5.6 s**, 1,307 to **1,082 KiB**, 16 to 15 requests. Desktop 91 to **95**, LCP
+2.0 to **1.4 s**, 2,269 to **2,045 KiB**.
+
+### 4. Representative browser QA — 56 combinations, and five findings that were all my own harness
+
+Eight pages by seven viewports, plus 18 breakpoint widths and a functional pass.
+
+**Structurally clean across all 56:** zero pages scroll sideways (tested by
+attempting it, not by reading `scrollWidth`), `body` is never a scroll
+container and `document.scrollingElement` is always `<html>`, zero broken
+images, zero aspect mismatches, CLS 0–0.0075, **zero console errors**.
+
+**All three recently-moved boundaries flip exactly where documented:** 1200px
+nav switch, 1080px hero estimate handover (exactly one estimate system at every
+width), 699px process board.
+
+**The first functional pass reported five failures and every one was the
+harness.** Recorded because the discipline is the point: I dispatched
+`mouseenter` AND `click` on the mega toggle, opening the panel then toggling it
+shut before measuring; clicked the form's submit when progression is driven by
+`#modalNextButton`; matched 57 assorted elements instead of `.faqToggle`;
+measured the hero after scrolling to the process board, where the loop pauses
+BY DESIGN; and treated `window.gtag` as proof GA had loaded when it is a
+deliberate Consent Mode shim defined before any consent. I also guessed
+`.heroCompactEstimate` when the class is `.heroMobileActions`, which briefly
+made the 1080px boundary look broken. **A validator reporting a failure has not
+found a bug; it has found a disagreement.**
+
+Notably, the modal "failure" was the site being right: Step 1 asks Full Name,
+Phone, Service Needed AND Property Address — all four required — despite a
+heading that reads "Where's the property?". It refused to advance on a
+partially filled step, exactly as it should. That heading is `technicalDebt`
+item 10m, now confirmed in a real browser to actually mislead.
+
+**Two real defects survived correction**, both LOW, both fixed the same day.
+
+### 5. The consent banner's privacy link dead-ended on deep 404s
+
+`resolvePrivacyHref()` derived the link from `location.pathname` and could only
+ever emit ONE `../`. Right for every real page — none is more than one folder
+deep — and wrong on `404.html`, which GitHub Pages serves AT the missing URL
+without redirecting:
+
+    /no-such-page/deeper/still-missing
+      -> ../privacy/index.html
+      -> /no-such-page/privacy/index.html   404
+
+**Nothing caught it because the link does not exist in any file.** It is
+injected at runtime, so `validateAssets` and `validateSeo` cannot see it, and
+`validate404Page` was checking layout rather than injected links.
+
+**The fix takes the path the page already has** rather than deriving one:
+every page carries a correctly-pathed privacy link in its own footer, written
+by the generators — relative on real pages, root-absolute on `404.html`.
+Delegating inherits the right form everywhere, keeps `file://` working, and
+cannot drift if the generators change convention. The old derivation is
+retained as a fallback for a page with no footer.
+
+Also found while writing the guard: **the count in my own report was wrong.**
+The detail string hardcoded "0 relative" while the condition correctly read 1 —
+the defect nearly hid behind my own summary text.
+
+### 6. The footer social tap target, and a measurement taken at the wrong moment
+
+`.footerFacebookLink` was an `inline-flex` wrapper with no padding around a
+17px icon: a 17x17 target, under WCAG 2.5.8's 24x24 for a standalone control.
+
+Fixed with padding (which enlarges the hit area AND the focus ring, unlike a
+positioned overlay) plus a matching negative margin so the icon and the
+footer's spacing do not move.
+
+**The first attempt shipped 44x44 and was wrong.** The clearance above the icon
+was measured at 36px — but measured *before* the footer's `[data-animate]`
+reveal ran, when the block still rests 24px lower. At rest the clearance is
+12.2px, identical at all seven viewports, and 13.5px of vertical padding
+overlapped the email link above by 1.3px. The Facebook link, painting later,
+would have swallowed the bottom sliver of the email link's target — trading a
+too-small target for a stolen one. **The new suite caught it.** Final geometry
+is **44x39**: 11px vertical padding, 1.2px of air.
+
+The same "measure at rest" lesson the process-board work recorded on
+2026-08-19: forcing a layout is only honest if you force all of it.
+
+**A second harness trap, worth knowing:** hit-testing in the same task as a
+programmatic scroll reads a stale hit-test tree. `getBoundingClientRect()`
+reports the new geometry while `elementFromPoint` still answers for the old
+scroll offset, so every corner comes back as an ancestor and a perfectly
+clickable target looks dead. Confirmed with `Input.dispatchMouseEvent`, which
+landed on all four corners. The suite now scrolls and measures in separate
+evaluates with retries across frames.
+
+### 7. Two new suites, both injection-proven where it matters
+
+`validateConsentPrivacyLink` drives real Chrome across 7 real pages and 5
+missing URLs up to six folders deep, then **fetches** the target and checks the
+status — because the link is injected at runtime. It also asserts real pages
+keep a *relative* href, so the `file://` property cannot be silently lost in
+the other direction. Its self-test forces the old derivation, observes
+`/no-such-page/privacy/index.html` returning 404, and confirms the suite
+rejects it.
+
+`validateFooterSocialTarget` checks 12 page/viewport combinations for a 44x39
+target, a 17x17 icon, a 17px row, hit-testability at centre and four corners,
+and no overlap with a neighbouring control.
+
+`browserSession.js` gained a `send` passthrough so a suite can install a script
+before page scripts run. Additive; nothing that existed before uses it.
+
+### 8. Marketing assets, and a near-miss the .gitignore caught
+
+Six GBP tile PNGs (~9MB) appeared at the repository ROOT as `marketingAssets/`,
+where nothing ignored them — a broad `git add -A` would have committed all of
+them. That is the exact mistake `technicalDebt` item 22 records from last time
+(2.6MB swept in by a broad add). Moved to `graphics/marketingAssets/` and the
+ignore rule rewritten to cover the whole tree rather than one GBP folder, so
+the next batch is covered without anyone remembering. **Verified at closeout:
+zero marketing PNGs are in `90f10ec` and all six are still on disk.**
+
+The obsolete `graphics/GBP - Services/` rule was removed; the empty directory
+it pointed at still exists on disk and is harmless, since Git does not track
+empty directories.
+
+### 9. Dev credit logo
+
+`nuloStudioCredit.webp` (220x135) to `masterLogoTP240.webp` (240x124), a web
+derivative cut from `graphics/logos/devCredit/MasterLogoTP.png`.
+
+**Why a derivative and not the file.** The master is 1200x1200 / 435KB for a
+slot displayed at 78px, and it is a landscape mark (1130x584, 1.94:1) centred
+in a square canvas with the top and bottom fifths empty. Referencing it
+directly would have shipped 435KB — heavier than the favicon just removed — to
+render the mark at 40% of its slot. Trimmed at fuzz 2%, where the trim
+stabilises; below that it picks up alpha noise around 1e-5 and reports the full
+canvas. Lossless per the established convention for alpha logos. Renders 78x40
+against the previous 78x48.
+
+**`width`/`height` moved with the file.** A 220x135 declaration on a 240x124
+image would have reserved a 1.63:1 box for a 1.94:1 picture and recreated
+`technicalDebt` item 34 exactly.
+
+**Found by the guard:** `privacy/index.html` was still pointing at
+`nuloStudioCredit.png` while the other 32 pages used the `.webp` — a page the
+WebP migration missed. Both existed and resolved, which is why nothing ever
+flagged it. All 33 now use one asset.
+
+### Validation at closeout
+
+**29/29 — 28 suites plus the Apps Script harness at 180/180. Zero failures.**
+`git diff --check` clean, `node --check` clean on both browser JS files, CSS
+braces balanced 667/667 and 126/126, working tree clean.
+
+---
+
 ## 2026-08-19 — PROCESS BOARD: HORIZONTAL DOWN TO 700px, NOT 1167px
 
 **Still uncommitted.**

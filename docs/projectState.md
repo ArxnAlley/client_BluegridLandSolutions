@@ -1,16 +1,31 @@
 # Project State — BlueGrid Land Solutions
 
-**Last updated:** 2026-08-20 (session closeout — hardening, hero estimate UX, favicon audit + artwork revert, process breakpoint)
+**Last updated:** 2026-08-21 (session closeout — performance audit + fixes, representative browser QA + fixes, marketing-asset move, dev credit logo)
 **Repository:** `c:/Dev/NuloWorkspace/ClientSites/client_BluegridLandSolutions/`
 **Branch:** `main`
 **Remote:** `origin` → `https://github.com/ArxnAlley/client_BluegridLandSolutions.git`
 **Host:** **GitHub Pages.** See *Hosting* below.
-**Closeout commit:** `12aa329` — "Session closeout: hero estimate UX, favicon audit, process breakpoint" (2026-08-20). **Docs only, local, unpushed.** HEAD is this commit or the small `docs:` commit that records this hash immediately after it — a hash cannot cite itself, so this repo records it in a follow-up, as it did at `8165cb4`.
-**Last CODE commit:** `db750b8` — "Final touches". **This is what production is running.** Every code change in the working tree post-dates it and none of it is committed.
-**Sync:** `main` is **level with `origin/main`** (0 ahead, 0 behind) — confirmed at closeout with `git fetch` + `git rev-list --left-right --count origin/main...HEAD`, not carried over. Commit hashes recorded before 2026-08-15 no longer resolve — history was rewritten during the production deployment. Re-derive with `git log`, never trust a hash quoted here.
-**Working tree:** **NOT clean.** **39 modified, 3 deleted, 43 untracked** (41 tracked files changed: +3,797 / −1,045). It holds **five stacked bodies of work** — mobile UX pass, WebP migration, production hardening, tablet/mobile hero estimate UX, and the process breakpoint — plus the favicon audit, whose artwork change was reverted.
+**Last CODE commit:** `90f10ec` — "Complete" (2026-08-21 18:39, author arxnalley). **85 files, +10,007 / −1,143.** Aron committed the entire working tree and **pushed it**.
+**Sync:** `main` is **level with `origin/main`** — verified at closeout with `git fetch` + `git rev-list --left-right --count origin/main...HEAD` → `0	0`. Not carried over from notes. Commit hashes recorded before 2026-08-15 no longer resolve — history was rewritten during the production deployment. Re-derive with `git log`, never trust a hash quoted here.
+**Working tree:** **CLEAN.** `git status --porcelain` returns zero entries.
 
-**Only `docs/` is committed.** The closeout commit below carries the three continuity files and nothing else; **all site, CSS, JS, Apps Script and asset changes remain uncommitted by standing instruction** pending Aron's review. **Nothing is pushed or deployed.** Production is running `db750b8`, which includes none of it.
+## THE BACKLOG IS NO LONGER A BACKLOG — IT SHIPPED
+
+**Everything the previous three closeouts described as "uncommitted, unpushed, not in production" is now committed and pushed.** `90f10ec` swept the whole tree in one commit. That single change makes most of the previous header obsolete, so it has been rewritten rather than annotated.
+
+What went live in that commit, all of it previously staged-but-unshipped:
+
+- mobile UX pass, WebP migration, production hardening
+- tablet/mobile hero estimate UX (1080px handover), process breakpoint (699px)
+- favicon structural fixes, root `/favicon.ico`, `404.html`, four legal pages
+- responsive image variants and the `srcset`/`sizes` install
+- **this session's work** — performance fixes H1/H2/H3, both browser-QA fixes, the dev credit logo swap
+
+**GitHub Pages deploys from `main`, so the public site is now serving `90f10ec`.** Nothing in this repository is waiting to be published.
+
+**What did NOT ship, and cannot ship from a commit:** the Apps Script backend. `appsScript/config.gs` changed in `90f10ec` and `appsScript/validation.gs` in `c4cef24` (2026-08-15), both *after* the live deployment. Apps Script is pasted by hand — a commit does not reach it. See *Waiting on Aron*.
+
+**Also verified at closeout:** `graphics/marketingAssets/` was correctly excluded by `.gitignore` — zero marketing PNGs are in `90f10ec`, and all six are still on disk locally. `docs/sessionCloseout.md` remains untracked.
 
 ## Hosting — decided and recorded 2026-08-18
 
@@ -48,18 +63,25 @@ header and a later section disagree, this header is right.
 
 ## Current Phase
 
-**FINAL PRODUCTION HARDENING IS COMPLETE IN THE REPOSITORY.**
+**SHIPPED. The repository side is finished and published.**
 
-Every code-side item in the hardening queue is done and validated. What remains
-between here and handing the site to Chase is **not repository work**:
+Hardening, the performance pass and the representative browser QA are all
+complete, committed and pushed. The working tree is clean and there is no
+staged-but-unshipped work left anywhere in this repository.
 
-1. Resolve the working tree — review in a browser, decide the commit split,
-   commit. Nothing may be committed without Aron saying so.
-2. The Google-side steps only Aron can do (config tab, Apps Script redeploy).
-3. Page-by-page browser QA and the Chase review.
+What remains between here and handing the site to Chase is **not repository
+work**:
 
-See *Final Production Hardening — the work queue* for what was done, and
-*Waiting on Aron* for the exact manual steps.
+1. **The Google-side steps only Aron can do** — the `config` tab check and the
+   Apps Script paste + redeploy. `config.gs` and `validation.gs` are committed
+   but a commit does not reach Apps Script.
+2. **The Chase review** — he has still never seen the site end to end.
+3. **Search Console** — property verification and sitemap submission.
+
+See *Waiting on Aron* for the exact manual steps.
+
+**The previous three closeouts all opened with "resolve the working tree".
+That task is done and should not be looked for again.**
 
 **Historical note (superseded):** the line below described the state at the
 2026-08-15 closeout and is kept because the phase table under it is still
@@ -105,6 +127,13 @@ accurate.
 | **Drive access — `rootInherited`, root-folder Viewer inheritance** | **Complete; boundary verified from an external Google account** |
 | **Photo upload hardening — content signatures, caps, throttle** | **Complete in repo; production one version behind** |
 | **Production launch + public acceptance test** | **Complete 2026-08-15** |
+| **Local performance audit — mobile + desktop baseline** | **Complete 2026-08-20** |
+| **Performance fixes H1/H2/H3** (favicon SVG link, after-plate priority, hero LCP gate) | **Complete, shipped in `90f10ec`** |
+| **Marketing assets moved to `graphics/marketingAssets/` + gitignored** | **Complete 2026-08-20** |
+| **Final representative browser QA** (8 pages × 7 viewports + boundaries + functional) | **Complete 2026-08-20** |
+| **Both QA defects fixed** (consent privacy link on deep 404s, footer tap target) | **Complete, shipped in `90f10ec`** |
+| **Dev credit logo → `masterLogoTP240.webp`** | **Complete 2026-08-21** |
+| **Whole tree committed and pushed** (`90f10ec`) | **Complete 2026-08-21 — the site is serving it** |
 
 **No launch blockers remain.** The open P0 is a configuration check Aron must make in the Google Sheet — see *Waiting on Aron*.
 
@@ -157,7 +186,17 @@ docs/                       this file, engineeringJournal.md, technicalDebt.md,
 - Shared chrome (header, mega panels, mobile drawer, estimate modal, footer, floating actions) is **duplicated into every page** and kept in sync by guarded one-shot Node scripts run from a scratchpad. **Those scripts are deliberately not checked in** — Phase 13 (`docs/phasePrompts/phase13ServiceAreaExpansion.md`) owns the real generator. Every one of them refuses to write unless its guards pass; that habit has caught three separate classes of defect and should be kept.
 - **Two path variants.** Root pages take the canonical href; every one-level folder takes `../` + href. The Services mega panel used to be the one exception (bare siblings inside `services/`) and that exception was retired on 2026-08-07, so all three panels spell paths the same way.
 - **Put any new page one level deep** so it reuses the proven one-level chrome — that is why the FAQ page is `faq/index.html` and the company page is `company/index.html`.
-- **Line endings are uniform, and the old note here was wrong.** Audited 2026-08-09: **all 26 source files are CRLF in the working tree and LF in the index.** `core.autocrlf` is `true`, so Git normalises on commit and converts on checkout — there is no mixture to preserve. The previous entry claimed `faq/*`, `locations/*`, `insights/*` and `css/stylePages.css` were LF on disk; they are not. Scripted edits should still detect and restore per file (every script here does — it is free and correct), and **validators that match on `\n` must still normalise first**, which remains a real bug that has bitten twice.
+- **Line endings are MIXED, and the note that used to sit here was wrong.** The 2026-08-09 audit recorded "all 26 source files are CRLF"; re-measured byte by byte on 2026-08-21, that is not true:
+
+  | File | On disk |
+  |---|---|
+  | `index.html`, `404.html`, all other HTML | **CRLF** |
+  | `js/indexJS.js` | **CRLF** |
+  | `js/consent.js` | **LF** |
+  | `css/styleIndex.css` | **LF** |
+  | `css/stylePages.css` | **LF** |
+
+  `core.autocrlf` is `true`, so Git still normalises on commit — the mixture is a working-tree fact, not an index one, and it is harmless as long as nobody fights it. **The rule stands and matters more now than when it was written: a scripted edit must detect the file's own convention and preserve it, never assume CRLF.** Every script used this session did, and each one asserted the CRLF/LF counts were unchanged before writing. **Validators that match on `\n` must still normalise first** — a real bug that has bitten twice.
 - The Apps Script endpoint lives in **exactly one place** — `businessConfig.estimateEndpoint` in `js/indexJS.js`. There are now **two** `fetch()` call sites (`leads.create` and `leads.addPhotos`) and both build their URL from that one constant, which `validateLeadFlow` asserts. Changing the deployment is still a one-line edit.
 
 ### Responsive breakpoints (current)
@@ -182,15 +221,23 @@ Every header dimension is a `:root` custom property overridden in the two header
 
 ---
 
-## Verification State — all green, re-run 2026-08-20 at closeout
+## Verification State — all green, re-run 2026-08-21 at closeout
 
-**26 validator suites + 180/180 Apps Script harness. Everything passes.**
-`node --check` clean on all 8 `.gs` and both browser JS files, CSS braces
-balanced (667/667, 126/126), `git diff --check` clean, 80 JSON-LD blocks parse.
+**28 validator suites + 180/180 Apps Script harness = 29/29. Zero failures.**
+`node --check` clean on both browser JS files, CSS braces balanced
+(667/667, 126/126), `git diff --check` clean.
 
 **Page count is 33** — 32 indexable pages plus `404.html`, which is `noindex`
-and correctly excluded from the sitemap (32 `<loc>` entries). **116 tracked
-files.**
+and correctly excluded from the sitemap (32 `<loc>` entries). **158 tracked
+files** (was 116 before `90f10ec` committed the untracked backlog).
+
+**Two suites are new this session, both guarding a defect found in the browser
+QA and fixed the same day:**
+
+| Suite | What it guards |
+|---|---|
+| `validateConsentPrivacyLink` | The consent banner's privacy link resolves to the real privacy page from 7 real pages **and from a missing URL at any depth** — it fetches the target and checks the status, because the link is injected at runtime and no static check can see it. Also asserts real pages keep a *relative* href so `file://` still works. **Injection-proven:** it forces the old one-level derivation, observes the 404, and confirms it fails. |
+| `validateFooterSocialTarget` | The footer social link is a 44×39 interactive target with a 17×17 icon and a 17px row — size, hit-testability at centre and four corners, and no overlap with a neighbouring control. |
 
 **Six suites are new across this session, and one was rewritten:**
 
@@ -462,47 +509,29 @@ Created `docs/sessionCloseout.md` — a local, gitignored workflow document inst
 
 ## Currently In Progress
 
-**The working tree holds five bodies of finished, validated, uncommitted work.** Resolving it is the next task.
+**Nothing.** The working tree is clean and every body of work previously listed
+here is committed and pushed in `90f10ec`.
 
-All of it passes: **26/26 validator suites**, Apps Script harness **180/180**,
-`node --check` clean on both browser JS files and all 8 `.gs`, CSS braces
-balanced, 0 broken or case-mismatched assets, `git diff --check` clean.
+This section used to open "the working tree holds five bodies of finished,
+validated, uncommitted work — resolving it is the next task", and it said that
+across three consecutive closeouts. It is done. The five bodies (mobile UX
+pass, WebP migration, production hardening, hero estimate UX, process
+breakpoint), the favicon structural fixes, and this session's performance and
+QA work all shipped together.
 
-**39 modified, 3 deleted, 43 untracked** — 41 tracked files changed,
-+3,797 / −1,045.
+**What has and has not been seen in a browser** — still the honest distinction,
+and it is now better than it was:
 
-| Work | Files | State |
-|---|---|---|
-| **Mobile UX pass** | `index.html`, `css/styleIndex.css`, `js/indexJS.js` | Complete, validated, injection-proven |
-| **WebP optimization** | 30 files with rewritten refs + 12 `.webp` | Complete, validated, refs verified |
-| **Production hardening** | ~40 files, `404.html`, 4 legal pages, 26 image variants, 3 deletions | Complete, validated, exercised in a real browser |
-| **Hero estimate UX (tablet/mobile)** | `index.html`, `css/styleIndex.css`, `js/indexJS.js` | Complete, verified across 7 viewports in Chrome |
-| **Process breakpoint 1167px → 699px** | `css/styleIndex.css` | Complete, verified across 13 viewports; desktop asserted unchanged |
-
-Plus the **favicon audit**, whose structural fixes were kept and whose artwork
-change was **reverted to the exact committed bytes** — `graphics/favicons/` is
-byte-identical to `HEAD`, and the only favicon-related addition is the new root
-`/favicon.ico`.
-
-They overlap in `index.html`, `css/styleIndex.css` and `js/indexJS.js`, so
-`git diff` on those files contains several at once. **Decide whether to split
-them or ship one commit.**
-
-**What has and has not been seen in a browser** — the distinction matters for
-the review:
-
-- **Seen and verified:** the 404 page at three widths, the scrollbar fix across
-  11 pages × 3 viewports, both scroll locks, responsive image selection at
-  DPR 1/2/3, the estimate modal opening and locking scroll, the compact hero
-  row at 375–1024px, the process board at 700–1440px, and every favicon size
-  from 16 to 512 on light and dark.
-- **Still unseen:** general layout and copy across the other 32 pages. The
-  mobile UX pass and the WebP migration have still never been reviewed
-  visually.
-
-**Only `docs/` has been committed** (the closeout commit). **No site, CSS, JS,
-Apps Script or asset change may be committed, pushed, or deployed until Aron
-says so.**
+- **Seen and verified in a real browser:** 8 representative pages across 7
+  viewports (1440/1024/820/768/430/390/375) in the 2026-08-20 QA — homepage,
+  a service page, a location page, an Insights article, Company, FAQ, a legal
+  page and the custom 404. Plus 18 breakpoint widths, the mega menus, mobile
+  drawer, estimate modal and its five-step progression, address prefill, FAQ
+  accordion, consent controls, process board, hero typing and sweep, and 404
+  recovery.
+- **Still unseen by a human:** the remaining 25 pages' copy, and the whole site
+  on real hardware. Every viewport above is Chrome device emulation, not a
+  phone in someone's hand. **Chase has still never seen the site end to end.**
 
 **Outside the repository:** production runs the previous Apps Script version,
 and the `config` tab still needs checking. See *Waiting on Aron*.
@@ -518,8 +547,8 @@ is what every canonical names).
 
 Ordered by launch impact.
 
-**STATUS: items 1–9 are COMPLETE and validated. Items 10–12 are not repository
-work and remain open.** Item 0 is the immediate next action.
+**STATUS: items 0–9 are COMPLETE, validated and SHIPPED in `90f10ec`. Items
+10–12 are not repository work and remain open.**
 
 **Three further pieces of work landed after this queue was written** and are
 also complete and validated — they are not part of the original queue but are
@@ -539,7 +568,7 @@ in the same uncommitted tree:
   `clamp()` instead of collapsing, and holds down to 700px. Desktop is
   asserted unchanged at ≥1280px. See item 42.
 
-0. **Resolve the working tree.** ⟵ **THE NEXT ACTION.** Three bodies of work now sit in one tree: the mobile UX pass, the WebP migration, and this hardening pass. Review in a browser, decide the commit split, commit. **Nothing may be committed, pushed or deployed without Aron saying so.**
+0. ~~**Resolve the working tree.**~~ **DONE 2026-08-21.** Aron committed the whole tree as `90f10ec` "Complete" and pushed it. No commit split was made in the end — one commit carried everything. The tree is clean.
 
 1. ~~**Replace the public email address.**~~ **DONE.** `bluegridls@gmail.com` in `businessConfig`; zero occurrences of `estimates@bluegridlandsolutions.com` anywhere in the tree.
 
@@ -670,44 +699,81 @@ in the same uncommitted tree:
 
 ## NEXT SESSION SHOULD START HERE
 
-**The repository-side hardening work is DONE.** What remains is a review
-decision, then Google-side steps only Aron can take, then the Chase review.
+**The repository side is finished, committed and pushed.** There is no code
+task waiting. What remains is Google-side work only Aron can do, then Chase.
 
-1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and `technicalDebt.md`.** The repository is authoritative — correct stale documentation rather than carrying it forward. **Commit hashes recorded before 2026-08-15 no longer resolve.**
+1. **Read `CLAUDE.md`, then this file, then `engineeringJournal.md` and
+   `technicalDebt.md`.** The repository is authoritative — correct stale
+   documentation rather than carrying it forward. **Commit hashes recorded
+   before 2026-08-15 no longer resolve.**
 
-2. **Verify Git state.** Expect `main`, HEAD = the closeout commit below, **level with `origin/main`** (0 ahead, 0 behind — the closeout commit is local and unpushed, so if this reads 1 ahead, that is it), and a **dirty working tree**: 39 modified, 3 deleted (`graphics/logos/oldLogo/`), 43 untracked (`404.html`, `favicon.ico`, three legal-page directories, 36 image files, 2 logo `.webp`). Check both directions with `git fetch` + `git rev-list --left-right --count origin/main...HEAD`. If the tree is unexpectedly clean, someone committed between sessions — find out what before proceeding.
+2. **Verify Git state.** Expect `main`, working tree **clean**, and level with
+   `origin/main` apart from this closeout's docs commit (1 ahead, local and
+   unpushed). Check both directions with `git fetch` + `git rev-list
+   --left-right --count origin/main...HEAD`. **If the tree is dirty, someone
+   worked between sessions — find out what before proceeding.**
 
-3. **THE FIRST TASK: review the working tree in a browser and decide the commit split.** It holds five finished, validated bodies of work (see *Currently In Progress*). They overlap in `index.html`, `css/styleIndex.css` and `js/indexJS.js`. **Nothing but `docs/` may be committed, and nothing may be pushed or deployed, without Aron saying so.**
+3. **THE FIRST TASK is not in this repository.** It is Aron's Google-side
+   sequence, and nothing else on the list matters until it is done:
 
-   Everything named under "Still unseen" in *Currently In Progress* is what the review is for — chiefly general layout and copy across the 32 pages that have not been looked at.
+   - **P0 — confirm `notificationEmail` and `photoViewerEmail`** in the Sheet's
+     `config` tab both name the real accounts. Acceptance testing used a test
+     recipient and a separate test Google account. If either is still a test
+     address, the system looks perfectly healthy while Chase receives nothing
+     or cannot open a single photo.
+   - **Paste `config.gs` and `validation.gs`, then Deploy → Manage deployments
+     → pencil → New version → Deploy.** Never "New deployment" — it mints a
+     different URL and silently breaks all 33 forms. **A commit does not reach
+     Apps Script**; `90f10ec` changed `config.gs` in the repo only.
+   - Then `shareRootFolderWithOwner()`, `syncRootFolderAccess()`,
+     `listRootFolderAccess()`.
 
-4. **Locate the validator toolchain — it is still not in the repository** (`technicalDebt.md` item 10i, still the most fragile thing about this project). It lives in a session scratchpad, carried by hand, and **one suite was already lost in transit once** — `validateFollowTheWork.js` had to be recovered from an older scratchpad.
+   Full detail in *Waiting on Aron*.
 
-   **Twenty-six suites** as of 2026-08-20: `validateSite`, `validateAssets`, `validateSeo`, `validateNav`, `validateMegaMenus`, `validateHeader`, `validateHero`, `validateFloatingCta`, `validateEstimateCtas`, `validateLeadFlow`, `validateProcessSequence`, `validateFollowTheWork`, `validateFrontendPhotoPolicy`, `validateAnalytics`, `validateCtaInteractions`, `validateMobileLayout`, `validateInsightsSection`, `validateContrast`, `validate404Page`, `validateResponsiveImages`, **`validateHeroEstimateUx`**, **`validateFavicons`**, **`validateProcessLayout`**, `heroLoopHarness`, `simulateEstimateFlow`, `simulateConsentFlow` — named so the count can be checked rather than trusted.
+4. **Then the Chase review.** He has never seen the site end to end. Expect it
+   to generate its own list of changes.
 
-   Plus the supporting modules: `measureHeader`, the font metrics in `fonts/`, the content modules (`navContent`, `faqContent`, `insightsContent`), and — **new and load-bearing** — `browserSession.js` (Chrome over CDP, no dependencies) and `serveSite.js` (serves the repo the way GitHub Pages does). The last two suites will not run without them.
+5. **If a code task is wanted instead**, the ranked candidates are in
+   `technicalDebt.md`: the remaining performance items M1 (self-host the two
+   Google fonts, ~1.7s of render-blocking on simulated mobile) and M2 (two
+   Unsplash hotlinks, 483 KB on desktop), then the tree/brush-clearing service
+   page (item 3b), then location pages 7–11.
 
-   Generators also live there: `build404Page`, `buildSitemap`, `buildResponsiveVariants`, `installResponsiveImages`, `installTwitterImage`, `fixImageDimensions`, `buildLegalPages`, and others. The Apps Script harness (`appsScript/localTestRunner.js`, **180 checks**) *is* committed.
+6. **The validator toolchain is still not in the repository** —
+   `technicalDebt.md` item 10i, and still the most fragile thing about how this
+   project is worked on. **Twenty-eight suites** as of 2026-08-21, the 26 named
+   in the item plus **`validateConsentPrivacyLink`** and
+   **`validateFooterSocialTarget`**, both written this session. It lives in a
+   session scratchpad, carried by hand, and one suite was already lost in
+   transit once.
 
    **Re-run everything to establish a baseline before changing anything.**
 
-5. **After the tree is resolved, the remaining work is not in this repository** — Aron's Google-side steps (see *Waiting on Aron*), then page-by-page browser QA, then the Chase review.
-
 ### Do NOT redo any of this
 
-- **WebP conversion is complete.** 12 of 18 images converted, 183 references migrated, verified. **Do not blindly reconvert the six JPEG holdouts** — `after_minfordOH`, `cleanCut_minfordOH`, `freshMulching_minfordOH`, `hero_b4_minfordOH`, `overGrowthCleanedup_minfordOH`, `overGrowth_minfordOH`. WebP was measured larger than the source on all six even at q60, confirmed with two independent encoders. The win on those is **resizing**, not re-encoding.
-- **Responsive images are done, and the ladder is deliberate.** 640/1024/1280 rungs, generated only where a rung beats the original by ≥10%. **Do not "complete" the ladder by adding 1536** — it was generated, measured at 1–65% *larger* than the 2048 originals at matched quality, and discarded. The originals are already q92/progressive/2×2-subsampled and sit at their compression floor. Likewise do not drop quality to q82 to buy more savings; matching the source quality was the point.
-- **The double scrollbar is fixed at the root.** `body` deliberately carries **no** `overflow-x`. Re-adding `overflow-x: hidden` there re-creates the second scroll container and the bug. `html`'s declaration is the site's entire horizontal clipping policy.
-- **The 404 page must stay root-absolute.** Every `href`, `src` and `srcset` candidate in `404.html` starts with `/`. GitHub Pages renders it for a miss at any depth without redirecting, so a relative path resolves against the missing directory and the page loads unstyled with no JavaScript.
-- **The favicon artwork is Aron's and is approved as-is.** It is transparent and it bleeds to the canvas edge by design. A previous pass judged it "illegible at 16px" and regenerated the tab icons from `apple-touch-icon.png` — which is opaque black for iOS — putting a **black square** behind the mark. That was unauthorised, was rejected, and has been reverted to the exact committed bytes. **Do not recompose, recolour, crop or add a background.** The master is `graphics/favicons/Bluegrid_Favicon1.png`; `validateFavicons` now fails on an opaque corner. See `technicalDebt.md` item 39.
-- **The process breakpoint is 699px and is measured, not chosen.** Do not "tidy" it to a round tablet number, and do not re-add process rules to the 1080px query. Every `clamp()` upper bound equals the original desktop value — changing one changes the desktop design. See item 42.
-- **The hero compact-estimate switch is declared once, at 1080px.** Do not re-hide `.estimateFormCard` or `.heroActions` at 640px; duplicating the switch is what disguised the tablet defect. And **do not remove `size="1"`** from the hero address input — it is load-bearing (item 38).
-- **`og:image`, canonical/OG TODO cleanup, and apex-vs-`www`** — all done and verified.
-- **The photo, identifier, access-control and P0 SEO work** — complete, three of the four verified in production.
-- **Analytics, consent and the estimate/CTA architecture** — complete and injection-proven.
-- **The lead form and its automated reply are confirmed working** (endpoint ping verified from this repo; the auto-reply confirmed by Aron). **Do not disturb the submission path** while hardening.
-
-If something looks wrong in any of the above, determine whether it is a
-deployment step that has not run before changing code.
-
-6. **`docs/sessionCloseout.md` exists locally and is gitignored — do not commit it, and do not recreate it if it is already there.**
+- **The working tree is resolved.** Three consecutive closeouts opened with
+  "resolve the working tree". It shipped in `90f10ec`. Do not go looking for
+  uncommitted work.
+- **The performance audit is done and its top three findings are fixed.**
+  Mobile 75 → 79 and desktop 91 → 95 on a gzip-serving local host, LCP 7.7s →
+  5.6s mobile and 2.0s → 1.4s desktop. **Do not re-audit from scratch**; the
+  baseline, the method and the remaining ranked items are in the journal entry
+  for 2026-08-20 and in `technicalDebt.md` items 25/36/44.
+- **`favicon.svg` is no longer linked, deliberately.** It is a 307KB raster in
+  an SVG wrapper that browsers preferred over the `.ico`. The file stays on
+  disk; **do not re-add the `<link>`** without re-measuring. The artwork was
+  not touched.
+- **The hero entrance releases per element on `transitionend`.** That is what
+  un-gates LCP. Three CSS-only alternatives were measured first and moved
+  nothing — forcing the headline and copy to opacity 1, releasing `will-change`
+  alone, and removing the transition-delay. **Do not "simplify" it back to the
+  single 2200ms teardown**, and do not delete the 2200ms timer: it is the
+  entrance's choreography anchor and the backstop for an interrupted
+  transition.
+- **Responsive images are at their compression floor.** Re-verified 2026-08-21:
+  a 1024 rung of `excavator.webp` is 3% LARGER than the 1536 original at
+  matched quality, 1% larger even with `-define webp:method=6`. Savings only
+  appear at q85/q80, which is out of policy. **Do not "complete" the ladder.**
+- **The favicon artwork, the six JPEG holdouts, the double-scrollbar fix, the
+  699px process breakpoint and the root-absolute `404.html`** all still carry
+  their original do-not-touch notes. They have not changed.
