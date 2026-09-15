@@ -475,6 +475,7 @@ function getSourcePage()
 
        estimate_open          -> intent
        estimate_submit_success-> an accepted lead
+       generate_lead          -> an accepted lead (GA4 Key Event)
        phone_click            -> phone intent
 
    Nothing else is instrumented. Scroll depth, field focus, step
@@ -3494,9 +3495,9 @@ function submitEstimateRequest()
             if (result && result.success)
             {
 
-                /* The only place this event fires. It sits inside the
-                   success branch of the parsed API response, so it
-                   cannot report a lead that was not actually accepted:
+                /* The only place either event fires. It sits inside the
+                   success branch of the parsed API response, so neither
+                   can report a lead that was not actually accepted:
                    a non-2xx response throws before reaching here, a
                    rejected payload falls through to showSubmissionError,
                    and a network failure lands in .catch below.
@@ -3505,9 +3506,24 @@ function submitEstimateRequest()
                    showSubmissionSuccess(), which is also called for a
                    tripped honeypot and for the unconfigured-endpoint
                    path — both show the visitor a success panel while
-                   creating no lead at all. */
+                   creating no lead at all.
+
+                   estimateSubmissionInFlight (checked at the top of
+                   submitEstimateRequest) already keeps a double-tap or
+                   repeated callback from reaching this branch twice, so
+                   generate_lead — GA4's Key Event for an accepted lead —
+                   fires exactly once per successful submission,
+                   alongside the existing estimate_submit_success. */
 
                 trackAnalyticsEvent('estimate_submit_success', {
+
+                    page_path: getAnalyticsPagePath(),
+
+                    service_selected: getAnalyticsServiceSelection()
+
+                });
+
+                trackAnalyticsEvent('generate_lead', {
 
                     page_path: getAnalyticsPagePath(),
 
